@@ -1,13 +1,13 @@
 import { Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
-import ProtectedRoute from './components/auth/ProtectedRoute';
-import Navbar from './components/layout/Navbar';
-import Footer from './components/layout/Footer';
+import ProtectedRoute from './components/ProtectedRoute'; 
+import Navbar from './components/layout/navbar';
+import Footer from './components/layout/footer';
 import Home from './pages/Home';
 import WardPage from './pages/WardPage';
 import DiscussionPage from './pages/DiscussionPage';
-import AdminDashboard from './pages/AdminDashboard';
-import MobilizerDashboard from './pages/MobilizerDashboard';
+import AdminDashBoard from './pages/AdminDashBoard';
+import MobilizerDashBoard from './pages/MobilizerDashBoard';
 import AboutUs from './pages/AboutUs';
 import ContactUs from './pages/ContactUs';
 import PrivacyPolicy from './pages/PrivacyPolicy';
