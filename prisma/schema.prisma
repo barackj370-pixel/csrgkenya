@@ -5,11 +5,11 @@ generator client {
   provider = "prisma-client-js"
 }
 
-// For the local preview, we use SQLite. 
-// To switch to Supabase (PostgreSQL), change provider to "postgresql" and set the DATABASE_URL in .env
+// For production, we use PostgreSQL (Supabase).
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 enum Role {
