@@ -30,12 +30,12 @@ export default function App() {
             <Route path="/discussion/:id" element={<DiscussionPage />} />
             <Route path="/admin" element={
               <ProtectedRoute allowedRoles={['ADMIN']}>
-                <AdminDashboard />
+                <AdminDashBoard />
               </ProtectedRoute>
             } />
             <Route path="/mobilizer" element={
               <ProtectedRoute allowedRoles={['ADMIN', 'MOBILIZER']}>
-                <MobilizerDashboard />
+                <MobilizerDashBoard />
               </ProtectedRoute>
             } />
             <Route path="/about" element={<AboutUs />} />
