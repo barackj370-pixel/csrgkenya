@@ -3,7 +3,7 @@ import { createServer as createViteServer } from 'vite';
 import { PrismaClient } from '@prisma/client';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
-
+import path from 'path';
 const prisma = new PrismaClient();
 const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbwl2XLNQ0bbeQqQ-d8mgzQ7-VFzBft6AKX5FeE2nLFINayM7QbqMnQTYdOX39EHrjvr/exec';
 const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-key-for-dev';
@@ -518,16 +518,18 @@ async function startServer() {
     app.use(vite.middlewares);
   } else {
     // Serve static files in production
-    app.use(express.static('dist'));
+    const distPath = path.join(process.cwd(), 'dist');
+    app.use(express.static(distPath));
     
     // SPA fallback: redirect all non-API routes to index.html
     app.get('*', (req, res) => {
       if (!req.path.startsWith('/api/')) {
-        res.sendFile('index.html', { root: 'dist' });
+        res.sendFile(path.join(distPath, 'index.html'));
+      } else {
+        res.status(404).json({ error: 'API route not found' });
       }
     });
   }
-
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on http://localhost:${PORT}`);
   });
