@@ -239,13 +239,13 @@ export default function MobilizerDashboard() {
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
             <div className="flex justify-between items-center mb-6">
               <a 
-                href="https://docs.google.com/spreadsheets/d/YOUR_SHEET_ID_HERE/edit" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="bg-green-100 text-green-800 px-4 py-2 rounded-full font-medium hover:bg-green-200 transition-colors flex items-center gap-2 text-sm"
-              >
-                <Save className="w-4 h-4" /> View Google Sheet Report
-              </a>
+  href="https://docs.google.com/spreadsheets/d/1VgP-nmvXlmqsJOiy4sS_LPEjQmyjyWxVazK6Cc-PV-4/edit?gid=2025654152#gid=2025654152" 
+  target="_blank" 
+  rel="noopener noreferrer"
+  className="bg-green-100 text-green-800 px-4 py-2 rounded-full font-medium hover:bg-green-200 transition-colors flex items-center gap-2 text-sm"
+>
+  <Save className="w-4 h-4" /> View Google Sheet Report
+</a>
               <button 
                 onClick={() => isAddingGroup ? handleCancelGroup() : setIsAddingGroup(true)}
                 className="bg-stone-900 text-white px-6 py-2 rounded-full font-medium hover:bg-stone-800 transition-colors flex items-center gap-2"
