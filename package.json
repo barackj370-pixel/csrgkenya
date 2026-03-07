@@ -3,9 +3,9 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "scripts": {
+"scripts": {
     "dev": "tsx server.ts",
-    "build": "prisma generate && vite build",
+    "build": "prisma generate --schema=./prisma/schema.prisma && vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit"
