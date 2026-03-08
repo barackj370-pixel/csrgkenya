@@ -68,19 +68,6 @@ export default function ContactUs() {
                     <p className="text-stone-600">Nairobi, Kenya</p>
                   </div>
                 </div>
-
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-stone-100 text-stone-900 rounded-2xl flex items-center justify-center flex-shrink-0">
-                    <Phone className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-bold text-stone-900">Call Us</h3>
-                    <p className="text-stone-600 mb-1">Mon-Fri from 8am to 5pm</p>
-                    <a href="tel:+254700000000" className="text-stone-900 font-medium hover:underline">
-                      +254 (0) 700 000 000
-                    </a>
-                  </div>
-                </div>
               </div>
             </div>
           </div>
