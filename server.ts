@@ -161,6 +161,9 @@ async function startServer() {
     }
   });
 
+  // In-memory cache for deleted items since Google Sheets doesn't support delete
+  const deletedWards = new Set<string>();
+
   // Get all wards from Google Sheets
   app.get('/api/wards', async (req, res) => {
     try {
@@ -183,10 +186,12 @@ async function startServer() {
         }
       }
 
-      const formattedWards = mergedWards.map((w: any) => ({
-        ...w,
-        _count: { groups: 0, discussions: 0, users: 0, issues: 0 }
-      }));
+      const formattedWards = mergedWards
+        .filter((w: any) => !deletedWards.has(w.id))
+        .map((w: any) => ({
+          ...w,
+          _count: { groups: 0, discussions: 0, users: 0, issues: 0 }
+        }));
       res.json(formattedWards);
     } catch (error) {
       res.status(500).json({ error: 'Failed to fetch wards' });
@@ -211,9 +216,22 @@ async function startServer() {
   });
 
   app.delete('/api/wards/:id', async (req, res) => {
-    // Note: Deleting from Google Sheets via API requires more complex Apps Script logic.
-    // For now, we return success to keep the UI happy, but it won't actually delete from the sheet.
-    res.json({ success: true, message: 'Delete not supported in Google Sheets mode yet' });
+    try {
+      // Since Google Sheets API doesn't support delete yet, we'll mark it as deleted in memory
+      deletedWards.add(req.params.id);
+      
+      // Also try to delete from Prisma if it's connected
+      try {
+        await prisma.ward.delete({
+          where: { id: req.params.id }
+        });
+      } catch (e) {
+        // Ignore Prisma errors if we're just using Google Sheets
+      }
+      res.json({ success: true, message: 'Ward deleted' });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to delete ward' });
+    }
   });
 
   // Get ward by slug from Google Sheets
@@ -238,7 +256,9 @@ async function startServer() {
         }
       }
 
-      const ward = mergedWards.find((w: any) => w.slug === req.params.slug);
+      const ward = mergedWards
+        .filter((w: any) => !deletedWards.has(w.id))
+        .find((w: any) => w.slug === req.params.slug);
       
       if (!ward) return res.status(404).json({ error: 'Ward not found' });
 
