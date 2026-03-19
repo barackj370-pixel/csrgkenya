@@ -69,9 +69,15 @@ export default function AdminDashboard() {
   const handleDeleteWard = async (id: string) => {
     try {
       const res = await fetch(`/api/wards/${id}`, { method: 'DELETE' });
-      if (res.ok) fetchStats();
+      if (res.ok) {
+        fetchStats();
+      } else {
+        const data = await res.json();
+        alert(`Failed to delete ward: ${data.error || 'Unknown error'}`);
+      }
     } catch (error) {
       console.error('Failed to delete ward', error);
+      alert('Failed to delete ward. Please try again.');
     }
   };
 
