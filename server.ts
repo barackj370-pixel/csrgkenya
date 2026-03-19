@@ -3,7 +3,7 @@ import { createServer as createViteServer } from 'vite';
 import { PrismaClient } from '@prisma/client';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
-import path from 'path';
+
 const prisma = new PrismaClient();
 const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbwl2XLNQ0bbeQqQ-d8mgzQ7-VFzBft6AKX5FeE2nLFINayM7QbqMnQTYdOX39EHrjvr/exec';
 const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-key-for-dev';
@@ -34,8 +34,22 @@ async function postToSheet(payload: any) {
 }
 
 function getNextAssemblyDate() {
-  // Hardcoded to March 5th, 2026 as requested
-  return new Date(2026, 2, 5); // Month is 0-indexed, so 2 is March
+  const assemblies = [
+    new Date(2026, 2, 19),
+    new Date(2026, 3, 30),
+    new Date(2026, 5, 26),
+    new Date(2026, 6, 30),
+    new Date(2026, 8, 24),
+    new Date(2026, 9, 29),
+    new Date(2026, 10, 26),
+  ];
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return assemblies.find(d => {
+    const dCopy = new Date(d);
+    dCopy.setHours(0, 0, 0, 0);
+    return dCopy >= today;
+  }) || assemblies[0];
 }
 
 async function seedDatabase() {
@@ -518,18 +532,16 @@ async function startServer() {
     app.use(vite.middlewares);
   } else {
     // Serve static files in production
-    const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
+    app.use(express.static('dist'));
     
     // SPA fallback: redirect all non-API routes to index.html
     app.get('*', (req, res) => {
       if (!req.path.startsWith('/api/')) {
-        res.sendFile(path.join(distPath, 'index.html'));
-      } else {
-        res.status(404).json({ error: 'API route not found' });
+        res.sendFile('index.html', { root: 'dist' });
       }
     });
   }
+
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on http://localhost:${PORT}`);
   });
