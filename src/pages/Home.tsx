@@ -22,25 +22,29 @@ export default function Home() {
   const navigate = useNavigate();
 
   const currentYear = new Date().getFullYear();
-  
-  // Explicitly set the first assembly to March 5th, 2026
-  const firstAssembly = new Date(2026, 2, 5); // Month is 0-indexed (2 = March)
-  
-  // Subsequent assemblies: May(5), July(7), September(9), November(11)
-  const subsequentMonths = [5, 7, 9, 11];
-  const subsequentAssemblies = subsequentMonths.map(m => getLastSaturday(currentYear, m));
-  
-  const assemblyDates = [firstAssembly, ...subsequentAssemblies];
+
+  const assemblies = [
+    { date: new Date(2026, 2, 19), name: "The Women Climate Assembly" },
+    { date: new Date(2026, 3, 30), name: "Citizen Assembly" },
+    { date: new Date(2026, 5, 26), name: "Citizen Assembly" },
+    { date: new Date(2026, 6, 30), name: "Citizen Assembly" },
+    { date: new Date(2026, 8, 24), name: "Citizen Assembly" },
+    { date: new Date(2026, 9, 29), name: "Citizen Assembly" },
+    { date: new Date(2026, 10, 26), name: "Citizen Assembly" }
+  ];
   
   // Find the next assembly date
   const today = new Date();
   today.setHours(0, 0, 0, 0); // Reset time to start of day for accurate comparison
   
-  const nextAssemblyDate = assemblyDates.find(d => {
-    const dCopy = new Date(d);
+  const nextAssembly = assemblies.find(a => {
+    const dCopy = new Date(a.date);
     dCopy.setHours(0, 0, 0, 0);
     return dCopy >= today;
-  }) || assemblyDates[0];
+  }) || assemblies[0];
+
+  const nextAssemblyDate = nextAssembly.date;
+  const nextAssemblyName = nextAssembly.name;
 
   const formatDate = (date: Date) => {
     return date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
@@ -131,7 +135,7 @@ export default function Home() {
               >
                 <div className="text-left">
                   <div className="inline-flex items-center gap-2 bg-red-500/20 text-red-400 px-3 py-1.5 rounded-full text-xs font-bold mb-4 border border-red-500/30">
-                    <Calendar className="w-3.5 h-3.5" /> Next Assembly
+                    <Calendar className="w-3.5 h-3.5" /> Next: {nextAssemblyName}
                   </div>
                   <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-4">
                     {nextAssemblyDate.toLocaleDateString('en-US', { weekday: 'long' })},<br />
@@ -311,7 +315,7 @@ export default function Home() {
               <div className="p-6 sm:p-8 border-b border-stone-100 flex items-center justify-between bg-stone-50">
                 <div>
                   <h3 className="text-2xl font-bold text-stone-900">Assembly Schedule {currentYear}</h3>
-                  <p className="text-stone-500 text-sm mt-1">Assemblies are held every 2 months on the last Saturday of the month.</p>
+                  <p className="text-stone-500 text-sm mt-1">Upcoming scheduled assemblies for the year.</p>
                 </div>
                 <button 
                   onClick={() => setIsViewAllModalOpen(false)}
@@ -323,7 +327,8 @@ export default function Home() {
               
               <div className="p-6 sm:p-8 max-h-[60vh] overflow-y-auto">
                 <div className="space-y-4">
-                  {assemblyDates.map((date, idx) => {
+                  {assemblies.map((assembly, idx) => {
+                    const date = assembly.date;
                     const isPast = date < today;
                     const isNext = date === nextAssemblyDate;
                     
@@ -348,7 +353,7 @@ export default function Home() {
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
                             <h4 className={`text-lg font-bold ${isNext ? 'text-red-900' : isPast ? 'text-stone-600' : 'text-stone-900'}`}>
-                              Citizen Assembly
+                              {assembly.name}
                             </h4>
                             {isNext && (
                               <span className="bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
