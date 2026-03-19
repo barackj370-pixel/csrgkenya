@@ -24,7 +24,6 @@ export default function Home() {
   const currentYear = new Date().getFullYear();
 
   const assemblies = [
-    { date: new Date(2026, 2, 19), name: "The Women Climate Assembly" },
     { date: new Date(2026, 3, 30), name: "Citizen Assembly" },
     { date: new Date(2026, 5, 26), name: "Citizen Assembly" },
     { date: new Date(2026, 6, 30), name: "Citizen Assembly" },
