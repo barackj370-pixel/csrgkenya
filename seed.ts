@@ -3,7 +3,22 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 function getNextAssemblyDate() {
-  return new Date(2026, 2, 5);
+  const assemblies = [
+    new Date(2026, 2, 19),
+    new Date(2026, 3, 30),
+    new Date(2026, 5, 26),
+    new Date(2026, 6, 30),
+    new Date(2026, 8, 24),
+    new Date(2026, 9, 29),
+    new Date(2026, 10, 26),
+  ];
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return assemblies.find(d => {
+    const dCopy = new Date(d);
+    dCopy.setHours(0, 0, 0, 0);
+    return dCopy >= today;
+  }) || assemblies[0];
 }
 
 async function main() {
