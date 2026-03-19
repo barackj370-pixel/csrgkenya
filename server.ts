@@ -35,7 +35,6 @@ async function postToSheet(payload: any) {
 
 function getNextAssemblyDate() {
   const assemblies = [
-    new Date(2026, 2, 19),
     new Date(2026, 3, 30),
     new Date(2026, 5, 26),
     new Date(2026, 6, 30),
