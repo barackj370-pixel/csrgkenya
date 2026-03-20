@@ -1,14 +1,18 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Calendar, Users, MessageSquare, ArrowLeft, ThumbsUp, ThumbsDown, Minus } from 'lucide-react';
+import { Calendar, Users, MessageSquare, ArrowLeft, ThumbsUp, ThumbsDown, Minus, FileText, Plus, CheckCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { clsx } from 'clsx';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function DiscussionPage() {
   const { id } = useParams();
+  const { user } = useAuth();
   const [discussion, setDiscussion] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [resolutions, setResolutions] = useState<any[]>([]);
+  const [newResolution, setNewResolution] = useState('');
 
   useEffect(() => {
     async function fetchDiscussion() {
@@ -17,6 +21,9 @@ export default function DiscussionPage() {
         if (res.ok) {
           const data = await res.json();
           setDiscussion(data);
+          if (data.resolutions) {
+            setResolutions(data.resolutions);
+          }
         }
       } catch (error) {
         console.error('Failed to fetch discussion', error);
@@ -24,10 +31,28 @@ export default function DiscussionPage() {
         setLoading(false);
       }
     }
-    // Mock fetch for now since we didn't create the endpoint yet
-    // I will add the endpoint in server.ts
     fetchDiscussion();
   }, [id]);
+
+  const handleAddResolution = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newResolution.trim()) return;
+
+    try {
+      const res = await fetch(`/api/discussions/${id}/resolutions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: newResolution })
+      });
+      if (res.ok) {
+        const added = await res.json();
+        setResolutions([...resolutions, added]);
+        setNewResolution('');
+      }
+    } catch (error) {
+      console.error('Failed to add resolution', error);
+    }
+  };
 
   if (loading) {
     return (
@@ -107,6 +132,62 @@ export default function DiscussionPage() {
           
           {/* Main Thread */}
           <div className="md:col-span-2 space-y-8">
+            
+            {/* Resolutions Section (Only visible if CLOSED) */}
+            {isClosed && (
+              <div className="bg-green-50 rounded-2xl border border-green-200 p-8 mb-8">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-12 h-12 bg-green-100 text-green-700 rounded-full flex items-center justify-center">
+                    <FileText className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold text-stone-900">Assembly Resolutions</h2>
+                    <p className="text-stone-600">Official resolutions passed during this assembly.</p>
+                  </div>
+                </div>
+
+                <div className="space-y-4 mb-6">
+                  {resolutions.length > 0 ? (
+                    resolutions.map((res: any) => (
+                      <div key={res.id} className="bg-white p-4 rounded-xl border border-green-100 flex items-start gap-4">
+                        <CheckCircle className="w-5 h-5 text-green-600 mt-0.5 shrink-0" />
+                        <div>
+                          <p className="text-stone-900 font-medium">{res.text}</p>
+                          <span className="text-xs font-bold text-stone-500 uppercase tracking-wider mt-2 inline-block">
+                            Status: {res.status}
+                          </span>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-stone-500 italic">No resolutions have been recorded yet.</p>
+                  )}
+                </div>
+
+                {user?.role === 'MOBILIZER' && (
+                  <form onSubmit={handleAddResolution} className="mt-6 border-t border-green-200 pt-6">
+                    <h3 className="font-bold text-stone-900 mb-3">Add New Resolution</h3>
+                    <div className="flex gap-3">
+                      <input 
+                        type="text" 
+                        value={newResolution}
+                        onChange={(e) => setNewResolution(e.target.value)}
+                        placeholder="Enter the official resolution text..."
+                        className="flex-1 bg-white border border-green-200 rounded-xl px-4 py-2 focus:ring-2 focus:ring-green-600 focus:border-transparent outline-none"
+                      />
+                      <button 
+                        type="submit"
+                        disabled={!newResolution.trim()}
+                        className="bg-green-600 text-white px-6 py-2 rounded-xl font-medium hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+                      >
+                        <Plus className="w-4 h-4" /> Add
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </div>
+            )}
+
             <div>
               <h2 className="text-2xl font-bold text-stone-900 flex items-center gap-2 mb-2">
                 <MessageSquare className="w-6 h-6 text-green-600" />
