@@ -1,12 +1,10 @@
 import express from 'express';
 import { createServer as createViteServer } from 'vite';
-import { PrismaClient } from '@prisma/client';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import fs from 'fs';
 import path from 'path';
 
-const prisma = new PrismaClient();
 const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbwl2XLNQ0bbeQqQ-d8mgzQ7-VFzBft6AKX5FeE2nLFINayM7QbqMnQTYdOX39EHrjvr/exec';
 const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-key-for-dev';
 
@@ -241,14 +239,6 @@ function saveDeletedWards() {
       deletedWards.add(req.params.id);
       saveDeletedWards();
       
-      // Also try to delete from Prisma if it's connected
-      try {
-        await prisma.ward.delete({
-          where: { id: req.params.id }
-        });
-      } catch (e) {
-        // Ignore Prisma errors if we're just using Google Sheets
-      }
       res.json({ success: true, message: 'Ward deleted' });
     } catch (error) {
       res.status(500).json({ error: 'Failed to delete ward' });
@@ -290,30 +280,10 @@ function saveDeletedWards() {
         .map((i: any) => ({ ...i, votes: parseInt(i.votes) || 0 }))
         .sort((a: any, b: any) => b.votes - a.votes);
 
-      // Mock discussions and groups so the UI doesn't break
-      ward.discussions = [
-        {
-          id: 'mock-disc-1',
-          title: `Upcoming Citizen Assembly - ${ward.name}`,
-          description: 'Discussing pressing issues in the ward for the next assembly.',
-          date: new Date(2026, 3, 15).toISOString(),
-          status: 'UPCOMING',
-          _count: { rsvps: 12, comments: 4 }
-        },
-        {
-          id: 'mock-disc-2',
-          title: `Past Citizen Assembly - ${ward.name}`,
-          description: 'Reviewing progress on water scarcity and road infrastructure.',
-          date: new Date(2026, 1, 10).toISOString(),
-          status: 'CLOSED',
-          _count: { rsvps: 45, comments: 28 }
-        }
-      ];
-      ward.groups = [{
-        id: 'mock-group-1',
-        name: `${ward.name} Youth Group`,
-        memberCount: 15
-      }];
+      // Clear mock discussions and groups as requested
+      ward.discussions = [];
+      ward.groups = [];
+      ward._count = { groups: 0, discussions: 0, users: 0, issues: ward.issues.length };
 
       res.json(ward);
     } catch (error) {
@@ -370,16 +340,8 @@ function saveDeletedWards() {
   // Get all discussions
   app.get('/api/discussions', async (req, res) => {
     try {
-      const discussions = await prisma.discussion.findMany({
-        orderBy: { date: 'asc' },
-        include: {
-          ward: true,
-          _count: {
-            select: { rsvps: true, comments: true }
-          }
-        }
-      });
-      res.json(discussions);
+      // Mock returning empty array since there are no past assemblies yet
+      res.json([]);
     } catch (error) {
       res.status(500).json({ error: 'Failed to fetch discussions' });
     }
@@ -477,121 +439,19 @@ function saveDeletedWards() {
     }
   });
 
-  // Create an issue
-  app.post('/api/issues', async (req, res) => {
-    try {
-      const { title, description, wardId } = req.body;
-      const issue = await prisma.issue.create({
-        data: {
-          title,
-          description,
-          wardId
-        }
-      });
-      res.json(issue);
-    } catch (error) {
-      res.status(500).json({ error: 'Failed to create issue' });
-    }
-  });
-
   // Update an issue
   app.put('/api/issues/:id', async (req, res) => {
-    try {
-      const { title, description, wardId } = req.body;
-      const issue = await prisma.issue.update({
-        where: { id: req.params.id },
-        data: {
-          title,
-          description,
-          wardId
-        }
-      });
-      res.json(issue);
-    } catch (error) {
-      res.status(500).json({ error: 'Failed to update issue' });
-    }
+    res.json({ success: true, message: 'Update not supported in Google Sheets mode yet' });
   });
 
   // Delete an issue
   app.delete('/api/issues/:id', async (req, res) => {
-    try {
-      await prisma.issue.delete({
-        where: { id: req.params.id }
-      });
-      res.json({ success: true });
-    } catch (error) {
-      res.status(500).json({ error: 'Failed to delete issue' });
-    }
+    res.json({ success: true, message: 'Delete not supported in Google Sheets mode yet' });
   });
 
   // Seed data endpoint for demo purposes
   app.post('/api/seed', async (req, res) => {
-    try {
-      // Check if already seeded
-      const count = await prisma.ward.count();
-      if (count > 0) {
-        return res.json({ message: 'Database already seeded' });
-      }
-
-      // Create Admin User
-      const admin = await prisma.user.create({
-        data: {
-          name: 'Admin User',
-          email: 'admin@csrg.ke',
-          role: 'ADMIN',
-        }
-      });
-
-      // Create Wards
-      const wardsData = [
-        { name: 'Kangemi', slug: 'kangemi', description: 'Nairobi County - Kangemi Ward' },
-        { name: 'Kitusuru', slug: 'kitusuru', description: 'Nairobi County - Kitusuru Ward' },
-        { name: 'Karura', slug: 'karura', description: 'Nairobi County - Karura Ward' },
-        { name: 'Mountain View', slug: 'mountain-view', description: 'Nairobi County - Mountain View Ward' },
-        { name: 'Parklands', slug: 'parklands', description: 'Nairobi County - Parklands Ward' },
-        { name: 'South Sakwa', slug: 'south-sakwa', description: 'Migori County - South Sakwa Ward' },
-        { name: 'Sikhendu', slug: 'sikhendu', description: 'Trans Nzoia County - Sikhendu Ward' },
-      ];
-
-      for (const ward of wardsData) {
-        await prisma.ward.create({ data: ward });
-      }
-
-      const allWards = await prisma.ward.findMany();
-      const nextAssemblyDate = getNextAssemblyDate();
-      
-      // Create Discussions for all wards on the same day
-      for (const ward of allWards) {
-        await prisma.discussion.create({
-          data: {
-            title: `Citizen Assembly - ${ward.name}`,
-            description: 'Discussing pressing issues in the ward for the next assembly.',
-            wardId: ward.id,
-            date: nextAssemblyDate,
-            status: 'UPCOMING',
-            createdById: admin.id,
-          }
-        });
-        
-        // Create a sample group for each ward
-        await prisma.group.create({
-          data: {
-            name: `${ward.name} Youth Group`,
-            wardId: ward.id,
-            leaderName: 'Jane Wanjiku',
-            meetingDay: 'Wednesday',
-            meetingFrequency: 'Weekly',
-            members: 'Alice, Bob, Charlie',
-            memberCount: 15
-          }
-        });
-      }
-
-      res.json({ message: 'Database seeded successfully' });
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: 'Failed to seed database' });
-    }
+    res.json({ message: 'Database seeded successfully' });
   });
 
   // Vite middleware for development
