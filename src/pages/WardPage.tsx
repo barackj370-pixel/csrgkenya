@@ -289,7 +289,7 @@ export default function WardPage() {
                   ))
                 ) : (
                   <div className="bg-white p-8 rounded-2xl border border-stone-200 text-center text-stone-500">
-                    No past assemblies found.
+                    No passed assemblies or resolutions yet.
                   </div>
                 )}
               </div>
