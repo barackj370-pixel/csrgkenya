@@ -14,6 +14,7 @@ function getLastSaturday(year: number, month: number) {
 export default function Home() {
   const [wards, setWards] = useState<any[]>([]);
   const [issues, setIssues] = useState([]);
+  const [pastAssemblies, setPastAssemblies] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isAssemblyDropdownOpen, setIsAssemblyDropdownOpen] = useState(false);
@@ -59,15 +60,22 @@ export default function Home() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const [wardsRes, issuesRes] = await Promise.all([
+        const [wardsRes, issuesRes, discussionsRes] = await Promise.all([
           fetch('/api/wards'),
-          fetch('/api/issues')
+          fetch('/api/issues'),
+          fetch('/api/discussions')
         ]);
         const wardsData = await wardsRes.json();
         const issuesData = await issuesRes.json();
+        const discussionsData = await discussionsRes.json();
         
         setWards(Array.isArray(wardsData) ? wardsData : []);
         setIssues(Array.isArray(issuesData) ? issuesData : []);
+        
+        const past = Array.isArray(discussionsData) 
+          ? discussionsData.filter((d: any) => d.status === 'CLOSED') 
+          : [];
+        setPastAssemblies(past);
       } catch (error) {
         console.error('Failed to fetch data', error);
       } finally {
@@ -262,6 +270,50 @@ export default function Home() {
                   {issues.length === 0 && (
                     <div className="col-span-full bg-white p-8 rounded-2xl border border-stone-200 text-center text-stone-500">
                       No issues have been proposed yet.
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Passed Assemblies and Resolutions */}
+              <div className="space-y-6 pt-6">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-3xl font-bold text-stone-900 flex items-center gap-3">
+                    <Calendar className="w-8 h-8 text-green-600" />
+                    Passed Assemblies & Resolutions
+                  </h2>
+                </div>
+                <p className="text-stone-500">Review the outcomes and official resolutions from previous citizen assemblies.</p>
+                
+                <div className="space-y-4">
+                  {pastAssemblies.length > 0 ? (
+                    pastAssemblies.map((assembly: any) => (
+                      <div key={assembly.id} className="bg-white rounded-2xl border border-stone-200 p-6 shadow-sm hover:shadow-md transition-shadow">
+                        <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center mb-4">
+                          <div>
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="bg-stone-100 text-stone-600 px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wider">
+                                {new Date(assembly.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                              </span>
+                              <span className="inline-flex items-center gap-1 bg-green-50 text-green-700 px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wider">
+                                <MapPin className="w-3 h-3" /> {assembly.ward?.name}
+                              </span>
+                            </div>
+                            <h3 className="text-xl font-bold text-stone-900">{assembly.title}</h3>
+                          </div>
+                          <button 
+                            onClick={() => navigate(`/discussion/${assembly.id}`)}
+                            className="text-green-600 hover:text-green-700 font-medium flex items-center gap-1 text-sm whitespace-nowrap"
+                          >
+                            View Resolutions <ArrowRight className="w-4 h-4" />
+                          </button>
+                        </div>
+                        <p className="text-stone-600 text-sm">{assembly.description}</p>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="bg-white p-8 rounded-2xl border border-stone-200 text-center text-stone-500">
+                      No passed assemblies or resolutions yet.
                     </div>
                   )}
                 </div>
