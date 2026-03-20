@@ -221,23 +221,49 @@ function saveDeletedWards() {
   // Get all wards
   app.get('/api/wards', async (req, res) => {
     try {
+      let dbWards: any[] = [];
       if (process.env.DATABASE_URL) {
-        const wards = await prisma.ward.findMany({
-          include: {
-            _count: {
-              select: { groups: true, discussions: true, issues: true }
+        try {
+          dbWards = await prisma.ward.findMany({
+            include: {
+              _count: {
+                select: { groups: true, discussions: true, issues: true }
+              }
             }
-          }
-        });
-        return res.json(wards);
+          });
+        } catch (e) {
+          console.error("Prisma fetch failed", e);
+        }
       }
       
-      // Fallback to Google Sheets
-      const wards = await fetchFromSheet('getWards');
-      const formattedWards = Array.isArray(wards) ? wards.map((w: any) => ({
-        ...w,
-        _count: { groups: 0, discussions: 0, users: 0, issues: 0 }
-      })) : [];
+      const sheetWards = await fetchFromSheet('getWards');
+      
+      const defaultWards = [
+        { id: 'ward-1', name: 'Kangemi', slug: 'kangemi', description: 'Nairobi County - Kangemi Ward' },
+        { id: 'ward-2', name: 'Kitusuru', slug: 'kitusuru', description: 'Nairobi County - Kitusuru Ward' },
+        { id: 'ward-3', name: 'Karura', slug: 'karura', description: 'Nairobi County - Karura Ward' },
+        { id: 'ward-4', name: 'Mountain View', slug: 'mountain-view', description: 'Nairobi County - Mountain View Ward' },
+        { id: 'ward-5', name: 'Parklands', slug: 'parklands', description: 'Nairobi County - Parklands Ward' },
+        { id: 'ward-6', name: 'South Sakwa', slug: 'south-sakwa', description: 'Migori County - South Sakwa Ward' },
+        { id: 'ward-7', name: 'Sikhendu', slug: 'sikhendu', description: 'Trans Nzoia County - Sikhendu Ward' },
+      ];
+
+      const mergedWards = [...dbWards];
+      
+      const sheetWardsArray = Array.isArray(sheetWards) ? sheetWards : [];
+      for (const sw of sheetWardsArray) {
+        if (!mergedWards.find((w: any) => w.name && w.name.toLowerCase() === sw.name.toLowerCase())) {
+          mergedWards.push({ ...sw, _count: { groups: 0, discussions: 0, users: 0, issues: 0 } });
+        }
+      }
+
+      for (const dw of defaultWards) {
+        if (!mergedWards.find((w: any) => w.name && w.name.toLowerCase() === dw.name.toLowerCase())) {
+          mergedWards.push({ ...dw, _count: { groups: 0, discussions: 0, users: 0, issues: 0 } });
+        }
+      }
+
+      const formattedWards = mergedWards.filter((w: any) => !deletedWards.has(w.id));
       res.json(formattedWards);
     } catch (error) {
       res.status(500).json({ error: 'Failed to fetch wards' });
@@ -277,11 +303,15 @@ function saveDeletedWards() {
   app.delete('/api/wards/:id', async (req, res) => {
     try {
       if (process.env.DATABASE_URL) {
-        await prisma.ward.delete({ where: { id: req.params.id } });
-      } else {
-        deletedWards.add(req.params.id);
-        saveDeletedWards();
+        try {
+          await prisma.ward.delete({ where: { id: req.params.id } });
+        } catch (e) {
+          console.error("Prisma delete failed, marking as deleted in memory", e);
+        }
       }
+      deletedWards.add(req.params.id);
+      saveDeletedWards();
+      
       res.json({ success: true, message: 'Ward deleted' });
     } catch (error) {
       res.status(500).json({ error: 'Failed to delete ward' });
@@ -291,37 +321,60 @@ function saveDeletedWards() {
   // Get ward by slug
   app.get('/api/wards/:slug', async (req, res) => {
     try {
+      let ward = null;
       if (process.env.DATABASE_URL) {
-        const ward = await prisma.ward.findUnique({
-          where: { slug: req.params.slug },
-          include: {
-            issues: { orderBy: { votes: 'desc' } },
-            discussions: true,
-            groups: true,
-            _count: {
-              select: { groups: true, discussions: true, issues: true }
+        try {
+          ward = await prisma.ward.findUnique({
+            where: { slug: req.params.slug },
+            include: {
+              issues: { orderBy: { votes: 'desc' } },
+              discussions: true,
+              groups: true,
+              _count: {
+                select: { groups: true, discussions: true, issues: true }
+              }
             }
-          }
-        });
-        if (!ward) return res.status(404).json({ error: 'Ward not found' });
-        return res.json(ward);
+          });
+        } catch (e) {
+          console.error("Prisma fetch failed", e);
+        }
       }
 
-      // Fallback to Google Sheets
-      const wards = await fetchFromSheet('getWards');
-      const ward = Array.isArray(wards) ? wards.find((w: any) => w.slug === req.params.slug) : null;
-      
-      if (!ward) return res.status(404).json({ error: 'Ward not found' });
+      if (!ward) {
+        const sheetWards = await fetchFromSheet('getWards');
+        const defaultWards = [
+          { id: 'ward-1', name: 'Kangemi', slug: 'kangemi', description: 'Nairobi County - Kangemi Ward' },
+          { id: 'ward-2', name: 'Kitusuru', slug: 'kitusuru', description: 'Nairobi County - Kitusuru Ward' },
+          { id: 'ward-3', name: 'Karura', slug: 'karura', description: 'Nairobi County - Karura Ward' },
+          { id: 'ward-4', name: 'Mountain View', slug: 'mountain-view', description: 'Nairobi County - Mountain View Ward' },
+          { id: 'ward-5', name: 'Parklands', slug: 'parklands', description: 'Nairobi County - Parklands Ward' },
+          { id: 'ward-6', name: 'South Sakwa', slug: 'south-sakwa', description: 'Migori County - South Sakwa Ward' },
+          { id: 'ward-7', name: 'Sikhendu', slug: 'sikhendu', description: 'Trans Nzoia County - Sikhendu Ward' },
+        ];
 
-      const allIssues = await fetchFromSheet('getIssues');
-      ward.issues = allIssues
-        .filter((i: any) => i.wardName === ward.name)
-        .map((i: any) => ({ ...i, votes: parseInt(i.votes) || 0 }))
-        .sort((a: any, b: any) => b.votes - a.votes);
+        const mergedWards = Array.isArray(sheetWards) ? [...sheetWards] : [];
+        for (const dw of defaultWards) {
+          if (!mergedWards.find((w: any) => w.name && w.name.toLowerCase() === dw.name.toLowerCase())) {
+            mergedWards.push(dw);
+          }
+        }
 
-      ward.discussions = [];
-      ward.groups = [];
-      ward._count = { groups: 0, discussions: 0, users: 0, issues: ward.issues.length };
+        ward = mergedWards
+          .filter((w: any) => !deletedWards.has(w.id))
+          .find((w: any) => w.slug === req.params.slug);
+        
+        if (!ward) return res.status(404).json({ error: 'Ward not found' });
+
+        const allIssues = await fetchFromSheet('getIssues');
+        ward.issues = allIssues
+          .filter((i: any) => i.wardName === ward.name)
+          .map((i: any) => ({ ...i, votes: parseInt(i.votes) || 0 }))
+          .sort((a: any, b: any) => b.votes - a.votes);
+
+        ward.discussions = [];
+        ward.groups = [];
+        ward._count = { groups: 0, discussions: 0, users: 0, issues: ward.issues.length };
+      }
 
       res.json(ward);
     } catch (error) {
@@ -415,13 +468,47 @@ function saveDeletedWards() {
   // Get all discussions
   app.get('/api/discussions', async (req, res) => {
     try {
+      let dbDiscussions: any[] = [];
       if (process.env.DATABASE_URL) {
-        const discussions = await prisma.discussion.findMany({
-          include: { ward: true }
-        });
-        return res.json(discussions);
+        try {
+          dbDiscussions = await prisma.discussion.findMany({
+            include: { ward: true }
+          });
+        } catch (e) {
+          console.error("Prisma fetch failed", e);
+        }
       }
-      res.json([]);
+      
+      const mockDiscussions = [
+        {
+          id: 'mock-disc-1',
+          title: 'Upcoming Citizen Assembly',
+          description: 'Discussing pressing issues in the ward for the next assembly.',
+          date: new Date(2026, 3, 15).toISOString(),
+          status: 'UPCOMING',
+          ward: { name: 'Mock Ward', slug: 'mock-ward' },
+          _count: { rsvps: 12, comments: 4 }
+        },
+        {
+          id: 'mock-disc-2',
+          title: 'Past Citizen Assembly',
+          description: 'Reviewing progress on water scarcity and road infrastructure.',
+          date: new Date(2026, 1, 10).toISOString(),
+          status: 'CLOSED',
+          ward: { name: 'Mock Ward', slug: 'mock-ward' },
+          _count: { rsvps: 45, comments: 28 }
+        }
+      ];
+
+      // Merge them
+      const mergedDiscussions = [...dbDiscussions];
+      for (const md of mockDiscussions) {
+        if (!mergedDiscussions.find((d: any) => d.id === md.id)) {
+          mergedDiscussions.push(md);
+        }
+      }
+
+      res.json(mergedDiscussions);
     } catch (error) {
       res.status(500).json({ error: 'Failed to fetch discussions' });
     }
@@ -484,12 +571,27 @@ function saveDeletedWards() {
   // Get all groups
   app.get('/api/groups', async (req, res) => {
     try {
+      let dbGroups: any[] = [];
       if (process.env.DATABASE_URL) {
-        const groups = await prisma.group.findMany({ include: { ward: true } });
-        return res.json(groups);
+        try {
+          dbGroups = await prisma.group.findMany({ include: { ward: true } });
+        } catch (e) {
+          console.error("Prisma fetch failed", e);
+        }
       }
-      const groups = await fetchFromSheet('getGroups');
-      res.json(groups);
+      
+      const sheetGroups = await fetchFromSheet('getGroups');
+      
+      const mergedGroups = [...dbGroups];
+      const sheetGroupsArray = Array.isArray(sheetGroups) ? sheetGroups : [];
+      
+      for (const sg of sheetGroupsArray) {
+        if (!mergedGroups.find((g: any) => g.name && g.name.toLowerCase() === sg.name.toLowerCase())) {
+          mergedGroups.push(sg);
+        }
+      }
+      
+      res.json(mergedGroups);
     } catch (error) {
       res.status(500).json({ error: 'Failed to fetch groups' });
     }
@@ -562,12 +664,27 @@ function saveDeletedWards() {
   // Get all issues
   app.get('/api/issues', async (req, res) => {
     try {
+      let dbIssues: any[] = [];
       if (process.env.DATABASE_URL) {
-        const issues = await prisma.issue.findMany({ include: { ward: true } });
-        return res.json(issues);
+        try {
+          dbIssues = await prisma.issue.findMany({ include: { ward: true } });
+        } catch (e) {
+          console.error("Prisma fetch failed", e);
+        }
       }
-      const issues = await fetchFromSheet('getIssues');
-      res.json(issues);
+      
+      const sheetIssues = await fetchFromSheet('getIssues');
+      
+      const mergedIssues = [...dbIssues];
+      const sheetIssuesArray = Array.isArray(sheetIssues) ? sheetIssues : [];
+      
+      for (const si of sheetIssuesArray) {
+        if (!mergedIssues.find((i: any) => i.title && i.title.toLowerCase() === si.title.toLowerCase())) {
+          mergedIssues.push(si);
+        }
+      }
+      
+      res.json(mergedIssues);
     } catch (error) {
       res.status(500).json({ error: 'Failed to fetch issues' });
     }
