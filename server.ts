@@ -3,6 +3,8 @@ import { createServer as createViteServer } from 'vite';
 import { PrismaClient } from '@prisma/client';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
+import fs from 'fs';
+import path from 'path';
 
 const prisma = new PrismaClient();
 const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbwl2XLNQ0bbeQqQ-d8mgzQ7-VFzBft6AKX5FeE2nLFINayM7QbqMnQTYdOX39EHrjvr/exec';
@@ -161,10 +163,28 @@ async function startServer() {
     }
   });
 
-  // In-memory cache for deleted items since Google Sheets doesn't support delete
-  const deletedWards = new Set<string>();
+const DELETED_WARDS_FILE = path.join(process.cwd(), 'deleted_wards.json');
 
-  // Get all wards from Google Sheets
+// Load deleted wards from file
+let deletedWards = new Set<string>();
+try {
+  if (fs.existsSync(DELETED_WARDS_FILE)) {
+    const data = fs.readFileSync(DELETED_WARDS_FILE, 'utf-8');
+    deletedWards = new Set(JSON.parse(data));
+  }
+} catch (e) {
+  console.error('Failed to load deleted wards', e);
+}
+
+function saveDeletedWards() {
+  try {
+    fs.writeFileSync(DELETED_WARDS_FILE, JSON.stringify(Array.from(deletedWards)));
+  } catch (e) {
+    console.error('Failed to save deleted wards', e);
+  }
+}
+
+// Get all wards from Google Sheets
   app.get('/api/wards', async (req, res) => {
     try {
       const wards = await fetchFromSheet('getWards');
@@ -219,6 +239,7 @@ async function startServer() {
     try {
       // Since Google Sheets API doesn't support delete yet, we'll mark it as deleted in memory
       deletedWards.add(req.params.id);
+      saveDeletedWards();
       
       // Also try to delete from Prisma if it's connected
       try {
@@ -270,14 +291,24 @@ async function startServer() {
         .sort((a: any, b: any) => b.votes - a.votes);
 
       // Mock discussions and groups so the UI doesn't break
-      ward.discussions = [{
-        id: 'mock-disc-1',
-        title: `Citizen Assembly - ${ward.name}`,
-        description: 'Discussing pressing issues in the ward for the next assembly.',
-        date: new Date(2026, 2, 5).toISOString(),
-        status: 'UPCOMING',
-        _count: { rsvps: 12, comments: 4 }
-      }];
+      ward.discussions = [
+        {
+          id: 'mock-disc-1',
+          title: `Upcoming Citizen Assembly - ${ward.name}`,
+          description: 'Discussing pressing issues in the ward for the next assembly.',
+          date: new Date(2026, 3, 15).toISOString(),
+          status: 'UPCOMING',
+          _count: { rsvps: 12, comments: 4 }
+        },
+        {
+          id: 'mock-disc-2',
+          title: `Past Citizen Assembly - ${ward.name}`,
+          description: 'Reviewing progress on water scarcity and road infrastructure.',
+          date: new Date(2026, 1, 10).toISOString(),
+          status: 'CLOSED',
+          _count: { rsvps: 45, comments: 28 }
+        }
+      ];
       ward.groups = [{
         id: 'mock-group-1',
         name: `${ward.name} Youth Group`,
@@ -354,19 +385,40 @@ async function startServer() {
     }
   });
 
+  // Add resolution to a discussion
+  app.post('/api/discussions/:id/resolutions', async (req, res) => {
+    try {
+      const { text } = req.body;
+      // Mock adding resolution
+      const newResolution = {
+        id: crypto.randomUUID(),
+        text,
+        status: 'PENDING'
+      };
+      res.json(newResolution);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to add resolution' });
+    }
+  });
+
   // Get discussion by id
   app.get('/api/discussions/:id', async (req, res) => {
     try {
-      const discussion = await prisma.discussion.findUnique({
-        where: { id: req.params.id },
-        include: {
-          ward: true,
-          _count: {
-            select: { rsvps: true, comments: true }
-          }
-        }
-      });
-      if (!discussion) return res.status(404).json({ error: 'Discussion not found' });
+      // Mock discussion since Prisma is not connected
+      const isClosed = req.params.id === 'mock-disc-2';
+      const discussion = {
+        id: req.params.id,
+        title: isClosed ? 'Past Citizen Assembly' : 'Upcoming Citizen Assembly',
+        description: isClosed ? 'Reviewing progress on water scarcity and road infrastructure.' : 'Discussing pressing issues in the ward for the next assembly.',
+        date: isClosed ? new Date(2026, 1, 10).toISOString() : new Date(2026, 3, 15).toISOString(),
+        status: isClosed ? 'CLOSED' : 'UPCOMING',
+        ward: { name: 'Mock Ward', slug: 'mock-ward' },
+        _count: { rsvps: isClosed ? 45 : 12, comments: isClosed ? 28 : 4 },
+        resolutions: isClosed ? [
+          { id: 'res-1', text: 'Allocate 20% of ward fund to repair the main water pipe.', status: 'PENDING' },
+          { id: 'res-2', text: 'Form a youth committee to monitor road construction.', status: 'IMPLEMENTED' }
+        ] : []
+      };
       res.json(discussion);
     } catch (error) {
       res.status(500).json({ error: 'Failed to fetch discussion' });
