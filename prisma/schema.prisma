@@ -1,81 +1,31 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
 
-// For production, we use PostgreSQL (Supabase).
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
-}
-
-enum Role {
-  ADMIN
-  MODERATOR
-  MOBILIZER
-  CITIZEN
-}
-
-enum DiscussionStatus {
-  UPCOMING
-  LIVE
-  CLOSED
-}
-
-enum VoteType {
-  SUPPORT
-  OPPOSE
-  NEUTRAL
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
 }
 
 model User {
   id        String   @id @default(uuid())
   name      String
   email     String   @unique
-  role      Role     @default(CITIZEN)
+  password  String?
+  role      String   @default("MOBILIZER")
   wardId    String?
-  ward      Ward?    @relation(fields: [wardId], references: [id])
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  discussions Discussion[]
-  comments    Comment[]
-  votes       Vote[]
-  rsvps       RSVP[]
 }
 
 model Ward {
-  id          String   @id @default(uuid())
+  id          String       @id @default(uuid())
   name        String
-  slug        String   @unique
-  description String
-  logo        String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  users       User[]
+  slug        String       @unique
+  description String?
+  issues      Issue[]
   discussions Discussion[]
   groups      Group[]
-  issues      Issue[]
-}
-
-model Group {
-  id               String   @id @default(uuid())
-  name             String
-  wardId           String
-  ward             Ward     @relation(fields: [wardId], references: [id])
-  leaderName       String
-  meetingDay       String
-  meetingFrequency String
-  members          String   @default("") // Store members as comma separated or text
-  memberCount      Int      @default(0)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-
-  @@index([wardId])
+  createdAt   DateTime     @default(now())
 }
 
 model Issue {
@@ -84,70 +34,41 @@ model Issue {
   description String
   wardId      String
   ward        Ward     @relation(fields: [wardId], references: [id])
+  votes       Int      @default(0)
   createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@index([wardId])
 }
 
 model Discussion {
-  id          String           @id @default(uuid())
+  id          String   @id @default(uuid())
   title       String
   description String
-  wardId      String
-  ward        Ward             @relation(fields: [wardId], references: [id])
   date        DateTime
-  status      DiscussionStatus @default(UPCOMING)
+  status      String   @default("UPCOMING")
+  wardId      String
+  ward        Ward     @relation(fields: [wardId], references: [id])
   createdById String
-  createdBy   User             @relation(fields: [createdById], references: [id])
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
-
-  comments Comment[]
-  votes    Vote[]
-  rsvps    RSVP[]
-
-  @@index([wardId])
-  @@index([status])
+  createdAt   DateTime @default(now())
+  resolutions Resolution[]
 }
 
-model Comment {
+model Resolution {
   id           String     @id @default(uuid())
-  content      String
-  userId       String
-  user         User       @relation(fields: [userId], references: [id])
-  discussionId String
-  discussion   Discussion @relation(fields: [discussionId], references: [id])
-  flagged      Boolean    @default(false)
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
-
-  @@index([discussionId])
-}
-
-model Vote {
-  id           String     @id @default(uuid())
-  userId       String
-  user         User       @relation(fields: [userId], references: [id])
-  discussionId String
-  discussion   Discussion @relation(fields: [discussionId], references: [id])
-  type         VoteType
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
-
-  @@unique([userId, discussionId])
-  @@index([discussionId])
-}
-
-model RSVP {
-  id           String     @id @default(uuid())
-  userId       String
-  user         User       @relation(fields: [userId], references: [id])
+  text         String
+  status       String     @default("PENDING")
   discussionId String
   discussion   Discussion @relation(fields: [discussionId], references: [id])
   createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+}
 
-  @@unique([userId, discussionId])
-  @@index([discussionId])
+model Group {
+  id               String   @id @default(uuid())
+  name             String
+  leaderName       String
+  meetingDay       String
+  meetingFrequency String?
+  members          String?
+  memberCount      Int      @default(0)
+  wardId           String
+  ward             Ward     @relation(fields: [wardId], references: [id])
+  createdAt        DateTime @default(now())
 }
