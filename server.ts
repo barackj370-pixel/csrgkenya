@@ -479,36 +479,7 @@ function saveDeletedWards() {
         }
       }
       
-      const mockDiscussions = [
-        {
-          id: 'mock-disc-1',
-          title: 'Upcoming Citizen Assembly',
-          description: 'Discussing pressing issues in the ward for the next assembly.',
-          date: new Date(2026, 3, 15).toISOString(),
-          status: 'UPCOMING',
-          ward: { name: 'Mock Ward', slug: 'mock-ward' },
-          _count: { rsvps: 12, comments: 4 }
-        },
-        {
-          id: 'mock-disc-2',
-          title: 'Past Citizen Assembly',
-          description: 'Reviewing progress on water scarcity and road infrastructure.',
-          date: new Date(2026, 1, 10).toISOString(),
-          status: 'CLOSED',
-          ward: { name: 'Mock Ward', slug: 'mock-ward' },
-          _count: { rsvps: 45, comments: 28 }
-        }
-      ];
-
-      // Merge them
-      const mergedDiscussions = [...dbDiscussions];
-      for (const md of mockDiscussions) {
-        if (!mergedDiscussions.find((d: any) => d.id === md.id)) {
-          mergedDiscussions.push(md);
-        }
-      }
-
-      res.json(mergedDiscussions);
+      res.json(dbDiscussions);
     } catch (error) {
       res.status(500).json({ error: 'Failed to fetch discussions' });
     }
@@ -548,21 +519,7 @@ function saveDeletedWards() {
         return res.json(discussion);
       }
       
-      const isClosed = req.params.id === 'mock-disc-2';
-      const discussion = {
-        id: req.params.id,
-        title: isClosed ? 'Past Citizen Assembly' : 'Upcoming Citizen Assembly',
-        description: isClosed ? 'Reviewing progress on water scarcity and road infrastructure.' : 'Discussing pressing issues in the ward for the next assembly.',
-        date: isClosed ? new Date(2026, 1, 10).toISOString() : new Date(2026, 3, 15).toISOString(),
-        status: isClosed ? 'CLOSED' : 'UPCOMING',
-        ward: { name: 'Mock Ward', slug: 'mock-ward' },
-        _count: { rsvps: isClosed ? 45 : 12, comments: isClosed ? 28 : 4 },
-        resolutions: isClosed ? [
-          { id: 'res-1', text: 'Allocate 20% of ward fund to repair the main water pipe.', status: 'PENDING' },
-          { id: 'res-2', text: 'Form a youth committee to monitor road construction.', status: 'IMPLEMENTED' }
-        ] : []
-      };
-      res.json(discussion);
+      return res.status(404).json({ error: 'Discussion not found' });
     } catch (error) {
       res.status(500).json({ error: 'Failed to fetch discussion' });
     }
