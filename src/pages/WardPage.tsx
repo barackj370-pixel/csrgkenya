@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { MapPin, Users, Calendar, ArrowLeft, Lightbulb, ThumbsUp } from 'lucide-react';
+import { MapPin, Users, Calendar, ArrowLeft, Lightbulb, ThumbsUp, Plus, FileText, CheckCircle } from 'lucide-react';
 import DiscussionCard from '../components/ui/DiscussionCard';
 import JoinWardModal from '../components/ui/JoinWardModal';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function WardPage() {
   const { slug } = useParams();
+  const { user } = useAuth();
   const [ward, setWard] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
@@ -14,6 +16,12 @@ export default function WardPage() {
 
   const [newIssue, setNewIssue] = useState({ title: '', description: '' });
   const brainstormIssues = ward?.issues || [];
+  
+  // Get top 2 issues
+  const topIssues = [...brainstormIssues].sort((a: any, b: any) => b.votes - a.votes).slice(0, 2);
+  
+  // Filter past assemblies
+  const pastAssemblies = ward?.discussions?.filter((d: any) => d.status === 'CLOSED') || [];
 
   useEffect(() => {
     async function fetchWard() {
@@ -233,21 +241,58 @@ export default function WardPage() {
             </div>
           </div>
 
-          {/* Right Column: Scheduled Assemblies */}
+          {/* Right Column: Top 2 Voted Agendas */}
           <div className="space-y-6">
-            <h2 className="text-2xl font-bold text-stone-900 mb-6">Scheduled Assemblies</h2>
+            <h2 className="text-2xl font-bold text-stone-900 mb-6 flex items-center gap-2">
+              <CheckCircle className="w-6 h-6 text-green-600" />
+              Top 2 Voted Agendas
+            </h2>
             <div className="space-y-4">
-              {Array.isArray(ward.discussions) && ward.discussions.map((discussion: any) => (
-                <DiscussionCard 
-                  key={discussion.id} 
-                  discussion={{...discussion, ward: { name: ward.name, slug: ward.slug }}} 
-                />
-              ))}
-              {(!Array.isArray(ward.discussions) || ward.discussions.length === 0) && (
+              {topIssues.length > 0 ? (
+                topIssues.map((issue: any, index: number) => (
+                  <div key={issue.id} className="bg-white p-6 rounded-2xl border border-stone-200 shadow-sm relative overflow-hidden">
+                    <div className="absolute top-0 right-0 bg-stone-900 text-white text-xs font-bold px-3 py-1 rounded-bl-xl">
+                      #{index + 1}
+                    </div>
+                    <h4 className="text-lg font-bold text-stone-900 mb-2 pr-8">{issue.title}</h4>
+                    <p className="text-sm text-stone-600 mb-4 line-clamp-3">{issue.description}</p>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-bold text-stone-500">{issue.votes} Votes</span>
+                      {user?.role === 'MOBILIZER' && (
+                        <button className="text-sm bg-green-100 text-green-700 px-3 py-1.5 rounded-lg font-medium hover:bg-green-200 transition-colors flex items-center gap-1">
+                          <Plus className="w-4 h-4" /> Add to Assembly
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))
+              ) : (
                 <div className="bg-white p-8 rounded-2xl border border-stone-200 text-center text-stone-500">
-                  No assemblies scheduled.
+                  No agendas proposed yet.
                 </div>
               )}
+            </div>
+            
+            {/* Past Assemblies & Resolutions */}
+            <div className="pt-8">
+              <h2 className="text-2xl font-bold text-stone-900 mb-6 flex items-center gap-2">
+                <FileText className="w-6 h-6 text-stone-600" />
+                Past Assemblies & Resolutions
+              </h2>
+              <div className="space-y-4">
+                {pastAssemblies.length > 0 ? (
+                  pastAssemblies.map((discussion: any) => (
+                    <DiscussionCard 
+                      key={discussion.id} 
+                      discussion={{...discussion, ward: { name: ward.name, slug: ward.slug }}} 
+                    />
+                  ))
+                ) : (
+                  <div className="bg-white p-8 rounded-2xl border border-stone-200 text-center text-stone-500">
+                    No past assemblies found.
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
