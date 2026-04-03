@@ -6,7 +6,7 @@ import { supabase } from '../lib/supabase';
 
 export default function Register() {
   const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('MOBILIZER');
   const [wardId, setWardId] = useState('');
@@ -43,14 +43,14 @@ export default function Register() {
     try {
       const hashedPassword = await hashPassword(password);
 
-      const { data: existing } = await supabase.from('User').select('id').eq('email', email).single();
-      if (existing) throw new Error('Email already registered');
+      const { data: existing } = await supabase.from('User').select('id').eq('phone', phone).maybeSingle();
+      if (existing) throw new Error('Phone number already registered');
 
       const { data: newUser, error } = await supabase
         .from('User')
         .insert([{
           name,
-          email,
+          phone,
           password: hashedPassword,
           role,
           wardId: role === 'MOBILIZER' ? wardId : null
@@ -58,10 +58,14 @@ export default function Register() {
         .select()
         .single();
 
-      if (error || !newUser) throw new Error('Failed to register');
+      if (error) {
+        console.error("Supabase Insert Error:", error);
+        throw new Error(`Registration failed: ${error.message}`);
+      }
+      if (!newUser) throw new Error('Failed to register: No user data returned');
 
       const token = 'mock-jwt-token-' + newUser.id;
-      login(token, { id: newUser.id, name: newUser.name, email: newUser.email, role: newUser.role, wardId: newUser.wardId });
+      login(token, { id: newUser.id, name: newUser.name, phone: newUser.phone, role: newUser.role, wardId: newUser.wardId });
       
       if (newUser.role === 'ADMIN') {
         navigate('/admin');
@@ -109,14 +113,14 @@ export default function Register() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-stone-700 mb-2">Email Address</label>
+            <label className="block text-sm font-medium text-stone-700 mb-2">Phone Number</label>
             <input
-              type="email"
+              type="tel"
               required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
               className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3 focus:ring-2 focus:ring-stone-900 focus:border-transparent outline-none"
-              placeholder="you@example.com"
+              placeholder="Enter Phone Number"
             />
           </div>
 
