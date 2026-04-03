@@ -57,10 +57,14 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
           .select('*')
           .eq('phone', formData.phone)
           .eq('password', hashedPassword)
-          .single();
+          .maybeSingle();
 
-        if (error || !user) {
-          throw new Error('Invalid credentials');
+        if (error) {
+          console.error("Supabase Login Error:", error);
+          throw new Error(`Login failed: ${error.message}`);
+        }
+        if (!user) {
+          throw new Error('Invalid phone number or password');
         }
 
         // Mock token for static site
@@ -73,7 +77,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         
       } else {
         // Register
-        const { data: existing } = await supabase.from('User').select('id').eq('phone', formData.phone).single();
+        const { data: existing } = await supabase.from('User').select('id').eq('phone', formData.phone).maybeSingle();
         if (existing) throw new Error('Phone number already registered');
 
         const { data: newUser, error } = await supabase
@@ -88,7 +92,11 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
           .select()
           .single();
 
-        if (error || !newUser) throw new Error('Failed to register');
+        if (error) {
+          console.error("Supabase Insert Error:", error);
+          throw new Error(`Registration failed: ${error.message}`);
+        }
+        if (!newUser) throw new Error('Failed to register: No user data returned');
 
         const token = 'mock-jwt-token-' + newUser.id;
         login(token, { id: newUser.id, name: newUser.name, phone: newUser.phone, role: newUser.role, wardId: newUser.wardId });
