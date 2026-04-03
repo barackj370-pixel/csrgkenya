@@ -20,7 +20,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
   const [formData, setFormData] = useState({
     name: '',
-    email: '',
+    phone: '',
     password: '',
     role: 'MOBILIZER',
     wardId: ''
@@ -55,7 +55,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         const { data: user, error } = await supabase
           .from('User')
           .select('*')
-          .eq('email', formData.email)
+          .eq('phone', formData.phone)
           .eq('password', hashedPassword)
           .single();
 
@@ -65,7 +65,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
         // Mock token for static site
         const token = 'mock-jwt-token-' + user.id;
-        login(token, { id: user.id, name: user.name, email: user.email, role: user.role, wardId: user.wardId });
+        login(token, { id: user.id, name: user.name, phone: user.phone, role: user.role, wardId: user.wardId });
         
         onClose();
         if (user.role === 'ADMIN') navigate('/admin');
@@ -73,14 +73,14 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         
       } else {
         // Register
-        const { data: existing } = await supabase.from('User').select('id').eq('email', formData.email).single();
-        if (existing) throw new Error('Email already registered');
+        const { data: existing } = await supabase.from('User').select('id').eq('phone', formData.phone).single();
+        if (existing) throw new Error('Phone number already registered');
 
         const { data: newUser, error } = await supabase
           .from('User')
           .insert([{
             name: formData.name,
-            email: formData.email,
+            phone: formData.phone,
             password: hashedPassword,
             role: formData.role,
             wardId: formData.wardId || null
@@ -91,7 +91,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         if (error || !newUser) throw new Error('Failed to register');
 
         const token = 'mock-jwt-token-' + newUser.id;
-        login(token, { id: newUser.id, name: newUser.name, email: newUser.email, role: newUser.role, wardId: newUser.wardId });
+        login(token, { id: newUser.id, name: newUser.name, phone: newUser.phone, role: newUser.role, wardId: newUser.wardId });
         
         onClose();
         if (newUser.role === 'ADMIN') navigate('/admin');
@@ -185,14 +185,14 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
               )}
 
               <div>
-                <label className="block text-xs font-medium text-stone-700 mb-1">Email Address</label>
+                <label className="block text-xs font-medium text-stone-700 mb-1">Phone Number</label>
                 <input 
                   required
-                  type="email" 
-                  value={formData.email}
-                  onChange={e => setFormData({...formData, email: e.target.value})}
+                  type="tel" 
+                  value={formData.phone}
+                  onChange={e => setFormData({...formData, phone: e.target.value})}
                   className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-stone-900 focus:border-transparent outline-none"
-                  placeholder="Enter Email Address"
+                  placeholder="Enter Phone Number"
                 />
               </div>
 
