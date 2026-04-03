@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 
 export default function Login() {
-  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -30,7 +30,7 @@ export default function Login() {
       const { data: user, error } = await supabase
         .from('User')
         .select('*')
-        .eq('email', email)
+        .eq('phone', phone)
         .eq('password', hashedPassword)
         .single();
 
@@ -39,7 +39,7 @@ export default function Login() {
       }
 
       const token = 'mock-jwt-token-' + user.id;
-      login(token, { id: user.id, name: user.name, email: user.email, role: user.role, wardId: user.wardId });
+      login(token, { id: user.id, name: user.name, phone: user.phone, role: user.role, wardId: user.wardId });
       
       if (user.role === 'ADMIN') {
         navigate('/admin');
@@ -75,14 +75,14 @@ export default function Login() {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label className="block text-sm font-medium text-stone-700 mb-2">Email Address</label>
+            <label className="block text-sm font-medium text-stone-700 mb-2">Phone Number</label>
             <input
-              type="email"
+              type="tel"
               required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
               className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3 focus:ring-2 focus:ring-stone-900 focus:border-transparent outline-none"
-              placeholder="you@example.com"
+              placeholder="Enter Phone Number"
             />
           </div>
 
