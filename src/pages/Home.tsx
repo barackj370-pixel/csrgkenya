@@ -63,8 +63,8 @@ export default function Home() {
       try {
         const [wardsRes, issuesRes, discussionsRes] = await Promise.all([
           supabase.from('Ward').select('*'),
-          supabase.from('Issue').select('*'),
-          supabase.from('Discussion').select('*')
+          supabase.from('Issue').select('*, ward:Ward(*)'),
+          supabase.from('Discussion').select('*, ward:Ward(*)')
         ]);
 
         if (wardsRes.error) console.error('Wards fetch error:', wardsRes.error);
@@ -76,60 +76,21 @@ export default function Home() {
           _count: { issues: 0, discussions: 0, groups: 0, users: 0 }
         })) || [];
         
-        if (wardsData.length === 0) {
-           wardsData = [
-             { id: '1', name: 'Kangemi Ward', slug: 'kangemi', description: 'Central ward', _count: { issues: 0, discussions: 0, groups: 0, users: 0 } },
-             { id: '2', name: 'Kibera Ward', slug: 'kibera', description: 'Southern ward', _count: { issues: 0, discussions: 0, groups: 0, users: 0 } }
-           ];
-        }
-        
         setWards(wardsData);
 
         let issuesData = issuesRes.data as any || [];
-        if (issuesData.length === 0) {
-          issuesData = [{
-            id: 'mock-issue-1',
-            title: 'Water rationing schedule clarification needed',
-            description: 'Residents need a clear schedule for water rationing to plan their week and prevent shortages in households.',
-            ward: { name: 'Kangemi Ward' }
-          }];
-        }
         setIssues(issuesData);
         
         let past = discussionsRes.data 
           ? discussionsRes.data.filter((d: any) => d.status === 'CLOSED') 
           : [];
           
-        if (past.length === 0) {
-           past = [{
-             id: 'mock-disc-1',
-             title: 'Road Maintenance and Sanitation Resolution',
-             description: 'Assembly met to discuss the funding allocated for road maintenance. Resolved to start work by end of month.',
-             date: new Date().toISOString(),
-             ward: { name: 'Kibera Ward' }
-           }];
-        }
-        
         setPastAssemblies(past);
       } catch (error) {
         console.error('Failed to fetch data', error);
-        // Fallbacks on error
-        setWards([
-             { id: '1', name: 'Kangemi Ward', slug: 'kangemi', description: 'Central ward', _count: { issues: 0, discussions: 0, groups: 0, users: 0 } }
-        ]);
-        setIssues([{
-            id: 'mock-issue-1',
-            title: 'Water rationing schedule clarification needed',
-            description: 'Residents need a clear schedule for water rationing to plan their week and prevent shortages in households.',
-            ward: { name: 'Kangemi Ward' }
-        }]);
-        setPastAssemblies([{
-             id: 'mock-disc-1',
-             title: 'Road Maintenance and Sanitation Resolution',
-             description: 'Assembly met to discuss the funding allocated for road maintenance. Resolved to start work by end of month.',
-             date: new Date().toISOString(),
-             ward: { name: 'Kangemi Ward' }
-        }]);
+        setWards([]);
+        setIssues([]);
+        setPastAssemblies([]);
       } finally {
         setLoading(false);
       }
