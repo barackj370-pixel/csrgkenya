@@ -6,10 +6,11 @@ import { supabase } from '../lib/supabase';
 
 export default function ClerkDashboard() {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'groups' | 'issues'>('groups');
+  const [activeTab, setActiveTab] = useState<'groups' | 'issues' | 'discussions'>('groups');
   const [wards, setWards] = useState<any[]>([]);
   const [groups, setGroups] = useState<any[]>([]);
   const [issues, setIssues] = useState<any[]>([]);
+  const [discussions, setDiscussions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   
   // Group Form State
@@ -34,21 +35,34 @@ export default function ClerkDashboard() {
     wardId: user?.role === 'CLERK' ? (user.wardId || '') : ''
   });
 
+  // Discussion Form State
+  const [isAddingDiscussion, setIsAddingDiscussion] = useState(false);
+  const [editDiscussionId, setEditDiscussionId] = useState<string | null>(null);
+  const [discussionFormData, setDiscussionFormData] = useState({
+    title: '',
+    description: '',
+    date: '',
+    status: 'OPEN',
+    wardId: user?.role === 'CLERK' ? (user.wardId || '') : ''
+  });
+
   useEffect(() => {
     fetchData();
   }, []);
 
   async function fetchData() {
     try {
-      const [wardsRes, groupsRes, issuesRes] = await Promise.all([
+      const [wardsRes, groupsRes, issuesRes, discussionsRes] = await Promise.all([
         supabase.from('Ward').select('*'),
         supabase.from('Group').select('*'),
-        supabase.from('Issue').select('*')
+        supabase.from('Issue').select('*'),
+        supabase.from('Discussion').select('*')
       ]);
       
       setWards(wardsRes.data || []);
       setGroups(groupsRes.data || []);
       setIssues(issuesRes.data || []);
+      setDiscussions(discussionsRes.data || []);
     } catch (error) {
       console.error('Failed to fetch data', error);
     } finally {
@@ -133,12 +147,10 @@ export default function ClerkDashboard() {
   const handleIssueSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const selectedWard = wards.find((w: any) => w.id === issueFormData.wardId);
-      const wardName = selectedWard ? selectedWard.name : '';
-
       const payload = {
-        ...issueFormData,
-        wardName
+        title: issueFormData.title,
+        description: issueFormData.description,
+        wardId: issueFormData.wardId
       };
 
       if (editIssueId) {
@@ -157,11 +169,10 @@ export default function ClerkDashboard() {
   };
 
   const handleEditIssue = (issue: any) => {
-    const ward = wards.find((w: any) => w.name === issue.wardName);
     setIssueFormData({
       title: issue.title,
       description: issue.description,
-      wardId: ward ? ward.id : (user?.role === 'CLERK' ? (user.wardId || '') : '')
+      wardId: issue.wardId || (user?.role === 'CLERK' ? (user.wardId || '') : '')
     });
     setEditIssueId(issue.id);
     setIsAddingIssue(true);
@@ -182,18 +193,75 @@ export default function ClerkDashboard() {
     setIssueFormData({ title: '', description: '', wardId: user?.role === 'CLERK' ? (user.wardId || '') : '' });
   };
 
+  // --- Discussion Handlers ---
+  const handleDiscussionSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const payload = {
+        title: discussionFormData.title,
+        description: discussionFormData.description,
+        date: discussionFormData.date ? new Date(discussionFormData.date).toISOString() : null,
+        status: discussionFormData.status,
+        wardId: discussionFormData.wardId
+      };
+
+      if (editDiscussionId) {
+        await supabase.from('Discussion').update(payload).eq('id', editDiscussionId);
+      } else {
+        await supabase.from('Discussion').insert([payload]);
+      }
+      
+      setIsAddingDiscussion(false);
+      setEditDiscussionId(null);
+      setDiscussionFormData({ title: '', description: '', date: '', status: 'OPEN', wardId: user?.role === 'CLERK' ? (user.wardId || '') : '' });
+      fetchData();
+    } catch (error) {
+      console.error('Failed to save discussion', error);
+    }
+  };
+
+  const handleEditDiscussion = (disc: any) => {
+    setDiscussionFormData({
+      title: disc.title,
+      description: disc.description || '',
+      date: disc.date ? disc.date.split('T')[0] : '',
+      status: disc.status,
+      wardId: disc.wardId || (user?.role === 'CLERK' ? (user.wardId || '') : '')
+    });
+    setEditDiscussionId(disc.id);
+    setIsAddingDiscussion(true);
+  };
+
+  const handleDeleteDiscussion = async (id: string) => {
+    try {
+      await supabase.from('Discussion').delete().eq('id', id);
+      fetchData();
+    } catch (error) {
+      console.error('Failed to delete discussion', error);
+    }
+  };
+
+  const handleCancelDiscussion = () => {
+    setIsAddingDiscussion(false);
+    setEditDiscussionId(null);
+    setDiscussionFormData({ title: '', description: '', date: '', status: 'OPEN', wardId: user?.role === 'CLERK' ? (user.wardId || '') : '' });
+  };
+
   // Filter data based on user role
-  const clerkWardName = user?.role === 'CLERK' 
-    ? wards.find((w: any) => w.id === user.wardId)?.name 
-    : null;
+  const clerkWardId = user?.role === 'CLERK' ? user.wardId : null;
+  const clerkWardName = clerkWardId ? wards.find((w: any) => w.id === clerkWardId)?.name : null;
 
   const filteredGroups = user?.role === 'ADMIN' 
     ? groups 
-    : groups.filter((g: any) => g.wardName === clerkWardName);
+    : groups.filter((g: any) => g.wardId === clerkWardId || g.wardName === clerkWardName);
 
   const filteredIssues = user?.role === 'ADMIN' 
     ? issues 
-    : issues.filter((i: any) => i.wardName === clerkWardName);
+    : issues.filter((i: any) => i.wardId === clerkWardId);
+    
+  const filteredDiscussions = user?.role === 'ADMIN'
+    ? discussions
+    : discussions.filter((d: any) => d.wardId === clerkWardId);
 
   return (
     <motion.div 
@@ -225,6 +293,14 @@ export default function ClerkDashboard() {
               }`}
             >
               Proposed Issues
+            </button>
+            <button
+              onClick={() => setActiveTab('discussions')}
+              className={`px-6 py-2 rounded-full text-sm font-medium transition-colors ${
+                activeTab === 'discussions' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-600 hover:text-stone-900'
+              }`}
+            >
+              Assemblies
             </button>
           </div>
         </div>
@@ -393,7 +469,7 @@ export default function ClerkDashboard() {
                           <td className="p-4 font-medium text-stone-900">{group.name}</td>
                           <td className="p-4 text-stone-600">
                             <span className="inline-flex items-center gap-1 bg-stone-100 px-2 py-1 rounded-md text-xs font-medium">
-                              <MapPin className="w-3 h-3" /> {group.wardName || group.ward?.name}
+                              <MapPin className="w-3 h-3" /> {wards.find((w: any) => w.id === group.wardId)?.name || group.wardName || 'Unknown Ward'}
                             </span>
                           </td>
                           <td className="p-4 text-stone-600">{group.leaderName}</td>
@@ -521,7 +597,7 @@ export default function ClerkDashboard() {
                   <div key={issue.id} className="bg-white rounded-2xl border border-stone-200 p-6 shadow-sm hover:shadow-md transition-shadow">
                     <div className="flex items-start justify-between mb-4">
                       <span className="inline-flex items-center gap-1 bg-stone-100 px-2 py-1 rounded-md text-xs font-medium text-stone-600">
-                        <MapPin className="w-3 h-3" /> {issue.wardName || issue.ward?.name}
+                        <MapPin className="w-3 h-3" /> {wards.find((w: any) => w.id === issue.wardId)?.name || 'Unknown Ward'}
                       </span>
                       <div className="flex items-center gap-1">
                         <button 
@@ -542,6 +618,150 @@ export default function ClerkDashboard() {
                     <p className="text-sm text-stone-600 line-clamp-3 mb-4">{issue.description}</p>
                     <div className="flex items-center gap-1.5 text-xs text-stone-400 mt-auto pt-4 border-t border-stone-100">
                       <AlertCircle className="w-3.5 h-3.5" /> Proposed for next assembly
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </motion.div>
+        )}
+
+        {activeTab === 'discussions' && (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+            <div className="flex justify-end mb-6">
+              <button 
+                onClick={() => isAddingDiscussion ? handleCancelDiscussion() : setIsAddingDiscussion(true)}
+                className="bg-stone-900 text-white px-6 py-2 rounded-full font-medium hover:bg-stone-800 transition-colors flex items-center gap-2"
+              >
+                {isAddingDiscussion ? 'Cancel' : <><Plus className="w-4 h-4" /> Add Assembly</>}
+              </button>
+            </div>
+
+            {isAddingDiscussion && (
+              <motion.div 
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-white p-8 rounded-3xl shadow-sm border border-stone-200 mb-8"
+              >
+                <h2 className="text-xl font-bold text-stone-900 mb-6">{editDiscussionId ? 'Edit Assembly' : 'Add New Assembly'}</h2>
+                <form onSubmit={handleDiscussionSubmit} className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-stone-700">Assembly Title</label>
+                      <input 
+                        required
+                        type="text" 
+                        value={discussionFormData.title}
+                        onChange={e => setDiscussionFormData({...discussionFormData, title: e.target.value})}
+                        className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3 focus:ring-2 focus:ring-stone-900 focus:border-transparent outline-none"
+                        placeholder="e.g. Ward Townhall - Road Infrastructure"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-stone-700">Ward</label>
+                      <select 
+                        required
+                        value={discussionFormData.wardId}
+                        onChange={e => setDiscussionFormData({...discussionFormData, wardId: e.target.value})}
+                        disabled={user?.role === 'CLERK'}
+                        className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3 focus:ring-2 focus:ring-stone-900 focus:border-transparent outline-none disabled:opacity-70 disabled:bg-stone-100"
+                      >
+                        <option value="">Select Ward...</option>
+                        {wards.map((ward: any) => (
+                          <option key={ward.id} value={ward.id}>{ward.name}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-stone-700">Status</label>
+                      <select 
+                        required
+                        value={discussionFormData.status}
+                        onChange={e => setDiscussionFormData({...discussionFormData, status: e.target.value})}
+                        className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3 focus:ring-2 focus:ring-stone-900 focus:border-transparent outline-none"
+                      >
+                        <option value="OPEN">Upcoming / Open</option>
+                        <option value="CLOSED">Passed / Closed</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-stone-700">Assembly Date</label>
+                      <input 
+                        type="date"
+                        value={discussionFormData.date}
+                        onChange={e => setDiscussionFormData({...discussionFormData, date: e.target.value})}
+                        className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3 focus:ring-2 focus:ring-stone-900 focus:border-transparent outline-none"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-stone-700">Description / Minutes Summary</label>
+                    <textarea 
+                      value={discussionFormData.description}
+                      onChange={e => setDiscussionFormData({...discussionFormData, description: e.target.value})}
+                      className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3 focus:ring-2 focus:ring-stone-900 focus:border-transparent outline-none resize-none"
+                      rows={4}
+                      placeholder="Summary of what was or will be discussed..."
+                    />
+                  </div>
+
+                  <div className="flex justify-end mt-4">
+                    <button type="submit" className="bg-green-600 text-white px-8 py-3 rounded-full font-bold hover:bg-green-700 transition-colors flex items-center gap-2">
+                      <Save className="w-5 h-5" /> {editDiscussionId ? 'Update Assembly' : 'Submit Assembly'}
+                    </button>
+                  </div>
+                </form>
+              </motion.div>
+            )}
+
+            {/* Discussions List */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {loading ? (
+                <div className="col-span-full p-12 flex justify-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-stone-900"></div>
+                </div>
+              ) : filteredDiscussions.length === 0 ? (
+                <div className="col-span-full bg-white p-12 rounded-2xl border border-stone-200 text-center text-stone-500">
+                  No assemblies found.
+                </div>
+              ) : (
+                filteredDiscussions.map((disc: any) => (
+                  <div key={disc.id} className="bg-white rounded-2xl border border-stone-200 p-6 shadow-sm hover:shadow-md transition-shadow">
+                    <div className="flex items-start justify-between mb-4">
+                      <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium ${disc.status === 'CLOSED' ? 'bg-stone-100 text-stone-600' : 'bg-green-100 text-green-700'}`}>
+                        {disc.status}
+                      </span>
+                      <div className="flex items-center gap-1">
+                        <button 
+                          onClick={() => handleEditDiscussion(disc)}
+                          className="p-1.5 text-stone-400 hover:text-stone-900 hover:bg-stone-100 rounded-md transition-colors"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
+                        <button 
+                          onClick={() => handleDeleteDiscussion(disc.id)}
+                          className="p-1.5 text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                    <h3 className="text-lg font-bold text-stone-900 mb-2">{disc.title}</h3>
+                    {disc.date && (
+                      <p className="text-sm font-medium text-stone-500 mb-2 flex items-center gap-1">
+                        <Calendar className="w-3.5 h-3.5" /> 
+                        {new Date(disc.date).toLocaleDateString()}
+                      </p>
+                    )}
+                    <p className="text-sm text-stone-600 line-clamp-3 mb-4">{disc.description}</p>
+                    
+                    <div className="mt-auto pt-4 border-t border-stone-100 flex items-center gap-1.5 text-xs text-stone-400">
+                      <MapPin className="w-3.5 h-3.5" /> 
+                      {wards.find((w: any) => w.id === disc.wardId)?.name || 'Unknown Ward'}
                     </div>
                   </div>
                 ))
