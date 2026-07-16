@@ -36,20 +36,11 @@ export default function Navbar() {
   return (
     <nav className="bg-sky-600 border-b border-sky-700 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
+        <div className="flex justify-between items-center h-24">
           <div className="flex items-center gap-8">
             <Link to="/" onClick={closeMobileMenu} className="flex-shrink-0 flex items-center gap-3">
-              <div className="relative w-10 h-10 rounded-xl bg-white flex items-center justify-center shadow-md overflow-hidden">
-                
-                <Users className="w-6 h-6 text-sky-600 relative z-10" />
-              </div>
-              <div className="flex flex-col">
-                <span className="font-extrabold text-xl tracking-tight text-white leading-none">
-                  CSRG Kenya
-                </span>
-                <span className="text-[10px] uppercase tracking-wider text-sky-100 font-bold mt-0.5">
-                  Amplifying Citizen Voices
-                </span>
+              <div className="flex items-center justify-center bg-white px-3 py-2 md:px-5 md:py-3 rounded-xl shadow-md border border-sky-300">
+                <img src="/logo.svg" alt="CSRG Kenya Logo" className="h-14 md:h-16 lg:h-20 w-auto object-contain" />
               </div>
             </Link>
             
