@@ -22,7 +22,7 @@ export default function Navbar() {
           setWards(data);
         }
       } catch (error) {
-        console.error('Failed to fetch wards', error);
+        console.warn('Failed to fetch wards', error);
       }
     }
     fetchWards();
@@ -34,20 +34,20 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="bg-white border-b border-stone-200 sticky top-0 z-50">
+    <nav className="bg-sky-600 border-b border-sky-700 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center gap-8">
             <Link to="/" onClick={closeMobileMenu} className="flex-shrink-0 flex items-center gap-3">
-              <div className="relative w-10 h-10 rounded-xl bg-gradient-to-br from-red-600 via-stone-900 to-green-600 flex items-center justify-center shadow-md overflow-hidden">
-                <div className="absolute inset-0 bg-black/20"></div>
-                <Users className="w-6 h-6 text-white relative z-10" />
+              <div className="relative w-10 h-10 rounded-xl bg-white flex items-center justify-center shadow-md overflow-hidden">
+                
+                <Users className="w-6 h-6 text-sky-600 relative z-10" />
               </div>
               <div className="flex flex-col">
-                <span className="font-extrabold text-xl tracking-tight text-stone-900 leading-none">
+                <span className="font-extrabold text-xl tracking-tight text-white leading-none">
                   CSRG Kenya
                 </span>
-                <span className="text-[10px] uppercase tracking-wider text-stone-500 font-bold mt-0.5">
+                <span className="text-[10px] uppercase tracking-wider text-sky-100 font-bold mt-0.5">
                   Amplifying Citizen Voices
                 </span>
               </div>
@@ -55,14 +55,14 @@ export default function Navbar() {
             
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center gap-4">
-              <Link to="/" className="text-stone-600 hover:text-stone-900 px-3 py-2 rounded-md text-sm font-medium">
+              <Link to="/" className="text-sky-50 hover:text-white hover:bg-sky-700 px-3 py-2 rounded-md text-sm font-medium">
                 Home
               </Link>
               <div className="relative">
                 <button 
                   onClick={() => setIsAssembliesOpen(!isAssembliesOpen)}
                   onBlur={() => setTimeout(() => setIsAssembliesOpen(false), 200)}
-                  className="text-stone-600 hover:text-stone-900 px-3 py-2 rounded-md text-sm font-medium flex items-center gap-1"
+                  className="text-sky-50 hover:text-white hover:bg-sky-700 px-3 py-2 rounded-md text-sm font-medium flex items-center gap-1"
                 >
                   Citizen Assemblies <ChevronDown className={`w-4 h-4 transition-transform ${isAssembliesOpen ? 'rotate-180' : ''}`} />
                 </button>
@@ -79,7 +79,7 @@ export default function Navbar() {
                             navigate(`/ward/${ward.slug}`);
                             setIsAssembliesOpen(false);
                           }}
-                          className="w-full text-left px-4 py-2 text-sm text-stone-700 hover:bg-stone-50 hover:text-stone-900 flex items-center gap-2 transition-colors"
+                          className="w-full text-left px-4 py-2 text-sm text-stone-700 hover:bg-stone-50 hover:text-sky-800 flex items-center gap-2 transition-colors"
                         >
                           <MapPin className="w-3 h-3 text-stone-400" /> {ward.name}
                         </button>
@@ -88,14 +88,14 @@ export default function Navbar() {
                   </div>
                 )}
               </div>
-              <Link to="/about" className="text-stone-600 hover:text-stone-900 px-3 py-2 rounded-md text-sm font-medium">
+              <Link to="/about" className="text-sky-50 hover:text-white hover:bg-sky-700 px-3 py-2 rounded-md text-sm font-medium">
                 About Us
               </Link>
-              <Link to="/contact" className="text-stone-600 hover:text-stone-900 px-3 py-2 rounded-md text-sm font-medium">
+              <Link to="/contact" className="text-sky-50 hover:text-white hover:bg-sky-700 px-3 py-2 rounded-md text-sm font-medium">
                 Contact Us
               </Link>
               {(user?.role === 'CLERK' || user?.role === 'ADMIN') && (
-                <Link to="/clerk" className="text-stone-600 hover:text-stone-900 px-3 py-2 rounded-md text-sm font-medium">
+                <Link to="/clerk" className="text-sky-50 hover:text-white hover:bg-sky-700 px-3 py-2 rounded-md text-sm font-medium">
                   Clerk Portal
                 </Link>
               )}
@@ -106,7 +106,7 @@ export default function Navbar() {
             {/* Desktop Auth/Admin Buttons */}
             <div className="hidden md:flex items-center gap-4">
               {user?.role === 'ADMIN' && (
-                <Link to="/admin" className="text-stone-600 hover:text-stone-900 px-3 py-2 rounded-md text-sm font-medium flex items-center gap-1">
+                <Link to="/admin" className="text-sky-50 hover:text-white hover:bg-sky-700 px-3 py-2 rounded-md text-sm font-medium flex items-center gap-1">
                   <LayoutDashboard className="w-4 h-4" />
                   Admin
                 </Link>
@@ -118,7 +118,7 @@ export default function Navbar() {
                     logout();
                     navigate('/');
                   }}
-                  className="text-stone-600 hover:text-stone-900 px-3 py-2 rounded-md text-sm font-medium flex items-center gap-1"
+                  className="text-sky-50 hover:text-white hover:bg-sky-700 px-3 py-2 rounded-md text-sm font-medium flex items-center gap-1"
                 >
                   <LogOut className="w-4 h-4" />
                   Sign Out
@@ -126,7 +126,7 @@ export default function Navbar() {
               ) : (
                 <button 
                   onClick={() => setIsAuthModalOpen(true)}
-                  className="bg-stone-900 text-white hover:bg-stone-800 px-4 py-2 rounded-full text-sm font-medium flex items-center gap-2 transition-colors"
+                  className="bg-white text-sky-600 hover:bg-sky-50 px-4 py-2 rounded-full text-sm font-bold flex items-center gap-2 transition-colors shadow-sm"
                 >
                   <LogIn className="w-4 h-4" />
                   Sign In
@@ -137,7 +137,7 @@ export default function Navbar() {
             {/* Mobile Menu Button */}
             <button 
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="md:hidden p-2 text-stone-600 hover:text-stone-900 hover:bg-stone-100 rounded-lg transition-colors"
+              className="md:hidden p-2 text-white hover:bg-sky-700 rounded-lg transition-colors"
             >
               {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
@@ -152,7 +152,7 @@ export default function Navbar() {
             <Link 
               to="/" 
               onClick={closeMobileMenu}
-              className="block px-3 py-3 rounded-md text-base font-medium text-stone-700 hover:text-stone-900 hover:bg-stone-50"
+              className="block px-3 py-3 rounded-md text-base font-medium text-stone-700 hover:text-sky-800 hover:bg-stone-50"
             >
               Home
             </Link>
@@ -160,7 +160,7 @@ export default function Navbar() {
             <div className="space-y-1">
               <button 
                 onClick={() => setIsMobileAssembliesOpen(!isMobileAssembliesOpen)}
-                className="w-full flex items-center justify-between px-3 py-3 rounded-md text-base font-medium text-stone-700 hover:text-stone-900 hover:bg-stone-50"
+                className="w-full flex items-center justify-between px-3 py-3 rounded-md text-base font-medium text-stone-700 hover:text-sky-800 hover:bg-stone-50"
               >
                 Citizen Assemblies
                 <ChevronDown className={`w-4 h-4 transition-transform ${isMobileAssembliesOpen ? 'rotate-180' : ''}`} />
@@ -178,7 +178,7 @@ export default function Navbar() {
                           navigate(`/ward/${ward.slug}`);
                           closeMobileMenu();
                         }}
-                        className="w-full text-left px-3 py-2 text-sm text-stone-600 hover:text-stone-900 flex items-center gap-2"
+                        className="w-full text-left px-3 py-2 text-sm text-stone-600 hover:text-sky-800 flex items-center gap-2"
                       >
                         <MapPin className="w-3 h-3 text-stone-400" /> {ward.name}
                       </button>
@@ -191,7 +191,7 @@ export default function Navbar() {
             <Link 
               to="/about" 
               onClick={closeMobileMenu}
-              className="block px-3 py-3 rounded-md text-base font-medium text-stone-700 hover:text-stone-900 hover:bg-stone-50"
+              className="block px-3 py-3 rounded-md text-base font-medium text-stone-700 hover:text-sky-800 hover:bg-stone-50"
             >
               About Us
             </Link>
@@ -199,7 +199,7 @@ export default function Navbar() {
             <Link 
               to="/contact" 
               onClick={closeMobileMenu}
-              className="block px-3 py-3 rounded-md text-base font-medium text-stone-700 hover:text-stone-900 hover:bg-stone-50"
+              className="block px-3 py-3 rounded-md text-base font-medium text-stone-700 hover:text-sky-800 hover:bg-stone-50"
             >
               Contact Us
             </Link>
@@ -208,7 +208,7 @@ export default function Navbar() {
               <Link 
                 to="/clerk" 
                 onClick={closeMobileMenu}
-                className="block px-3 py-3 rounded-md text-base font-medium text-stone-700 hover:text-stone-900 hover:bg-stone-50"
+                className="block px-3 py-3 rounded-md text-base font-medium text-stone-700 hover:text-sky-800 hover:bg-stone-50"
               >
                 Clerk Portal
               </Link>
@@ -218,7 +218,7 @@ export default function Navbar() {
               <Link 
                 to="/admin" 
                 onClick={closeMobileMenu}
-                className="block px-3 py-3 rounded-md text-base font-medium text-stone-700 hover:text-stone-900 hover:bg-stone-50"
+                className="block px-3 py-3 rounded-md text-base font-medium text-stone-700 hover:text-sky-800 hover:bg-stone-50"
               >
                 Admin Dashboard
               </Link>
@@ -232,7 +232,7 @@ export default function Navbar() {
                     navigate('/');
                     closeMobileMenu();
                   }}
-                  className="w-full flex items-center justify-center gap-2 px-3 py-3 rounded-md text-base font-medium text-stone-600 hover:text-stone-900 hover:bg-stone-50"
+                  className="w-full flex items-center justify-center gap-2 px-3 py-3 rounded-md text-base font-medium text-stone-600 hover:text-sky-800 hover:bg-stone-50"
                 >
                   <LogOut className="w-5 h-5" />
                   Sign Out
@@ -243,7 +243,7 @@ export default function Navbar() {
                     setIsAuthModalOpen(true);
                     closeMobileMenu();
                   }}
-                  className="w-full flex items-center justify-center gap-2 bg-stone-900 text-white px-3 py-3 rounded-md text-base font-medium hover:bg-stone-800"
+                  className="w-full flex items-center justify-center gap-2 bg-sky-600 text-white px-3 py-3 rounded-md text-base font-medium hover:bg-sky-700"
                 >
                   <LogIn className="w-5 h-5" />
                   Sign In
