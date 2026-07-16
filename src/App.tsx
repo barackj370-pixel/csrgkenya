@@ -19,7 +19,7 @@ import Register from './pages/Register';
 export default function App() {
   return (
     <AuthProvider>
-      <div className="min-h-screen flex flex-col bg-stone-50 text-stone-900 font-sans">
+      <div className="min-h-screen flex flex-col bg-stone-50 text-sky-800 font-sans">
         <Navbar />
         <main className="flex-grow">
           <Routes>
