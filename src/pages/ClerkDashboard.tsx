@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Users, MapPin, Calendar, Plus, Save, Edit2, Trash2, MessageSquare, AlertCircle } from 'lucide-react';
+import { Users, MapPin, Calendar, Plus, Save, Edit2, Trash2, MessageSquare, AlertCircle, Upload } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 
@@ -71,6 +71,27 @@ export default function ClerkDashboard() {
   }
 
   // --- Group Handlers ---
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target?.result as string;
+      if (text) {
+        const names = text.split(/\r?\n/).map(name => name.trim()).filter(name => name.length > 0);
+        setGroupFormData(prev => ({
+          ...prev,
+          members: names.join(', '),
+          memberCount: names.length.toString()
+        }));
+      }
+    };
+    reader.readAsText(file);
+    // Reset file input so same file can be uploaded again if needed
+    e.target.value = '';
+  };
+
   const handleGroupSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -417,7 +438,19 @@ export default function ClerkDashboard() {
                   </div>
 
                   <div className="md:col-span-2 space-y-2">
-                    <label className="text-sm font-medium text-stone-700">Members List (Optional)</label>
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm font-medium text-stone-700">Members List (Optional)</label>
+                      <label className="cursor-pointer bg-stone-100 hover:bg-stone-200 text-stone-700 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5">
+                        <Upload className="w-4 h-4" />
+                        <span>Upload List (.txt or .csv)</span>
+                        <input 
+                          type="file" 
+                          accept=".txt,.csv"
+                          onChange={handleFileUpload}
+                          className="hidden" 
+                        />
+                      </label>
+                    </div>
                     <textarea 
                       value={groupFormData.members}
                       onChange={e => setGroupFormData({...groupFormData, members: e.target.value})}
