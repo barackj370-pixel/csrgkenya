@@ -258,6 +258,43 @@ export default function WardPage() {
                 ))}
               </div>
             </div>
+
+            {/* Registered Groups Section */}
+            <div className="mt-12">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center">
+                  <Users className="w-6 h-6" />
+                </div>
+                <div>
+                  <h2 className="text-3xl font-bold text-stone-900">Registered Groups</h2>
+                  <p className="text-stone-500">Community groups actively participating in {ward.name}.</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {ward.groups && ward.groups.length > 0 ? (
+                  ward.groups.map((group: any) => (
+                    <div key={group.id} className="bg-white p-6 rounded-2xl border border-stone-200 shadow-sm relative overflow-hidden group">
+                      <div className="flex items-start justify-between mb-2">
+                        <h4 className="text-xl font-bold text-stone-900">{group.name}</h4>
+                        <span className="bg-stone-100 text-stone-700 text-xs font-bold px-2 py-1 rounded-md">{group.memberCount} Members</span>
+                      </div>
+                      <p className="text-sm font-medium text-stone-600 mb-4">Leader: {group.leaderName}</p>
+                      
+                      {group.members && (
+                        <div>
+                          <p className="text-xs font-bold text-stone-400 uppercase tracking-wider mb-2">Members</p>
+                          <p className="text-sm text-stone-600 leading-relaxed">{group.members}</p>
+                        </div>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <div className="col-span-full bg-white p-8 rounded-2xl border border-stone-200 text-center text-stone-500">
+                    No groups registered yet.
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
 
           {/* Right Column: Top 2 Voted Agendas */}
