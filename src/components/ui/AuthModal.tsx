@@ -22,7 +22,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     name: '',
     phone: '',
     password: '',
-    role: 'CLERK',
+    role: 'CITIZEN',
     wardId: ''
   });
 
@@ -74,13 +74,30 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         login(token, { id: user.id, name: user.name, phone: user.phone, role: user.role, wardId: user.wardId });
         
         onClose();
-        if (user.role === 'ADMIN') navigate('/admin');
-        else if (user.role === 'CLERK') navigate('/clerk');
-        
+        if (user.role === 'ADMIN') {
+          navigate('/admin');
+        } else if (user.role === 'CLERK') {
+          navigate('/clerk');
+        } else if (user.wardId) {
+          const matchedWard = wards.find(w => w.id === user.wardId);
+          if (matchedWard?.slug) {
+            navigate(`/ward/${matchedWard.slug}`);
+          } else {
+            navigate('/');
+          }
+        } else {
+          navigate('/');
+        }
       } else {
         // Register
+        if ((formData.role === 'CITIZEN' || formData.role === 'CLERK') && !formData.wardId) {
+          throw new Error('Please select your ward from the list.');
+        }
+
         const { data: existing } = await supabase.from('User').select('id').eq('phone', formData.phone).maybeSingle();
-        if (existing) throw new Error('Phone number already registered');
+        if (existing) throw new Error('Phone number already registered. Please sign in.');
+
+        const assignedWardId = (formData.role === 'CITIZEN' || formData.role === 'CLERK') ? formData.wardId : null;
 
         const { data: newUser, error } = await supabase
           .from('User')
@@ -89,7 +106,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
             phone: formData.phone,
             password: hashedPassword,
             role: formData.role,
-            wardId: formData.wardId || null
+            wardId: assignedWardId
           }])
           .select()
           .single();
@@ -104,8 +121,18 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         login(token, { id: newUser.id, name: newUser.name, phone: newUser.phone, role: newUser.role, wardId: newUser.wardId });
         
         onClose();
-        if (newUser.role === 'ADMIN') navigate('/admin');
-        else if (newUser.role === 'CLERK') navigate('/clerk');
+        if (newUser.role === 'ADMIN') {
+          navigate('/admin');
+        } else if (newUser.role === 'CLERK') {
+          navigate('/clerk');
+        } else {
+          const matchedWard = wards.find(w => w.id === assignedWardId);
+          if (matchedWard?.slug) {
+            navigate(`/ward/${matchedWard.slug}`);
+          } else {
+            navigate('/');
+          }
+        }
       }
     } catch (err: any) {
       setError(err.message);
@@ -167,7 +194,18 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                   <div>
                     <label className="block text-xs font-medium text-stone-700 mb-1">Role</label>
                     <div className="flex gap-4">
-                      <label className="flex items-center gap-2 cursor-pointer">
+                      <label className="flex items-center gap-1.5 cursor-pointer">
+                        <input 
+                          type="radio" 
+                          name="role" 
+                          value="CITIZEN" 
+                          checked={formData.role === 'CITIZEN'}
+                          onChange={e => setFormData({...formData, role: e.target.value, wardId: ''})}
+                          className="w-3.5 h-3.5 text-stone-900 focus:ring-stone-900"
+                        />
+                        <span className="text-xs font-bold text-sky-800">Citizen</span>
+                      </label>
+                      <label className="flex items-center gap-1.5 cursor-pointer">
                         <input 
                           type="radio" 
                           name="role" 
@@ -178,7 +216,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                         />
                         <span className="text-xs font-medium text-stone-700">Clerk</span>
                       </label>
-                      <label className="flex items-center gap-2 cursor-pointer">
+                      <label className="flex items-center gap-1.5 cursor-pointer">
                         <input 
                           type="radio" 
                           name="role" 
@@ -218,23 +256,30 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 />
               </div>
 
-              {!isLogin && formData.role === 'CLERK' && (
+              {!isLogin && (formData.role === 'CITIZEN' || formData.role === 'CLERK') && (
                 <div>
-                  <label className="block text-xs font-medium text-stone-700 mb-1">Select Your Ward</label>
+                  <label className="block text-xs font-medium text-stone-700 mb-1">
+                    {formData.role === 'CITIZEN' ? 'Select Your Ward (Assembly Wall)' : 'Select Your Assigned Ward'}
+                  </label>
                   <div className="relative">
-                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
+                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 pointer-events-none" />
                     <select 
                       required
                       value={formData.wardId}
                       onChange={e => setFormData({...formData, wardId: e.target.value})}
                       className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 pl-9 text-sm focus:ring-2 focus:ring-stone-900 focus:border-transparent outline-none appearance-none"
                     >
-                      <option value="" disabled>Choose a ward...</option>
+                      <option value="">Select your ward...</option>
                       {wards.map(ward => (
                         <option key={ward.id} value={ward.id}>{ward.name}</option>
                       ))}
                     </select>
                   </div>
+                  {formData.role === 'CITIZEN' && (
+                    <p className="text-[11px] text-sky-800 mt-1">
+                      You will be directed straight to your ward's wall to engage in the forum.
+                    </p>
+                  )}
                 </div>
               )}
 

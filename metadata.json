@@ -1,2 +1,8 @@
 {
   "name": "Citizen Assembly Kenya",
+  "description": "Citizen Assembly platform for Kenya wards, empowering citizens to participate in local governance, discussions, and resolutions.",
+  "permissions": [],
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

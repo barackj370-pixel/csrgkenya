@@ -45,6 +45,17 @@ export default function Login() {
         navigate('/admin');
       } else if (user.role === 'CLERK') {
         navigate('/clerk');
+      } else if (user.wardId) {
+        try {
+          const { data: wardData } = await supabase.from('Ward').select('slug').eq('id', user.wardId).maybeSingle();
+          if (wardData?.slug) {
+            navigate(`/ward/${wardData.slug}`);
+          } else {
+            navigate('/');
+          }
+        } catch {
+          navigate('/');
+        }
       } else {
         navigate('/');
       }

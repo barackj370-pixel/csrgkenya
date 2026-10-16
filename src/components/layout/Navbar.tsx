@@ -85,6 +85,15 @@ export default function Navbar() {
               <Link to="/contact" className="text-sky-50 hover:text-white hover:bg-sky-700 px-3 py-2 rounded-md text-sm font-medium">
                 Contact Us
               </Link>
+              {user?.role === 'CITIZEN' && user?.wardId && (
+                <Link 
+                  to={`/ward/${wards.find(w => w.id === user.wardId)?.slug || ''}`} 
+                  className="text-white bg-sky-700/80 hover:bg-sky-800 px-3 py-2 rounded-md text-sm font-bold flex items-center gap-1.5 border border-sky-400/40"
+                >
+                  <MapPin className="w-4 h-4 text-sky-200" />
+                  My Ward Wall
+                </Link>
+              )}
               {(user?.role === 'CLERK' || user?.role === 'ADMIN') && (
                 <Link to="/clerk" className="text-sky-50 hover:text-white hover:bg-sky-700 px-3 py-2 rounded-md text-sm font-medium">
                   Clerk Portal
@@ -95,7 +104,7 @@ export default function Navbar() {
           
           <div className="flex items-center gap-4">
             {/* Desktop Auth/Admin Buttons */}
-            <div className="hidden md:flex items-center gap-4">
+            <div className="hidden md:flex items-center gap-3">
               {user?.role === 'ADMIN' && (
                 <Link to="/admin" className="text-sky-50 hover:text-white hover:bg-sky-700 px-3 py-2 rounded-md text-sm font-medium flex items-center gap-1">
                   <LayoutDashboard className="w-4 h-4" />
@@ -115,13 +124,22 @@ export default function Navbar() {
                   Sign Out
                 </button>
               ) : (
-                <button 
-                  onClick={() => setIsAuthModalOpen(true)}
-                  className="bg-white text-sky-600 hover:bg-sky-50 px-4 py-2 rounded-full text-sm font-bold flex items-center gap-2 transition-colors shadow-sm"
-                >
-                  <LogIn className="w-4 h-4" />
-                  Sign In
-                </button>
+                <div className="flex items-center gap-2">
+                  <Link 
+                    to="/login"
+                    className="text-sky-50 hover:text-white hover:bg-sky-700 px-3 py-2 rounded-md text-sm font-medium flex items-center gap-1"
+                  >
+                    <LogIn className="w-4 h-4" />
+                    Sign In
+                  </Link>
+                  <Link 
+                    to="/register"
+                    className="bg-white text-sky-700 hover:bg-sky-50 px-4 py-2 rounded-full text-sm font-bold flex items-center gap-1.5 transition-colors shadow-sm"
+                  >
+                    <Users className="w-4 h-4" />
+                    Join Assembly
+                  </Link>
+                </div>
               )}
             </div>
 
@@ -195,6 +213,17 @@ export default function Navbar() {
               Contact Us
             </Link>
 
+            {user?.role === 'CITIZEN' && user?.wardId && (
+              <Link 
+                to={`/ward/${wards.find(w => w.id === user.wardId)?.slug || ''}`} 
+                onClick={closeMobileMenu}
+                className="block px-3 py-3 rounded-md text-base font-bold text-sky-800 bg-sky-50 border border-sky-200"
+              >
+                <MapPin className="w-4 h-4 inline mr-2 text-sky-600" />
+                My Ward Wall
+              </Link>
+            )}
+
             {(user?.role === 'CLERK' || user?.role === 'ADMIN') && (
               <Link 
                 to="/clerk" 
@@ -215,7 +244,7 @@ export default function Navbar() {
               </Link>
             )}
 
-            <div className="pt-4 mt-2 border-t border-stone-200">
+            <div className="pt-4 mt-2 border-t border-stone-200 space-y-2">
               {user ? (
                 <button 
                   onClick={() => {
@@ -229,16 +258,24 @@ export default function Navbar() {
                   Sign Out
                 </button>
               ) : (
-                <button 
-                  onClick={() => {
-                    setIsAuthModalOpen(true);
-                    closeMobileMenu();
-                  }}
-                  className="w-full flex items-center justify-center gap-2 bg-sky-600 text-white px-3 py-3 rounded-md text-base font-medium hover:bg-sky-700"
-                >
-                  <LogIn className="w-5 h-5" />
-                  Sign In
-                </button>
+                <>
+                  <Link 
+                    to="/register"
+                    onClick={closeMobileMenu}
+                    className="w-full flex items-center justify-center gap-2 bg-sky-600 text-white px-3 py-3 rounded-xl text-base font-bold hover:bg-sky-700 shadow-sm"
+                  >
+                    <Users className="w-5 h-5" />
+                    Join Ward Assembly
+                  </Link>
+                  <Link 
+                    to="/login"
+                    onClick={closeMobileMenu}
+                    className="w-full flex items-center justify-center gap-2 bg-stone-100 text-stone-800 px-3 py-2.5 rounded-xl text-sm font-semibold hover:bg-stone-200"
+                  >
+                    <LogIn className="w-4 h-4" />
+                    Sign In
+                  </Link>
+                </>
               )}
             </div>
           </div>

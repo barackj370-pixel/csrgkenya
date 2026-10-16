@@ -98,6 +98,14 @@ export default function WardPage() {
     fetchWard();
   }, [slug]);
 
+  useEffect(() => {
+    if (user) {
+      if (user.role === 'ADMIN' || user.role === 'CLERK' || user.wardId === ward?.id || user.role === 'CITIZEN') {
+        setHasJoined(true);
+      }
+    }
+  }, [user, ward]);
+
   const handleJoinSuccess = () => {
     setHasJoined(true);
     setIsJoinModalOpen(false);
