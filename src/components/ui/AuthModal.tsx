@@ -1,17 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, MapPin } from 'lucide-react';
+import { X, MapPin, Building2, Home, Lock, Phone, User, Users } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
+  defaultMode?: 'login' | 'register';
 }
 
-export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
-  const [isLogin, setIsLogin] = useState(false);
+export default function AuthModal({ isOpen, onClose, defaultMode = 'login' }: AuthModalProps) {
+  const [isLogin, setIsLogin] = useState(defaultMode === 'login');
   const [wards, setWards] = useState<any[]>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -22,9 +23,14 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     name: '',
     phone: '',
     password: '',
-    role: 'CITIZEN',
-    wardId: ''
+    wardId: '',
+    village: '',
+    organizationName: ''
   });
+
+  useEffect(() => {
+    setIsLogin(defaultMode === 'login');
+  }, [defaultMode, isOpen]);
 
   useEffect(() => {
     if (isOpen) {
@@ -54,24 +60,30 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
       const hashedPassword = await hashPassword(formData.password);
 
       if (isLogin) {
-        const { data: user, error } = await supabase
+        const { data: user, error: loginErr } = await supabase
           .from('User')
           .select('*')
           .eq('phone', formData.phone)
           .eq('password', hashedPassword)
           .maybeSingle();
 
-        if (error) {
-          console.error("Supabase Login Error:", error);
-          throw new Error(`Login failed: ${error.message}`);
+        if (loginErr) {
+          throw new Error(`Login failed: ${loginErr.message}`);
         }
         if (!user) {
           throw new Error('Invalid phone number or password');
         }
 
-        // Mock token for static site
         const token = 'mock-jwt-token-' + user.id;
-        login(token, { id: user.id, name: user.name, phone: user.phone, role: user.role, wardId: user.wardId });
+        login(token, {
+          id: user.id,
+          name: user.name,
+          phone: user.phone,
+          role: user.role,
+          wardId: user.wardId,
+          village: user.village,
+          organizationName: user.organizationName
+        });
         
         onClose();
         if (user.role === 'ADMIN') {
@@ -89,53 +101,75 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
           navigate('/');
         }
       } else {
-        // Register
-        if ((formData.role === 'CITIZEN' || formData.role === 'CLERK') && !formData.wardId) {
+        // Register Citizen only (Admin and Clerk are isolated to prevent mistaken registration)
+        if (!formData.wardId) {
           throw new Error('Please select your ward from the list.');
+        }
+        if (!formData.village.trim()) {
+          throw new Error('Please provide your village or estate.');
+        }
+        if (!formData.organizationName.trim()) {
+          throw new Error('Please enter your community group or organisation name.');
         }
 
         const { data: existing } = await supabase.from('User').select('id').eq('phone', formData.phone).maybeSingle();
         if (existing) throw new Error('Phone number already registered. Please sign in.');
 
-        const assignedWardId = (formData.role === 'CITIZEN' || formData.role === 'CLERK') ? formData.wardId : null;
-
-        const { data: newUser, error } = await supabase
+        const { data: newUser, error: insertError } = await supabase
           .from('User')
           .insert([{
             name: formData.name,
             phone: formData.phone,
             password: hashedPassword,
-            role: formData.role,
-            wardId: assignedWardId
+            role: 'CITIZEN',
+            wardId: formData.wardId,
+            village: formData.village.trim(),
+            organizationName: formData.organizationName.trim()
           }])
           .select()
           .single();
 
-        if (error) {
-          console.error("Supabase Insert Error:", error);
-          throw new Error(`Registration failed: ${error.message}`);
+        if (insertError) {
+          throw new Error(`Registration failed: ${insertError.message}`);
         }
         if (!newUser) throw new Error('Failed to register: No user data returned');
 
+        // Also add to groups directory
+        try {
+          await supabase.from('Group').insert([{
+            name: formData.organizationName.trim(),
+            wardId: formData.wardId,
+            leaderName: formData.name,
+            meetingDay: 'Weekly',
+            meetingFrequency: 'Weekly',
+            memberCount: '1+',
+            members: `${formData.name} (${formData.village.trim()})`
+          }]);
+        } catch {
+          // ignore
+        }
+
         const token = 'mock-jwt-token-' + newUser.id;
-        login(token, { id: newUser.id, name: newUser.name, phone: newUser.phone, role: newUser.role, wardId: newUser.wardId });
+        login(token, {
+          id: newUser.id,
+          name: newUser.name,
+          phone: newUser.phone,
+          role: newUser.role,
+          wardId: newUser.wardId,
+          village: newUser.village,
+          organizationName: newUser.organizationName
+        });
         
         onClose();
-        if (newUser.role === 'ADMIN') {
-          navigate('/admin');
-        } else if (newUser.role === 'CLERK') {
-          navigate('/clerk');
+        const matchedWard = wards.find(w => w.id === formData.wardId);
+        if (matchedWard?.slug) {
+          navigate(`/ward/${matchedWard.slug}`);
         } else {
-          const matchedWard = wards.find(w => w.id === assignedWardId);
-          if (matchedWard?.slug) {
-            navigate(`/ward/${matchedWard.slug}`);
-          } else {
-            navigate('/');
-          }
+          navigate('/');
         }
       }
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message || 'An error occurred.');
     } finally {
       setLoading(false);
     }
@@ -147,158 +181,180 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto"
       >
         <motion.div 
-          initial={{ scale: 0.95, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0.95, opacity: 0 }}
-          className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden relative"
+          initial={{ scale: 0.95, opacity: 0, y: 10 }}
+          animate={{ scale: 1, opacity: 1, y: 0 }}
+          exit={{ scale: 0.95, opacity: 0, y: 10 }}
+          className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden relative my-6"
         >
-          <button 
-            onClick={onClose}
-            className="absolute top-3 right-3 p-2 text-stone-400 hover:text-stone-900 hover:bg-stone-100 rounded-full transition-colors z-10"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          {/* Header */}
+          <div className="bg-gradient-to-r from-sky-950 to-sky-800 p-6 text-white relative">
+            <button 
+              onClick={onClose}
+              className="absolute top-4 right-4 p-2 text-stone-300 hover:text-white hover:bg-white/10 rounded-full transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="bg-sky-500/30 text-sky-200 text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-sky-400/30 uppercase tracking-wider">
+                {isLogin ? 'Citizen Portal' : 'National Citizen Assembly'}
+              </span>
+            </div>
+            <h2 className="text-xl font-extrabold text-white">
+              {isLogin ? 'Sign In to Your Account' : 'Join Your Ward Assembly'}
+            </h2>
+            <p className="text-stone-300 text-xs mt-1">
+              {isLogin 
+                ? 'Access your ward assembly discussions and votes.' 
+                : 'Register your organization, village, and ward to participate.'}
+            </p>
+          </div>
 
           <div className="p-6">
-            <h2 className="text-xl font-bold text-stone-900 mb-1 pr-8">
-              {isLogin ? 'Welcome Back' : 'Create Account'}
-            </h2>
-            <p className="text-stone-500 text-xs mb-5">
-              {isLogin ? 'Sign in to manage your activities.' : 'Join to manage groups and participate in assemblies.'}
-            </p>
-
             {error && (
-              <div className="bg-red-50 text-red-600 p-2 rounded-lg mb-4 text-xs">
+              <div className="bg-red-50 text-red-700 p-3 rounded-xl mb-4 text-xs border border-red-200">
                 {error}
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-3">
+            <form onSubmit={handleSubmit} className="space-y-3.5">
               {!isLogin && (
                 <>
                   <div>
-                    <label className="block text-xs font-medium text-stone-700 mb-1">Full Name</label>
-                    <input 
-                      required
-                      type="text" 
-                      value={formData.name}
-                      onChange={e => setFormData({...formData, name: e.target.value})}
-                      className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-stone-900 focus:border-transparent outline-none"
-                      placeholder="Enter Full Name"
-                    />
+                    <label className="block text-xs font-bold text-stone-700 mb-1">
+                      Full Name <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
+                      <input 
+                        required
+                        type="text" 
+                        value={formData.name}
+                        onChange={e => setFormData({...formData, name: e.target.value})}
+                        className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 pl-9 text-sm focus:ring-2 focus:ring-sky-600 focus:border-transparent outline-none"
+                        placeholder="e.g. John K. Mwangi"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-stone-700 mb-1">
+                        Select Ward <span className="text-red-500">*</span>
+                      </label>
+                      <div className="relative">
+                        <MapPin className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-stone-400 pointer-events-none" />
+                        <select 
+                          required
+                          value={formData.wardId}
+                          onChange={e => setFormData({...formData, wardId: e.target.value})}
+                          className="w-full bg-stone-50 border border-stone-200 rounded-xl px-2.5 py-2 pl-8 text-xs focus:ring-2 focus:ring-sky-600 outline-none"
+                        >
+                          <option value="">Select Ward...</option>
+                          {wards.map(ward => (
+                            <option key={ward.id} value={ward.id}>{ward.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-stone-700 mb-1">
+                        Village / Estate <span className="text-red-500">*</span>
+                      </label>
+                      <div className="relative">
+                        <Home className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-stone-400" />
+                        <input 
+                          required
+                          type="text" 
+                          value={formData.village}
+                          onChange={e => setFormData({...formData, village: e.target.value})}
+                          className="w-full bg-stone-50 border border-stone-200 rounded-xl px-2.5 py-2 pl-8 text-xs focus:ring-2 focus:ring-sky-600 outline-none"
+                          placeholder="e.g. Gichagi"
+                        />
+                      </div>
+                    </div>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-medium text-stone-700 mb-1">Role</label>
-                    <div className="flex gap-4">
-                      <label className="flex items-center gap-1.5 cursor-pointer">
-                        <input 
-                          type="radio" 
-                          name="role" 
-                          value="CITIZEN" 
-                          checked={formData.role === 'CITIZEN'}
-                          onChange={e => setFormData({...formData, role: e.target.value, wardId: ''})}
-                          className="w-3.5 h-3.5 text-stone-900 focus:ring-stone-900"
-                        />
-                        <span className="text-xs font-bold text-sky-800">Citizen</span>
-                      </label>
-                      <label className="flex items-center gap-1.5 cursor-pointer">
-                        <input 
-                          type="radio" 
-                          name="role" 
-                          value="CLERK" 
-                          checked={formData.role === 'CLERK'}
-                          onChange={e => setFormData({...formData, role: e.target.value, wardId: ''})}
-                          className="w-3.5 h-3.5 text-stone-900 focus:ring-stone-900"
-                        />
-                        <span className="text-xs font-medium text-stone-700">Clerk</span>
-                      </label>
-                      <label className="flex items-center gap-1.5 cursor-pointer">
-                        <input 
-                          type="radio" 
-                          name="role" 
-                          value="ADMIN" 
-                          checked={formData.role === 'ADMIN'}
-                          onChange={e => setFormData({...formData, role: e.target.value, wardId: ''})}
-                          className="w-3.5 h-3.5 text-stone-900 focus:ring-stone-900"
-                        />
-                        <span className="text-xs font-medium text-stone-700">Admin</span>
-                      </label>
+                    <label className="block text-xs font-bold text-stone-700 mb-1">
+                      Organisation or Group Name <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
+                      <input 
+                        required
+                        type="text" 
+                        value={formData.organizationName}
+                        onChange={e => setFormData({...formData, organizationName: e.target.value})}
+                        className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 pl-9 text-sm focus:ring-2 focus:ring-sky-600 outline-none"
+                        placeholder="e.g. Kangemi Youth Bunge / St. Joseph SHG"
+                      />
                     </div>
                   </div>
                 </>
               )}
 
               <div>
-                <label className="block text-xs font-medium text-stone-700 mb-1">Phone Number</label>
-                <input 
-                  required
-                  type="tel" 
-                  value={formData.phone}
-                  onChange={e => setFormData({...formData, phone: e.target.value})}
-                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-stone-900 focus:border-transparent outline-none"
-                  placeholder="Enter Phone Number"
-                />
+                <label className="block text-xs font-bold text-stone-700 mb-1">
+                  Phone Number <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
+                  <input 
+                    required
+                    type="tel" 
+                    value={formData.phone}
+                    onChange={e => setFormData({...formData, phone: e.target.value})}
+                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 pl-9 text-sm focus:ring-2 focus:ring-sky-600 outline-none"
+                    placeholder="07XX XXX XXX"
+                  />
+                </div>
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-stone-700 mb-1">Password</label>
-                <input 
-                  required
-                  type="password" 
-                  value={formData.password}
-                  onChange={e => setFormData({...formData, password: e.target.value})}
-                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-stone-900 focus:border-transparent outline-none"
-                  placeholder="••••••••"
-                />
-              </div>
-
-              {!isLogin && (formData.role === 'CITIZEN' || formData.role === 'CLERK') && (
-                <div>
-                  <label className="block text-xs font-medium text-stone-700 mb-1">
-                    {formData.role === 'CITIZEN' ? 'Select Your Ward (Assembly Wall)' : 'Select Your Assigned Ward'}
-                  </label>
-                  <div className="relative">
-                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 pointer-events-none" />
-                    <select 
-                      required
-                      value={formData.wardId}
-                      onChange={e => setFormData({...formData, wardId: e.target.value})}
-                      className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 pl-9 text-sm focus:ring-2 focus:ring-stone-900 focus:border-transparent outline-none appearance-none"
-                    >
-                      <option value="">Select your ward...</option>
-                      {wards.map(ward => (
-                        <option key={ward.id} value={ward.id}>{ward.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                  {formData.role === 'CITIZEN' && (
-                    <p className="text-[11px] text-sky-800 mt-1">
-                      You will be directed straight to your ward's wall to engage in the forum.
-                    </p>
-                  )}
+                <label className="block text-xs font-bold text-stone-700 mb-1">
+                  Password <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
+                  <input 
+                    required
+                    type="password" 
+                    value={formData.password}
+                    onChange={e => setFormData({...formData, password: e.target.value})}
+                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 pl-9 text-sm focus:ring-2 focus:ring-sky-600 outline-none"
+                    placeholder="••••••••"
+                  />
                 </div>
-              )}
+              </div>
 
               <button 
                 type="submit" 
                 disabled={loading}
-                className="w-full bg-stone-900 text-white py-2.5 rounded-xl text-sm font-bold hover:bg-stone-800 transition-colors mt-2 disabled:opacity-50"
+                className="w-full bg-sky-600 hover:bg-sky-700 text-white py-3 rounded-xl text-sm font-bold transition-colors shadow-md disabled:opacity-50 cursor-pointer mt-2"
               >
-                {loading ? 'Please wait...' : (isLogin ? 'Sign In' : 'Create Account')}
+                {loading ? 'Please wait...' : (isLogin ? 'Sign In' : 'Register & Join Ward Assembly')}
               </button>
             </form>
 
-            <div className="mt-5 text-center">
+            <div className="mt-4 pt-3 border-t border-stone-100 flex items-center justify-between text-xs text-stone-500">
               <button 
+                type="button"
                 onClick={() => setIsLogin(!isLogin)}
-                className="text-xs text-stone-600 hover:text-stone-900 font-medium"
+                className="text-sky-700 hover:text-sky-900 font-bold hover:underline"
               >
-                {isLogin ? "Don't have an account? Register" : 'Already have an account? Sign in'}
+                {isLogin ? "New participant? Register here" : 'Already registered? Sign in'}
               </button>
+              <Link 
+                to="/staff-register"
+                onClick={onClose}
+                className="text-stone-400 hover:text-stone-700 hover:underline text-[11px]"
+              >
+                Clerk / Admin Access
+              </Link>
             </div>
           </div>
         </motion.div>

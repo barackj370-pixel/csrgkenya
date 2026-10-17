@@ -118,10 +118,17 @@ export default function Login() {
           </button>
         </form>
 
-        <div className="mt-6 text-center text-sm text-stone-500">
-          Don't have an account?{' '}
-          <Link to="/register" className="text-stone-900 font-medium hover:underline">
+        <div className="mt-6 text-center text-sm text-stone-600">
+          Citizen looking to join your ward assembly?{' '}
+          <Link to="/register" className="text-sky-700 font-bold hover:underline">
             Register here
+          </Link>
+        </div>
+
+        <div className="mt-4 pt-4 border-t border-stone-100 text-center text-xs text-stone-400">
+          Ward Clerk or Administrator?{' '}
+          <Link to="/staff-register" className="text-stone-600 hover:text-stone-900 font-medium hover:underline">
+            Staff Portal
           </Link>
         </div>
       </div>

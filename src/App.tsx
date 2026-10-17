@@ -15,6 +15,8 @@ import TermsOfService from './pages/TermsOfService';
 import CommunityGuidelines from './pages/CommunityGuidelines';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import StaffRegister from './pages/StaffRegister';
+import NationalAssemblyPage from './pages/NationalAssemblyPage';
 
 export default function App() {
   return (
@@ -26,6 +28,9 @@ export default function App() {
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/join" element={<Register />} />
+            <Route path="/staff-register" element={<StaffRegister />} />
+            <Route path="/national-assembly" element={<NationalAssemblyPage />} />
             <Route path="/ward/:slug" element={<WardPage />} />
             <Route path="/discussion/:id" element={<DiscussionPage />} />
             <Route path="/admin" element={

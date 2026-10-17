@@ -23,8 +23,7 @@ function getNextAssemblyDate() {
     new Date(2026, 5, 26),
     new Date(2026, 6, 30),
     new Date(2026, 8, 24),
-    new Date(2026, 9, 29),
-    new Date(2026, 10, 26),
+    new Date(2026, 11, 10),
   ];
   const today = new Date();
   today.setHours(0, 0, 0, 0);

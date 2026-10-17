@@ -452,6 +452,7 @@ export default function WardPage() {
         isOpen={isJoinModalOpen} 
         onClose={() => setIsJoinModalOpen(false)} 
         wardName={ward.name}
+        wardId={ward.id}
         onSuccess={handleJoinSuccess}
       />
     </motion.div>

@@ -79,6 +79,10 @@ export default function Navbar() {
                   </div>
                 )}
               </div>
+              <Link to="/national-assembly" className="text-yellow-300 hover:text-white bg-sky-700/80 hover:bg-sky-750 px-3 py-1.5 rounded-full text-xs font-black uppercase tracking-wider flex items-center gap-1 border border-yellow-400/40 shadow-sm">
+                <span className="w-2 h-2 rounded-full bg-red-400 animate-pulse"></span>
+                National Assembly
+              </Link>
               <Link to="/about" className="text-sky-50 hover:text-white hover:bg-sky-700 px-3 py-2 rounded-md text-sm font-medium">
                 About Us
               </Link>
@@ -196,6 +200,15 @@ export default function Navbar() {
                 </div>
               )}
             </div>
+
+            <Link 
+              to="/national-assembly" 
+              onClick={closeMobileMenu}
+              className="block px-3 py-3 rounded-xl text-base font-extrabold text-sky-950 bg-yellow-400/20 border border-yellow-500/30 flex items-center justify-between"
+            >
+              <span>National Citizen Assembly 2026</span>
+              <span className="text-[10px] bg-red-600 text-white font-bold px-2 py-0.5 rounded-full uppercase">Summit</span>
+            </Link>
 
             <Link 
               to="/about" 

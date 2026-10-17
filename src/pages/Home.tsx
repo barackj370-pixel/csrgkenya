@@ -4,6 +4,7 @@ import { Search, MapPin, Calendar, Users, ArrowRight, AlertCircle, Clock, Chevro
 import { useNavigate, Link } from 'react-router-dom';
 import WardCard from '../components/ui/WardCard';
 import KenyaMap from '../components/ui/KenyaMap';
+import NationalAssemblyBanner from '../components/ui/NationalAssemblyBanner';
 import { supabase } from '../lib/supabase';
 
 function getLastSaturday(year: number, month: number) {
@@ -26,12 +27,11 @@ export default function Home() {
   const currentYear = new Date().getFullYear();
 
   const assemblies = [
-    { date: new Date(2026, 3, 30), name: "Citizen Assembly" },
-    { date: new Date(2026, 5, 26), name: "Citizen Assembly" },
-    { date: new Date(2026, 6, 30), name: "Citizen Assembly" },
-    { date: new Date(2026, 8, 24), name: "Citizen Assembly" },
-    { date: new Date(2026, 9, 29), name: "Citizen Assembly" },
-    { date: new Date(2026, 10, 26), name: "Citizen Assembly" }
+    { date: new Date(2026, 3, 30), name: "Ward Citizen Assembly" },
+    { date: new Date(2026, 5, 26), name: "Ward Citizen Assembly" },
+    { date: new Date(2026, 6, 30), name: "Ward Citizen Assembly" },
+    { date: new Date(2026, 8, 24), name: "Ward Citizen Assembly" },
+    { date: new Date(2026, 11, 10), name: "National Citizen Assembly" }
   ];
   
   // Find the next assembly date
@@ -175,8 +175,8 @@ export default function Home() {
                     </span>
                   </h1>
                   <p className="mt-2 text-lg text-stone-300 max-w-xl mb-6">
-                    Join the structured citizen assemblies happening simultaneously across all 7 wards. 
-                    Head to your respective ward center to discuss pressing issues, propose solutions, and track resolutions.
+                    Join the National Citizen Assembly gathering citizen representatives and wananchi from across all 7 wards in Nairobi. 
+                    Discuss pressing community issues, propose solutions, and ratify national resolutions.
                   </p>
                   
                   <div className="flex flex-col sm:flex-row gap-4">
@@ -221,7 +221,12 @@ export default function Home() {
       </section>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-12">
+        {/* Featured Campaign: National Citizen Assembly Official Digital Poster */}
+        <section id="national-citizen-assembly" className="scroll-mt-24">
+          <NationalAssemblyBanner />
+        </section>
+
         {loading ? (
           <div className="flex justify-center items-center h-64">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-sky-600"></div>
@@ -237,20 +242,20 @@ export default function Home() {
                 <div className="flex items-center justify-between">
                   <h2 className="text-3xl font-bold text-sky-800 flex items-center gap-3">
                     <Calendar className="w-8 h-8 text-sky-600" />
-                    Upcoming Assemblies
+                    Upcoming Assembly
                   </h2>
                   <button 
                     onClick={() => setIsViewAllModalOpen(true)}
                     className="text-stone-600 hover:text-sky-800 font-medium flex items-center gap-1"
                   >
-                    View All <ArrowRight className="w-4 h-4" />
+                    View All Schedule <ArrowRight className="w-4 h-4" />
                   </button>
                 </div>
                 <p className="text-stone-500">
-                  Official, scheduled gatherings where citizens and leaders meet to discuss ward matters. 
+                  National and community gatherings where citizens and nominated representatives meet to discuss priorities.
                   <span className="block mt-2 text-sm bg-stone-100 p-3 rounded-lg text-stone-700 border border-stone-200">
                     <Users className="w-4 h-4 inline mr-1 text-stone-500" />
-                    <strong>Committee Support:</strong> Each assembly is supported by 12 Citizen Assembly Committees meeting between April and November 2026 (Dates TBD).
+                    <strong>Participation Process:</strong> Preceded by community mini-caucuses meeting between 19 October and 15 November 2026.
                   </span>
                 </p>
                 
@@ -263,13 +268,16 @@ export default function Home() {
                           <Calendar className="w-4 h-4" /> {formatDate(nextAssemblyDate)}
                         </span>
                         <span className="inline-flex items-center gap-1.5 bg-stone-100 text-stone-700 px-3 py-1 rounded-full text-sm font-medium">
-                          <Clock className="w-4 h-4" /> 9:00 AM - 1:00 PM
+                          <Clock className="w-4 h-4" /> 9:00 AM - 5:00 PM
+                        </span>
+                        <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full text-sm font-medium">
+                          <MapPin className="w-4 h-4" /> Nairobi, Kenya
                         </span>
                       </div>
-                      <h3 className="text-2xl font-bold text-sky-800 mb-2">Citizen Assembly (All Wards)</h3>
+                      <h3 className="text-2xl font-bold text-sky-800 mb-2">National Citizen Assembly (Nairobi & All Wards)</h3>
                       <p className="text-stone-600 max-w-2xl">
-                        Join the structured citizen assemblies happening simultaneously across all 7 wards. 
-                        Head to your respective ward center to discuss pressing issues, propose solutions, and track resolutions.
+                        Uniting citizen representatives nominated across community mini-caucuses from all 7 wards.
+                        Join dialogue, propose solutions, and track resolutions.
                       </p>
                     </div>
                     <div className="flex-shrink-0 w-full md:w-auto relative">
@@ -382,6 +390,38 @@ export default function Home() {
                     No active wards found.
                   </div>
                 )}
+              </div>
+
+              {/* National Citizen Assembly Poster Teaser Card */}
+              <div className="bg-gradient-to-br from-sky-950 via-sky-900 to-sky-900 rounded-3xl p-6 text-white border-2 border-sky-400/40 shadow-lg relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-stone-900 via-red-600 to-emerald-600"></div>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-[10px] bg-red-600 text-white font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                    Official Campaign
+                  </span>
+                  <span className="text-xs text-sky-200 font-bold">10 Dec 2026</span>
+                </div>
+                <h3 className="text-xl font-black text-white leading-tight uppercase">
+                  National Citizen Assembly
+                </h3>
+                <p className="text-stone-300 text-xs mt-2 leading-relaxed">
+                  Join community mini-caucuses (19 Oct – 15 Nov) and nominate your organisation's representative for the National Assembly in Nairobi.
+                </p>
+
+                <div className="mt-4 pt-4 border-t border-sky-800/80 flex flex-col gap-2">
+                  <Link
+                    to="/register"
+                    className="w-full text-center bg-sky-500 hover:bg-sky-400 text-stone-950 font-black py-2.5 rounded-xl text-xs uppercase tracking-wider transition-colors shadow"
+                  >
+                    Register to Participate
+                  </Link>
+                  <Link
+                    to="/national-assembly"
+                    className="w-full text-center bg-white/10 hover:bg-white/20 text-sky-100 font-bold py-2 rounded-xl text-xs transition-colors"
+                  >
+                    View Participation Poster & Timelines
+                  </Link>
+                </div>
               </div>
             </div>
 

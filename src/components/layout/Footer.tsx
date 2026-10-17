@@ -18,8 +18,10 @@ export default function Footer() {
             <h4 className="text-white font-semibold mb-4">Quick Links</h4>
             <ul className="space-y-2 text-sm">
               <li><Link to="/" className="hover:text-white transition-colors">Home</Link></li>
+              <li><Link to="/national-assembly" className="text-yellow-400 hover:text-yellow-300 font-bold transition-colors">National Citizen Assembly 2026</Link></li>
+              <li><Link to="/register" className="hover:text-white transition-colors">Join Ward Assembly as Citizen</Link></li>
               <li><Link to="/about" className="hover:text-white transition-colors">About Us</Link></li>
-              <li><Link to="/clerk" className="hover:text-white transition-colors">Clerk Portal</Link></li>
+              <li><Link to="/staff-register" className="text-stone-400 hover:text-stone-300 transition-colors">Clerk & Admin Staff Portal</Link></li>
             </ul>
           </div>
           <div>

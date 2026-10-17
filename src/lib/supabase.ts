@@ -100,7 +100,7 @@ function getInitialMockDB(): MockDB {
     title: `Citizen Assembly - ${w.name}`,
     description: `Discussing pressing community issues and wananchi proposals in ${w.name} Ward for the upcoming assembly.`,
     wardId: w.id,
-    date: new Date(2026, 3, 30).toISOString(),
+    date: new Date(2026, 11, 10).toISOString(),
     status: 'OPEN',
     createdById: 'user-admin-1',
   })).concat([
