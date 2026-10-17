@@ -84,7 +84,7 @@ export default function WardPage() {
               w.toLowerCase() === slug.toLowerCase()
             );
             if (matchedName) {
-              const { data: createdWard } = await supabase
+              let { data: createdWard, error: wardErr } = await supabase
                 .from('Ward')
                 .insert([{
                   name: matchedName,
@@ -94,6 +94,20 @@ export default function WardPage() {
                 }])
                 .select()
                 .single();
+
+              if (wardErr) {
+                const fallback = await supabase
+                  .from('Ward')
+                  .insert([{
+                    name: matchedName,
+                    slug: slug,
+                    description: `${county.name} County - ${matchedName} Ward`
+                  }])
+                  .select()
+                  .single();
+                createdWard = fallback.data;
+              }
+
               if (createdWard) {
                 data = createdWard;
               }

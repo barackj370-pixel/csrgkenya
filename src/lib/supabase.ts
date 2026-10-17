@@ -508,6 +508,27 @@ let clientInstance: any = null;
 if (isRealConfigProvided) {
   try {
     clientInstance = createClient(rawEnvUrl!, rawEnvKey!);
+    console.log('[CSRG Kenya] Successfully connected to live Supabase project:', rawEnvUrl);
+
+    // Auto-seed starter Kenyan wards if the newly created Supabase database is completely empty
+    if (typeof window !== 'undefined') {
+      (async () => {
+        try {
+          const { data: existingWards, error } = await clientInstance.from('Ward').select('id').limit(1);
+          if (!error && (!existingWards || existingWards.length === 0)) {
+            console.log('[CSRG Kenya] Empty database detected. Seeding starter Kenyan wards and assemblies...');
+            const initial = getInitialMockDB();
+            await clientInstance.from('Ward').insert(initial.Ward);
+            await clientInstance.from('AssemblyDocument').insert(initial.AssemblyDocument);
+            await clientInstance.from('Discussion').insert(initial.Discussion);
+            await clientInstance.from('Issue').insert(initial.Issue);
+            console.log('[CSRG Kenya] Starter data successfully seeded into Supabase.');
+          }
+        } catch (seedErr) {
+          console.warn('[CSRG Kenya] Auto-seed check finished:', seedErr);
+        }
+      })();
+    }
   } catch (err) {
     console.warn('[AI Studio] Supabase client init failed, switching to local store:', err);
     clientInstance = createMockClient();
@@ -517,4 +538,5 @@ if (isRealConfigProvided) {
   clientInstance = createMockClient();
 }
 
+export const isLiveSupabaseConnected = isRealConfigProvided;
 export const supabase = clientInstance;

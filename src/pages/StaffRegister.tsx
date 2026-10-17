@@ -61,7 +61,7 @@ export default function StaffRegister() {
         );
 
         if (!targetWard) {
-          const { data: newWard, error: wardError } = await supabase
+          let { data: newWard, error: wardError } = await supabase
             .from('Ward')
             .insert([{
               name: wardCleanName,
@@ -72,7 +72,21 @@ export default function StaffRegister() {
             .select()
             .single();
 
-          if (wardError) throw new Error(`Failed to initialize ward: ${wardError.message}`);
+          if (wardError) {
+            const fallback = await supabase
+              .from('Ward')
+              .insert([{
+                name: wardCleanName,
+                slug: wardSlug,
+                description: `${selectedCounty} County - ${wardCleanName} Ward`
+              }])
+              .select()
+              .single();
+            if (fallback.error) {
+              throw new Error(`Failed to initialize ward: ${fallback.error.message || wardError.message}`);
+            }
+            newWard = fallback.data;
+          }
           targetWard = newWard;
         }
 

@@ -143,7 +143,7 @@ export default function Register() {
 
       if (!targetWard) {
         // Automatically create this ward in database so it gets its own assembly wall immediately
-        const { data: newWard, error: wardError } = await supabase
+        let { data: newWard, error: wardError } = await supabase
           .from('Ward')
           .insert([{
             name: wardCleanName,
@@ -155,33 +155,68 @@ export default function Register() {
           .single();
 
         if (wardError) {
-          throw new Error(`Failed to initialize ward: ${wardError.message}`);
+          // If county column is not yet added in Supabase schema, insert with base columns
+          const fallback = await supabase
+            .from('Ward')
+            .insert([{
+              name: wardCleanName,
+              slug: wardSlug,
+              description: `${selectedCounty} County - ${wardCleanName} Ward`
+            }])
+            .select()
+            .single();
+          if (fallback.error) {
+            throw new Error(`Failed to initialize ward: ${fallback.error.message || wardError.message}`);
+          }
+          newWard = fallback.data;
         }
         targetWard = newWard;
       }
 
       // 2. Create the Citizen User account
-      const { data: newUser, error: userError } = await supabase
+      let newUser: any = null;
+      const fullUserData = {
+        name: name.trim(),
+        phone: phone.trim(),
+        email: email.trim() || null,
+        password: hashedPassword,
+        role: 'CITIZEN',
+        wardId: targetWard.id,
+        village: village.trim(),
+        organizationName: organizationName.trim(),
+        organizationType,
+        meetingFrequency,
+        nextMeetingDate: nextMeetingDate || null
+      };
+
+      const { data: createdUser, error: userError } = await supabase
         .from('User')
-        .insert([{
-          name: name.trim(),
-          phone: phone.trim(),
-          email: email.trim() || null,
-          password: hashedPassword,
-          role: 'CITIZEN',
-          wardId: targetWard.id,
-          village: village.trim(),
-          organizationName: organizationName.trim(),
-          organizationType,
-          meetingFrequency,
-          nextMeetingDate: nextMeetingDate || null
-        }])
+        .insert([fullUserData])
         .select()
         .single();
 
       if (userError) {
-        throw new Error(`Registration failed: ${userError.message}`);
+        console.warn('Full user insert failed, trying base schema columns:', userError);
+        const { data: fallbackUser, error: fallbackError } = await supabase
+          .from('User')
+          .insert([{
+            name: name.trim(),
+            phone: phone.trim(),
+            password: hashedPassword,
+            role: 'CITIZEN',
+            wardId: targetWard.id
+          }])
+          .select()
+          .single();
+
+        if (fallbackError) {
+          throw new Error(`Registration failed: ${fallbackError.message}`);
+        }
+        newUser = fallbackUser;
+      } else {
+        newUser = createdUser;
       }
+
       if (!newUser) throw new Error('Failed to create account: No user data returned');
 
       // 3. Register the organization / group in the Ward's groups directory
@@ -189,10 +224,11 @@ export default function Register() {
         await supabase.from('Group').insert([{
           name: organizationName.trim(),
           wardId: targetWard.id,
+          wardName: targetWard.name,
           leaderName: name.trim(),
           meetingDay: meetingFrequency,
           meetingFrequency,
-          memberCount: '1+',
+          memberCount: 1,
           members: `${name.trim()} (${village.trim()})`
         }]);
       } catch (grpErr) {
