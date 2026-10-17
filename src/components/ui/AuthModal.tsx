@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, MapPin, Building2, Home, Lock, Phone, User, Users } from 'lucide-react';
+import { X, Building2, Home, Lock, Phone, User } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
+import CountyWardSelector from './CountyWardSelector';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -13,7 +14,6 @@ interface AuthModalProps {
 
 export default function AuthModal({ isOpen, onClose, defaultMode = 'login' }: AuthModalProps) {
   const [isLogin, setIsLogin] = useState(defaultMode === 'login');
-  const [wards, setWards] = useState<any[]>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
@@ -23,24 +23,16 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login' }: Au
     name: '',
     phone: '',
     password: '',
-    wardId: '',
     village: '',
     organizationName: ''
   });
 
+  const [selectedCounty, setSelectedCounty] = useState('');
+  const [selectedWard, setSelectedWard] = useState('');
+
   useEffect(() => {
     setIsLogin(defaultMode === 'login');
   }, [defaultMode, isOpen]);
-
-  useEffect(() => {
-    if (isOpen) {
-      supabase.from('Ward').select('*')
-        .then(({ data, error }) => {
-          if (error) console.error('Failed to fetch wards', error);
-          else setWards(data || []);
-        });
-    }
-  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -91,9 +83,9 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login' }: Au
         } else if (user.role === 'CLERK') {
           navigate('/clerk');
         } else if (user.wardId) {
-          const matchedWard = wards.find(w => w.id === user.wardId);
-          if (matchedWard?.slug) {
-            navigate(`/ward/${matchedWard.slug}`);
+          const { data: targetWard } = await supabase.from('Ward').select('slug').eq('id', user.wardId).maybeSingle();
+          if (targetWard?.slug) {
+            navigate(`/ward/${targetWard.slug}`);
           } else {
             navigate('/');
           }
@@ -101,9 +93,12 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login' }: Au
           navigate('/');
         }
       } else {
-        // Register Citizen only (Admin and Clerk are isolated to prevent mistaken registration)
-        if (!formData.wardId) {
-          throw new Error('Please select your ward from the list.');
+        // Register Citizen only
+        if (!selectedCounty) {
+          throw new Error('Please select your County in Kenya.');
+        }
+        if (!selectedWard.trim()) {
+          throw new Error('Please select or type your Ward.');
         }
         if (!formData.village.trim()) {
           throw new Error('Please provide your village or estate.');
@@ -115,14 +110,40 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login' }: Au
         const { data: existing } = await supabase.from('User').select('id').eq('phone', formData.phone).maybeSingle();
         if (existing) throw new Error('Phone number already registered. Please sign in.');
 
+        // Resolve or create ward
+        const wardCleanName = selectedWard.trim();
+        const wardSlug = wardCleanName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+        const { data: allWards } = await supabase.from('Ward').select('*');
+        let targetWard = allWards?.find((w: any) => 
+          w.slug === wardSlug || 
+          w.name.toLowerCase() === wardCleanName.toLowerCase()
+        );
+
+        if (!targetWard) {
+          const { data: newWard, error: wardError } = await supabase
+            .from('Ward')
+            .insert([{
+              name: wardCleanName,
+              slug: wardSlug,
+              county: selectedCounty,
+              description: `${selectedCounty} County - ${wardCleanName} Ward`
+            }])
+            .select()
+            .single();
+
+          if (wardError) throw new Error(`Failed to create ward: ${wardError.message}`);
+          targetWard = newWard;
+        }
+
         const { data: newUser, error: insertError } = await supabase
           .from('User')
           .insert([{
-            name: formData.name,
-            phone: formData.phone,
+            name: formData.name.trim(),
+            phone: formData.phone.trim(),
             password: hashedPassword,
             role: 'CITIZEN',
-            wardId: formData.wardId,
+            wardId: targetWard.id,
             village: formData.village.trim(),
             organizationName: formData.organizationName.trim()
           }])
@@ -134,16 +155,16 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login' }: Au
         }
         if (!newUser) throw new Error('Failed to register: No user data returned');
 
-        // Also add to groups directory
+        // Add to groups directory
         try {
           await supabase.from('Group').insert([{
             name: formData.organizationName.trim(),
-            wardId: formData.wardId,
-            leaderName: formData.name,
+            wardId: targetWard.id,
+            leaderName: formData.name.trim(),
             meetingDay: 'Weekly',
             meetingFrequency: 'Weekly',
             memberCount: '1+',
-            members: `${formData.name} (${formData.village.trim()})`
+            members: `${formData.name.trim()} (${formData.village.trim()})`
           }]);
         } catch {
           // ignore
@@ -155,18 +176,13 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login' }: Au
           name: newUser.name,
           phone: newUser.phone,
           role: newUser.role,
-          wardId: newUser.wardId,
+          wardId: targetWard.id,
           village: newUser.village,
           organizationName: newUser.organizationName
         });
         
         onClose();
-        const matchedWard = wards.find(w => w.id === formData.wardId);
-        if (matchedWard?.slug) {
-          navigate(`/ward/${matchedWard.slug}`);
-        } else {
-          navigate('/');
-        }
+        navigate(`/ward/${targetWard.slug}`);
       }
     } catch (err: any) {
       setError(err.message || 'An error occurred.');
@@ -193,7 +209,7 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login' }: Au
           <div className="bg-gradient-to-r from-sky-950 to-sky-800 p-6 text-white relative">
             <button 
               onClick={onClose}
-              className="absolute top-4 right-4 p-2 text-stone-300 hover:text-white hover:bg-white/10 rounded-full transition-colors"
+              className="absolute top-4 right-4 p-2 text-stone-300 hover:text-white hover:bg-white/10 rounded-full transition-colors cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
@@ -208,7 +224,7 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login' }: Au
             <p className="text-stone-300 text-xs mt-1">
               {isLogin 
                 ? 'Access your ward assembly discussions and votes.' 
-                : 'Register your organization, village, and ward to participate.'}
+                : 'Select your county and ward in Kenya to participate.'}
             </p>
           </div>
 
@@ -239,42 +255,31 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login' }: Au
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-bold text-stone-700 mb-1">
-                        Select Ward <span className="text-red-500">*</span>
-                      </label>
-                      <div className="relative">
-                        <MapPin className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-stone-400 pointer-events-none" />
-                        <select 
-                          required
-                          value={formData.wardId}
-                          onChange={e => setFormData({...formData, wardId: e.target.value})}
-                          className="w-full bg-stone-50 border border-stone-200 rounded-xl px-2.5 py-2 pl-8 text-xs focus:ring-2 focus:ring-sky-600 outline-none"
-                        >
-                          <option value="">Select Ward...</option>
-                          {wards.map(ward => (
-                            <option key={ward.id} value={ward.id}>{ward.name}</option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
+                  {/* County and Ward Selector */}
+                  <div className="bg-sky-50/60 p-3 rounded-2xl border border-sky-100">
+                    <CountyWardSelector
+                      selectedCounty={selectedCounty}
+                      selectedWard={selectedWard}
+                      onCountyChange={setSelectedCounty}
+                      onWardChange={setSelectedWard}
+                      required={true}
+                    />
+                  </div>
 
-                    <div>
-                      <label className="block text-xs font-bold text-stone-700 mb-1">
-                        Village / Estate <span className="text-red-500">*</span>
-                      </label>
-                      <div className="relative">
-                        <Home className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-stone-400" />
-                        <input 
-                          required
-                          type="text" 
-                          value={formData.village}
-                          onChange={e => setFormData({...formData, village: e.target.value})}
-                          className="w-full bg-stone-50 border border-stone-200 rounded-xl px-2.5 py-2 pl-8 text-xs focus:ring-2 focus:ring-sky-600 outline-none"
-                          placeholder="e.g. Gichagi"
-                        />
-                      </div>
+                  <div>
+                    <label className="block text-xs font-bold text-stone-700 mb-1">
+                      Village / Estate / Sub-Location <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <Home className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
+                      <input 
+                        required
+                        type="text" 
+                        value={formData.village}
+                        onChange={e => setFormData({...formData, village: e.target.value})}
+                        className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 pl-9 text-sm focus:ring-2 focus:ring-sky-600 outline-none"
+                        placeholder="e.g. Gichagi / Kangemi Central"
+                      />
                     </div>
                   </div>
 
@@ -344,7 +349,7 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login' }: Au
               <button 
                 type="button"
                 onClick={() => setIsLogin(!isLogin)}
-                className="text-sky-700 hover:text-sky-900 font-bold hover:underline"
+                className="text-sky-700 hover:text-sky-900 font-bold hover:underline cursor-pointer"
               >
                 {isLogin ? "New participant? Register here" : 'Already registered? Sign in'}
               </button>

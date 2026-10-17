@@ -6,6 +6,11 @@ import WardCard from '../components/ui/WardCard';
 import KenyaMap from '../components/ui/KenyaMap';
 import NationalAssemblyBanner from '../components/ui/NationalAssemblyBanner';
 import { supabase } from '../lib/supabase';
+import { 
+  searchKenyaWards, 
+  TOTAL_KENYA_COUNTIES, 
+  TOTAL_KENYA_WARDS 
+} from '../data/kenyaCountiesAndWards';
 
 function getLastSaturday(year: number, month: number) {
   const date = new Date(year, month, 0);
@@ -22,6 +27,7 @@ export default function Home() {
   const [isAssemblyDropdownOpen, setIsAssemblyDropdownOpen] = useState(false);
   const [isViewAllModalOpen, setIsViewAllModalOpen] = useState(false);
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [wardSearchQuery, setWardSearchQuery] = useState('');
   const navigate = useNavigate();
 
   const currentYear = new Date().getFullYear();
@@ -175,7 +181,7 @@ export default function Home() {
                     </span>
                   </h1>
                   <p className="mt-2 text-lg text-stone-300 max-w-xl mb-6">
-                    Join the National Citizen Assembly gathering citizen representatives and wananchi from across all 7 wards in Nairobi. 
+                    Join the National Citizen Assembly gathering citizen representatives and wananchi from across all 47 counties and electoral wards in Kenya. 
                     Discuss pressing community issues, propose solutions, and ratify national resolutions.
                   </p>
                   
@@ -274,9 +280,9 @@ export default function Home() {
                           <MapPin className="w-4 h-4" /> Nairobi, Kenya
                         </span>
                       </div>
-                      <h3 className="text-2xl font-bold text-sky-800 mb-2">National Citizen Assembly (Nairobi & All Wards)</h3>
+                      <h3 className="text-2xl font-bold text-sky-800 mb-2">National Citizen Assembly (All Kenyan Counties & Wards)</h3>
                       <p className="text-stone-600 max-w-2xl">
-                        Uniting citizen representatives nominated across community mini-caucuses from all 7 wards.
+                        Uniting citizen representatives nominated across community mini-caucuses from electoral wards nationwide.
                         Join dialogue, propose solutions, and track resolutions.
                       </p>
                     </div>
@@ -372,25 +378,121 @@ export default function Home() {
 
             </div>
 
-            {/* Right Column: Wards */}
-            <div className="space-y-8">
+            {/* Right Column: Wards & Counties */}
+            <div className="space-y-6">
               <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold text-sky-800 flex items-center gap-2">
-                  <MapPin className="w-6 h-6 text-sky-600" />
-                  Active Wards
-                </h2>
+                <div>
+                  <h2 className="text-2xl font-bold text-sky-800 flex items-center gap-2">
+                    <MapPin className="w-6 h-6 text-sky-600" />
+                    Wards Directory
+                  </h2>
+                  <p className="text-xs text-stone-500 mt-0.5">
+                    {wards.length} Active Walls • Covering all {TOTAL_KENYA_COUNTIES} Counties in Kenya
+                  </p>
+                </div>
+                <Link
+                  to="/register"
+                  className="text-xs font-bold bg-sky-600 hover:bg-sky-700 text-white px-3.5 py-1.5 rounded-full transition-colors shadow-sm flex items-center gap-1"
+                >
+                  <span>+ Join Ward</span>
+                </Link>
               </div>
-              
-              <div className="space-y-4">
-                {wards.map((ward: any) => (
-                  <WardCard key={ward.id} ward={ward} />
-                ))}
-                {wards.length === 0 && (
-                  <div className="bg-white p-8 rounded-2xl border border-stone-200 text-center text-stone-500">
-                    No active wards found.
-                  </div>
+
+              {/* Ward Finder Search Bar */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
+                <input
+                  type="text"
+                  value={wardSearchQuery}
+                  onChange={(e) => setWardSearchQuery(e.target.value)}
+                  placeholder={`Search ${TOTAL_KENYA_WARDS} wards or 47 counties...`}
+                  className="w-full bg-white border border-stone-200 rounded-xl py-2.5 pl-9 pr-8 text-xs focus:ring-2 focus:ring-sky-600 outline-none text-stone-900 shadow-sm"
+                />
+                {wardSearchQuery && (
+                  <button
+                    onClick={() => setWardSearchQuery('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-stone-400 hover:text-stone-600 font-bold"
+                  >
+                    ✕
+                  </button>
                 )}
               </div>
+
+              {/* Active Wards */}
+              <div className="space-y-3.5">
+                {wards
+                  .filter((w: any) => {
+                    if (!wardSearchQuery.trim()) return true;
+                    const q = wardSearchQuery.toLowerCase();
+                    return (
+                      w.name?.toLowerCase().includes(q) ||
+                      w.description?.toLowerCase().includes(q) ||
+                      w.county?.toLowerCase().includes(q)
+                    );
+                  })
+                  .map((ward: any) => (
+                    <WardCard key={ward.id} ward={ward} />
+                  ))}
+
+                {wards.length > 0 &&
+                  wards.filter((w: any) => {
+                    if (!wardSearchQuery.trim()) return true;
+                    const q = wardSearchQuery.toLowerCase();
+                    return (
+                      w.name?.toLowerCase().includes(q) ||
+                      w.description?.toLowerCase().includes(q) ||
+                      w.county?.toLowerCase().includes(q)
+                    );
+                  }).length === 0 && (
+                    <div className="bg-white p-6 rounded-2xl border border-stone-200 text-center text-xs text-stone-500">
+                      No activated assembly wall for "{wardSearchQuery}" yet.
+                    </div>
+                  )}
+              </div>
+
+              {/* Results from other Kenyan wards available to activate */}
+              {wardSearchQuery.trim().length >= 2 && (
+                (() => {
+                  const matches = searchKenyaWards(wardSearchQuery, 6).filter(
+                    (km) => !wards.some((w) => w.name.toLowerCase() === km.ward.toLowerCase())
+                  );
+                  if (matches.length === 0) return null;
+                  return (
+                    <div className="bg-sky-50 border border-sky-100 rounded-2xl p-4 space-y-2.5">
+                      <div className="flex items-center justify-between text-xs font-bold text-sky-950">
+                        <span>Activate Ward in {matches[0].county} County:</span>
+                        <span className="text-[10px] text-sky-700 bg-sky-200/60 px-2 py-0.5 rounded-full">
+                          {matches.length} more wards
+                        </span>
+                      </div>
+                      <div className="space-y-1.5">
+                        {matches.map((item, i) => {
+                          const slug = item.ward.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+                          return (
+                            <Link
+                              key={i}
+                              to={`/register?ward=${slug}`}
+                              className="w-full flex items-center justify-between p-2 bg-white hover:bg-sky-100/60 rounded-xl border border-sky-100 text-xs transition-colors group"
+                            >
+                              <div>
+                                <span className="font-bold text-stone-900 group-hover:text-sky-800">
+                                  {item.ward} Ward
+                                </span>
+                                <span className="text-[11px] text-stone-500 block">
+                                  {item.county} County
+                                </span>
+                              </div>
+                              <span className="text-[11px] font-bold text-sky-600 group-hover:underline flex items-center gap-0.5">
+                                Activate & Join →
+                              </span>
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })()
+              )}
 
               {/* National Citizen Assembly Poster Teaser Card */}
               <div className="bg-gradient-to-br from-sky-950 via-sky-900 to-sky-900 rounded-3xl p-6 text-white border-2 border-sky-400/40 shadow-lg relative overflow-hidden">

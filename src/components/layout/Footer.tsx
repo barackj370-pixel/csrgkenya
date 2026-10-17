@@ -11,7 +11,7 @@ export default function Footer() {
               Civil Society Reference Group (CSRG)
             </h3>
             <p className="text-sm text-stone-400">
-              Empowering wananchi through structured, transparent, and actionable civic participation across 7 wards.
+              Empowering wananchi through structured, transparent, and actionable civic participation across all 47 counties and electoral wards in Kenya.
             </p>
           </div>
           <div>

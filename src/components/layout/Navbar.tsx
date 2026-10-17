@@ -70,12 +70,23 @@ export default function Navbar() {
                             navigate(`/ward/${ward.slug}`);
                             setIsAssembliesOpen(false);
                           }}
-                          className="w-full text-left px-4 py-2 text-sm text-stone-700 hover:bg-stone-50 hover:text-sky-800 flex items-center gap-2 transition-colors"
+                          className="w-full text-left px-4 py-2 text-sm text-stone-700 hover:bg-stone-50 hover:text-sky-800 flex items-center gap-2 transition-colors cursor-pointer"
                         >
                           <MapPin className="w-3 h-3 text-stone-400" /> {ward.name}
                         </button>
                       ))
                     )}
+                    <div className="pt-1.5 mt-1 border-t border-stone-100 px-2">
+                      <button
+                        onClick={() => {
+                          navigate('/register');
+                          setIsAssembliesOpen(false);
+                        }}
+                        className="w-full text-left px-2 py-1.5 text-xs font-bold text-sky-700 hover:bg-sky-50 rounded-lg flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <span>+ Join / Add Your Ward</span>
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -197,6 +208,17 @@ export default function Navbar() {
                       </button>
                     ))
                   )}
+                  <div className="pt-2 mt-1 border-t border-stone-200">
+                    <button
+                      onClick={() => {
+                        navigate('/register');
+                        closeMobileMenu();
+                      }}
+                      className="w-full text-left px-3 py-1.5 text-xs font-bold text-sky-700 hover:bg-sky-50 rounded flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <span>+ Join / Add Your Ward (All 47 Counties)</span>
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

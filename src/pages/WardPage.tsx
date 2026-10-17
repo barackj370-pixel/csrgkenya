@@ -6,6 +6,7 @@ import DiscussionCard from '../components/ui/DiscussionCard';
 import JoinWardModal from '../components/ui/JoinWardModal';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
+import { KENYA_COUNTIES } from '../data/kenyaCountiesAndWards';
 
 export default function WardPage() {
   const { slug } = useParams();
@@ -68,11 +69,37 @@ export default function WardPage() {
   useEffect(() => {
     async function fetchWard() {
       try {
-        const { data, error } = await supabase
+        let { data } = await supabase
           .from('Ward')
           .select('*')
           .eq('slug', slug)
-          .single();
+          .maybeSingle();
+
+        // If not found in database, check if it matches any Kenyan ward from our comprehensive dataset
+        if (!data && slug) {
+          for (const county of KENYA_COUNTIES) {
+            const matchedName = county.wards.find(w => 
+              w.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') === slug ||
+              w.toLowerCase() === slug.toLowerCase()
+            );
+            if (matchedName) {
+              const { data: createdWard } = await supabase
+                .from('Ward')
+                .insert([{
+                  name: matchedName,
+                  slug: slug,
+                  county: county.name,
+                  description: `${county.name} County - ${matchedName} Ward`
+                }])
+                .select()
+                .single();
+              if (createdWard) {
+                data = createdWard;
+              }
+              break;
+            }
+          }
+        }
           
         if (data) {
           // Fetch related data separately to avoid join errors if relations aren't perfectly set up
@@ -173,11 +200,28 @@ export default function WardPage() {
 
   if (!ward) {
     return (
-      <div className="min-h-screen flex flex-col justify-center items-center gap-4">
-        <h1 className="text-3xl font-bold text-sky-800">Ward not found</h1>
-        <Link to="/" className="text-sky-600 hover:underline flex items-center gap-2">
-          <ArrowLeft className="w-4 h-4" /> Back to Home
-        </Link>
+      <div className="min-h-screen flex flex-col justify-center items-center px-4 py-16 text-center">
+        <div className="w-16 h-16 rounded-full bg-sky-100 text-sky-700 flex items-center justify-center mb-4">
+          <MapPin className="w-8 h-8" />
+        </div>
+        <h1 className="text-3xl font-extrabold text-sky-950 mb-2">Ward Assembly Wall Not Activated Yet</h1>
+        <p className="text-stone-600 max-w-md mb-6 text-sm">
+          Be the first citizen or community organisation to activate the Citizen Assembly Wall for this ward. Registration is free and open to all 47 counties in Kenya.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <Link 
+            to={`/register?ward=${slug}`} 
+            className="bg-sky-600 hover:bg-sky-700 text-white font-bold px-6 py-3 rounded-full text-sm shadow-md transition-colors"
+          >
+            Register & Activate This Ward
+          </Link>
+          <Link 
+            to="/" 
+            className="bg-white border border-stone-200 text-stone-700 hover:bg-stone-50 font-medium px-6 py-3 rounded-full text-sm transition-colors flex items-center justify-center gap-2"
+          >
+            <ArrowLeft className="w-4 h-4" /> Back to Home
+          </Link>
+        </div>
       </div>
     );
   }

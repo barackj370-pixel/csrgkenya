@@ -3,31 +3,20 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { motion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
-import { Shield, Users, Lock, Phone, User, MapPin } from 'lucide-react';
+import { Shield, Users, Lock, Phone, User } from 'lucide-react';
+import CountyWardSelector from '../components/ui/CountyWardSelector';
 
 export default function StaffRegister() {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState<'CLERK' | 'ADMIN'>('CLERK');
-  const [wardId, setWardId] = useState('');
-  const [wards, setWards] = useState<any[]>([]);
+  const [selectedCounty, setSelectedCounty] = useState('');
+  const [selectedWard, setSelectedWard] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { login } = useAuth();
-
-  React.useEffect(() => {
-    async function fetchWards() {
-      try {
-        const { data } = await supabase.from('Ward').select('*');
-        if (data) setWards(data);
-      } catch (err) {
-        console.error('Failed to fetch wards', err);
-      }
-    }
-    fetchWards();
-  }, []);
 
   const hashPassword = async (pwd: string) => {
     const msgUint8 = new TextEncoder().encode(pwd);
@@ -40,9 +29,15 @@ export default function StaffRegister() {
     e.preventDefault();
     setError('');
 
-    if (role === 'CLERK' && !wardId) {
-      setError('Please select the ward assigned to this Clerk.');
-      return;
+    if (role === 'CLERK') {
+      if (!selectedCounty) {
+        setError('Please select the County for this Clerk.');
+        return;
+      }
+      if (!selectedWard.trim()) {
+        setError('Please select or type the assigned Ward.');
+        return;
+      }
     }
 
     setLoading(true);
@@ -53,6 +48,37 @@ export default function StaffRegister() {
       const { data: existing } = await supabase.from('User').select('id').eq('phone', phone).maybeSingle();
       if (existing) throw new Error('Phone number already registered. Please sign in.');
 
+      let assignedWardId: string | null = null;
+
+      if (role === 'CLERK') {
+        const wardCleanName = selectedWard.trim();
+        const wardSlug = wardCleanName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+        const { data: allWards } = await supabase.from('Ward').select('*');
+        let targetWard = allWards?.find((w: any) => 
+          w.slug === wardSlug || 
+          w.name.toLowerCase() === wardCleanName.toLowerCase()
+        );
+
+        if (!targetWard) {
+          const { data: newWard, error: wardError } = await supabase
+            .from('Ward')
+            .insert([{
+              name: wardCleanName,
+              slug: wardSlug,
+              county: selectedCounty,
+              description: `${selectedCounty} County - ${wardCleanName} Ward`
+            }])
+            .select()
+            .single();
+
+          if (wardError) throw new Error(`Failed to initialize ward: ${wardError.message}`);
+          targetWard = newWard;
+        }
+
+        assignedWardId = targetWard.id;
+      }
+
       const { data: newUser, error: insertError } = await supabase
         .from('User')
         .insert([{
@@ -60,7 +86,7 @@ export default function StaffRegister() {
           phone,
           password: hashedPassword,
           role,
-          wardId: role === 'CLERK' ? wardId : null
+          wardId: assignedWardId
         }])
         .select()
         .single();
@@ -97,14 +123,14 @@ export default function StaffRegister() {
       animate={{ opacity: 1 }} 
       className="min-h-[85vh] flex items-center justify-center bg-stone-50 py-12 px-4 sm:px-6 lg:px-8"
     >
-      <div className="max-w-md w-full bg-white p-8 rounded-3xl shadow-sm border border-stone-200">
+      <div className="max-w-lg w-full bg-white p-8 rounded-3xl shadow-sm border border-stone-200">
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-12 h-12 bg-stone-900 text-white rounded-2xl mb-3 shadow">
             <Shield className="w-6 h-6" />
           </div>
           <h2 className="text-2xl font-bold text-stone-900">Official Staff Registration</h2>
           <p className="text-stone-500 mt-1 text-xs">
-            Restricted to Ward Clerks and Civil Society Reference Group Administrators
+            Restricted to Ward Clerks and Civil Society Reference Group Administrators across all 47 counties
           </p>
         </div>
 
@@ -121,7 +147,7 @@ export default function StaffRegister() {
               <button
                 type="button"
                 onClick={() => setRole('CLERK')}
-                className={`py-2 px-3 rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                className={`py-2 px-3 rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                   role === 'CLERK'
                     ? 'border-sky-600 bg-sky-50 text-sky-800'
                     : 'border-stone-200 bg-stone-50 text-stone-600'
@@ -134,9 +160,10 @@ export default function StaffRegister() {
                 type="button"
                 onClick={() => {
                   setRole('ADMIN');
-                  setWardId('');
+                  setSelectedCounty('');
+                  setSelectedWard('');
                 }}
-                className={`py-2 px-3 rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                className={`py-2 px-3 rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                   role === 'ADMIN'
                     ? 'border-sky-600 bg-sky-50 text-sky-800'
                     : 'border-stone-200 bg-stone-50 text-stone-600'
@@ -158,7 +185,7 @@ export default function StaffRegister() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="e.g. John K. Clerk"
-                className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 pl-9 text-sm focus:ring-2 focus:ring-stone-900 outline-none"
+                className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 pl-9 text-sm focus:ring-2 focus:ring-stone-900 outline-none text-stone-900"
               />
             </div>
           </div>
@@ -173,28 +200,21 @@ export default function StaffRegister() {
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="07XX XXX XXX"
-                className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 pl-9 text-sm focus:ring-2 focus:ring-stone-900 outline-none"
+                className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 pl-9 text-sm focus:ring-2 focus:ring-stone-900 outline-none text-stone-900"
               />
             </div>
           </div>
 
           {role === 'CLERK' && (
-            <div>
-              <label className="block text-xs font-bold text-stone-700 mb-1">Assigned Ward</label>
-              <div className="relative">
-                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 pointer-events-none" />
-                <select
-                  required
-                  value={wardId}
-                  onChange={(e) => setWardId(e.target.value)}
-                  className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 pl-9 text-sm focus:ring-2 focus:ring-stone-900 outline-none"
-                >
-                  <option value="">Select Assigned Ward...</option>
-                  {wards.map((w: any) => (
-                    <option key={w.id} value={w.id}>{w.name}</option>
-                  ))}
-                </select>
-              </div>
+            <div className="bg-sky-50/50 p-4 rounded-2xl border border-sky-100 space-y-2">
+              <span className="text-xs font-bold text-sky-950 block">Assigned Ward & County</span>
+              <CountyWardSelector
+                selectedCounty={selectedCounty}
+                selectedWard={selectedWard}
+                onCountyChange={setSelectedCounty}
+                onWardChange={setSelectedWard}
+                required={true}
+              />
             </div>
           )}
 
@@ -208,7 +228,7 @@ export default function StaffRegister() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 pl-9 text-sm focus:ring-2 focus:ring-stone-900 outline-none"
+                className="w-full bg-stone-50 border border-stone-200 rounded-xl p-2.5 pl-9 text-sm focus:ring-2 focus:ring-stone-900 outline-none text-stone-900"
               />
             </div>
           </div>
@@ -216,7 +236,7 @@ export default function StaffRegister() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-stone-900 hover:bg-stone-800 text-white font-bold py-3 px-4 rounded-xl text-sm transition-colors mt-2 disabled:opacity-50"
+            className="w-full bg-stone-900 hover:bg-stone-800 text-white font-bold py-3 px-4 rounded-xl text-sm transition-colors mt-2 disabled:opacity-50 cursor-pointer"
           >
             {loading ? 'Creating Official Account...' : 'Register Official Account'}
           </button>

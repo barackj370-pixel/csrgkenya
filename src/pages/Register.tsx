@@ -1,9 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { motion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
-import { MapPin, Users, Building2, Calendar, Phone, Lock, User, Home, ArrowRight, ShieldCheck } from 'lucide-react';
+import CountyWardSelector from '../components/ui/CountyWardSelector';
+import { KENYA_COUNTIES } from '../data/kenyaCountiesAndWards';
+import { 
+  Building2, 
+  Calendar, 
+  Phone, 
+  Lock, 
+  User, 
+  Home, 
+  ArrowRight, 
+  ShieldCheck, 
+  MapPin, 
+  CheckCircle2 
+} from 'lucide-react';
 
 export default function Register() {
   const [searchParams] = useSearchParams();
@@ -12,13 +25,13 @@ export default function Register() {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
-  const [wardId, setWardId] = useState('');
+  const [selectedCounty, setSelectedCounty] = useState('');
+  const [selectedWard, setSelectedWard] = useState('');
   const [village, setVillage] = useState('');
   const [organizationType, setOrganizationType] = useState('Community Group');
   const [organizationName, setOrganizationName] = useState('');
   const [meetingFrequency, setMeetingFrequency] = useState('Weekly');
   const [nextMeetingDate, setNextMeetingDate] = useState('');
-  const [wards, setWards] = useState<any[]>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -36,24 +49,45 @@ export default function Register() {
     'Active Citizen / Resident'
   ];
 
-  React.useEffect(() => {
-    async function fetchWards() {
+  // If a ward slug was passed in URL (e.g., from a ward wall), pre-fill county and ward
+  useEffect(() => {
+    async function resolvePreselectedWard() {
+      if (!preselectedWardSlug) return;
       try {
-        const { data } = await supabase.from('Ward').select('*');
-        if (data) {
-          setWards(data);
-          if (preselectedWardSlug) {
-            const matched = data.find((w: any) => w.slug === preselectedWardSlug);
-            if (matched) {
-              setWardId(matched.id);
+        const { data: wards } = await supabase.from('Ward').select('*');
+        if (wards) {
+          const matched = wards.find((w: any) => w.slug === preselectedWardSlug);
+          if (matched) {
+            setSelectedWard(matched.name);
+            if (matched.county) {
+              setSelectedCounty(matched.county);
+            } else {
+              const foundCounty = KENYA_COUNTIES.find(c => 
+                c.wards.some(w => w.toLowerCase() === matched.name.toLowerCase())
+              );
+              if (foundCounty) setSelectedCounty(foundCounty.name);
+              else setSelectedCounty('Nairobi City');
+            }
+          } else {
+            // Check across all 47 Kenyan counties
+            for (const county of KENYA_COUNTIES) {
+              const matchedName = county.wards.find(w => 
+                w.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') === preselectedWardSlug ||
+                w.toLowerCase() === preselectedWardSlug.toLowerCase()
+              );
+              if (matchedName) {
+                setSelectedWard(matchedName);
+                setSelectedCounty(county.name);
+                break;
+              }
             }
           }
         }
       } catch (err) {
-        console.error('Failed to fetch wards', err);
+        console.error('Failed to resolve preselected ward', err);
       }
     }
-    fetchWards();
+    resolvePreselectedWard();
   }, [preselectedWardSlug]);
 
   const hashPassword = async (pwd: string) => {
@@ -67,8 +101,12 @@ export default function Register() {
     e.preventDefault();
     setError('');
 
-    if (!wardId) {
-      setError('Please select your ward from the list.');
+    if (!selectedCounty) {
+      setError('Please select your County in Kenya.');
+      return;
+    }
+    if (!selectedWard.trim()) {
+      setError('Please select or type your Ward.');
       return;
     }
     if (!village.trim()) {
@@ -85,20 +123,50 @@ export default function Register() {
     try {
       const hashedPassword = await hashPassword(password);
 
+      // Check if phone number is already registered
       const { data: existing } = await supabase.from('User').select('id').eq('phone', phone).maybeSingle();
       if (existing) {
-        throw new Error('Phone number already registered. Please sign in instead.');
+        throw new Error('This phone number is already registered. Please sign in instead.');
       }
 
-      // 1. Create the Citizen User account
+      // 1. Resolve or Create the Ward in database
+      const wardCleanName = selectedWard.trim();
+      const wardSlug = wardCleanName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+      const { data: allWards } = await supabase.from('Ward').select('*');
+      let targetWard = allWards?.find((w: any) => 
+        w.slug === wardSlug || 
+        w.name.toLowerCase() === wardCleanName.toLowerCase()
+      );
+
+      if (!targetWard) {
+        // Automatically create this ward in database so it gets its own assembly wall immediately
+        const { data: newWard, error: wardError } = await supabase
+          .from('Ward')
+          .insert([{
+            name: wardCleanName,
+            slug: wardSlug,
+            county: selectedCounty,
+            description: `${selectedCounty} County - ${wardCleanName} Ward`
+          }])
+          .select()
+          .single();
+
+        if (wardError) {
+          throw new Error(`Failed to initialize ward: ${wardError.message}`);
+        }
+        targetWard = newWard;
+      }
+
+      // 2. Create the Citizen User account
       const { data: newUser, error: userError } = await supabase
         .from('User')
         .insert([{
-          name,
-          phone,
+          name: name.trim(),
+          phone: phone.trim(),
           password: hashedPassword,
           role: 'CITIZEN',
-          wardId,
+          wardId: targetWard.id,
           village: village.trim(),
           organizationName: organizationName.trim(),
           organizationType,
@@ -109,34 +177,33 @@ export default function Register() {
         .single();
 
       if (userError) {
-        console.error("Citizen Insert Error:", userError);
         throw new Error(`Registration failed: ${userError.message}`);
       }
-      if (!newUser) throw new Error('Failed to register: No user data returned');
+      if (!newUser) throw new Error('Failed to create account: No user data returned');
 
-      // 2. Also register the organization / group in the Ward's Groups directory
+      // 3. Register the organization / group in the Ward's groups directory
       try {
         await supabase.from('Group').insert([{
           name: organizationName.trim(),
-          wardId,
-          leaderName: name,
+          wardId: targetWard.id,
+          leaderName: name.trim(),
           meetingDay: meetingFrequency,
           meetingFrequency,
           memberCount: '1+',
-          members: `${name} (${village.trim()})`
+          members: `${name.trim()} (${village.trim()})`
         }]);
       } catch (grpErr) {
-        console.warn('Non-fatal: could not auto-create group entry', grpErr);
+        console.warn('Non-fatal: could not create group record', grpErr);
       }
 
-      // 3. Log in and navigate to the Citizen's Ward Wall
+      // 4. Log in and navigate directly to the Citizen's Ward Wall
       const token = 'mock-jwt-token-' + newUser.id;
       login(token, {
         id: newUser.id,
         name: newUser.name,
         phone: newUser.phone,
         role: newUser.role,
-        wardId: newUser.wardId,
+        wardId: targetWard.id,
         village: newUser.village,
         organizationName: newUser.organizationName,
         organizationType: newUser.organizationType,
@@ -144,12 +211,8 @@ export default function Register() {
         nextMeetingDate: newUser.nextMeetingDate
       });
 
-      const chosenWard = wards.find((w: any) => w.id === wardId);
-      if (chosenWard?.slug) {
-        navigate(`/ward/${chosenWard.slug}`);
-      } else {
-        navigate('/');
-      }
+      // Redirect immediately to their ward's wall
+      navigate(`/ward/${targetWard.slug}`);
     } catch (err: any) {
       setError(err.message || 'An error occurred during registration.');
     } finally {
@@ -161,30 +224,30 @@ export default function Register() {
     <motion.div 
       initial={{ opacity: 0 }} 
       animate={{ opacity: 1 }} 
-      className="min-h-screen bg-stone-50 py-12 px-4 sm:px-6 lg:px-8"
+      className="min-h-screen bg-stone-50 py-10 px-4 sm:px-6 lg:px-8"
     >
       <div className="max-w-2xl mx-auto bg-white rounded-3xl shadow-sm border border-stone-200 overflow-hidden">
-        {/* Header Banner with Kenya National Citizen Assembly styling */}
+        {/* Header Banner */}
         <div className="bg-gradient-to-r from-sky-950 via-sky-900 to-sky-800 p-8 text-white relative">
           <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-red-600 via-white to-green-600"></div>
           <div className="flex items-center gap-3 mb-2">
             <span className="bg-sky-500/30 text-sky-200 text-xs font-bold px-3 py-1 rounded-full border border-sky-400/30 uppercase tracking-wider">
               National Citizen Assembly
             </span>
-            <span className="text-xs text-stone-300 font-medium">Official Citizen Registration</span>
+            <span className="text-xs text-stone-300 font-medium">All 47 Counties in Kenya</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
             Register to Participate in Your Ward
           </h1>
           <p className="text-stone-300 text-sm mt-2 max-w-xl">
-            Join your ward's assembly wall. Add your organization or group, village, and ward to vote on community priorities and nominate assembly representatives.
+            Select your county and ward (or type if not listed) to join your local assembly wall. Add your organization and village to participate in civic dialogue and voting.
           </p>
         </div>
 
         <div className="p-6 sm:p-8">
           {error && (
             <div className="bg-red-50 text-red-700 p-4 rounded-2xl mb-6 text-sm border border-red-200 flex items-start gap-2">
-              <span className="font-bold">Error:</span>
+              <span className="font-bold">Notice:</span>
               <span>{error}</span>
             </div>
           )}
@@ -212,7 +275,7 @@ export default function Register() {
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-stone-700 mb-1.5">
-                    Phone Number (M-Pesa / SMS) <span className="text-red-500">*</span>
+                    Phone Number (SMS / M-Pesa) <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
                     <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
@@ -229,54 +292,43 @@ export default function Register() {
               </div>
             </div>
 
-            {/* Step 2: Location (Ward and Village) */}
+            {/* Step 2: Location (County, Ward, Village) */}
             <div>
               <h3 className="text-base font-bold text-sky-900 flex items-center gap-2 mb-3 border-b border-stone-200 pb-2">
                 <MapPin className="w-5 h-5 text-sky-600" />
-                2. Location: Ward & Village
+                2. Location: County, Ward & Village
               </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-stone-700 mb-1.5">
-                    Select Your Ward <span className="text-red-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 pointer-events-none" />
-                    <select
-                      required
-                      value={wardId}
-                      onChange={(e) => setWardId(e.target.value)}
-                      className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3 pl-9 text-sm focus:ring-2 focus:ring-sky-600 focus:border-transparent outline-none text-stone-900"
-                    >
-                      <option value="">Select your Ward...</option>
-                      {wards.map((w: any) => (
-                        <option key={w.id} value={w.id}>
-                          {w.name} {w.description ? `(${w.description})` : ''}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-stone-700 mb-1.5">
-                    Village / Estate / Sub-Location <span className="text-red-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <Home className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
-                    <input
-                      type="text"
-                      required
-                      value={village}
-                      onChange={(e) => setVillage(e.target.value)}
-                      placeholder="e.g. Gichagi, Waruku, Kangemi Central"
-                      className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3 pl-9 text-sm focus:ring-2 focus:ring-sky-600 focus:border-transparent outline-none text-stone-900"
-                    />
-                  </div>
+              
+              {/* County & Ward Cascade / Selector */}
+              <div className="bg-sky-50/50 p-4 rounded-2xl border border-sky-100 mb-4">
+                <CountyWardSelector
+                  selectedCounty={selectedCounty}
+                  selectedWard={selectedWard}
+                  onCountyChange={setSelectedCounty}
+                  onWardChange={setSelectedWard}
+                  required={true}
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-stone-700 mb-1.5">
+                  Village / Estate / Sub-Location <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <Home className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
+                  <input
+                    type="text"
+                    required
+                    value={village}
+                    onChange={(e) => setVillage(e.target.value)}
+                    placeholder="e.g. Gichagi, Waruku, Deep Sea, Kangemi Central"
+                    className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3 pl-9 text-sm focus:ring-2 focus:ring-sky-600 focus:border-transparent outline-none text-stone-900"
+                  />
                 </div>
               </div>
             </div>
 
-            {/* Step 3: Organization Details (per poster instructions) */}
+            {/* Step 3: Organization Details */}
             <div>
               <h3 className="text-base font-bold text-sky-900 flex items-center gap-2 mb-3 border-b border-stone-200 pb-2">
                 <Building2 className="w-5 h-5 text-sky-600" />
@@ -291,7 +343,7 @@ export default function Register() {
                     <select
                       value={organizationType}
                       onChange={(e) => setOrganizationType(e.target.value)}
-                      className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-sky-600 focus:border-transparent outline-none text-stone-900"
+                      className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-sky-600 focus:border-transparent outline-none text-stone-900 font-medium"
                     >
                       {organizationTypes.map((type) => (
                         <option key={type} value={type}>{type}</option>
@@ -375,7 +427,7 @@ export default function Register() {
                 disabled={loading}
                 className="w-full bg-sky-600 hover:bg-sky-700 text-white font-bold py-4 px-6 rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2 text-base cursor-pointer disabled:opacity-50"
               >
-                {loading ? 'Submitting & Joining Ward...' : (
+                {loading ? 'Registering & Opening Ward Wall...' : (
                   <>
                     <span>Complete Registration & Go to Ward Wall</span>
                     <ArrowRight className="w-5 h-5" />
@@ -383,7 +435,7 @@ export default function Register() {
                 )}
               </button>
               <p className="text-center text-xs text-stone-500 mt-3">
-                By registering, your organization will be listed on your ward's assembly wall for participatory dialogue.
+                Your ward assembly wall will be opened immediately upon registration for civic proposals and voting.
               </p>
             </div>
           </form>
