@@ -26,20 +26,33 @@ export default function Login() {
 
     try {
       const hashedPassword = await hashPassword(password);
+      const cleanIdentifier = phone.trim();
 
-      const { data: user, error } = await supabase
+      // Check by phone number first
+      let { data: user } = await supabase
         .from('User')
         .select('*')
-        .eq('phone', phone)
+        .eq('phone', cleanIdentifier)
         .eq('password', hashedPassword)
-        .single();
+        .maybeSingle();
 
-      if (error || !user) {
-        throw new Error('Invalid credentials');
+      // If not found by phone, check by email
+      if (!user) {
+        const { data: userByEmail } = await supabase
+          .from('User')
+          .select('*')
+          .eq('email', cleanIdentifier)
+          .eq('password', hashedPassword)
+          .maybeSingle();
+        user = userByEmail;
+      }
+
+      if (!user) {
+        throw new Error('Invalid phone number/email or password');
       }
 
       const token = 'mock-jwt-token-' + user.id;
-      login(token, { id: user.id, name: user.name, phone: user.phone, role: user.role, wardId: user.wardId });
+      login(token, { id: user.id, name: user.name, phone: user.phone, email: user.email, role: user.role, wardId: user.wardId });
       
       if (user.role === 'ADMIN') {
         navigate('/admin');
@@ -86,14 +99,16 @@ export default function Login() {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label className="block text-sm font-medium text-stone-700 mb-2">Phone Number</label>
+            <label className="block text-sm font-medium text-stone-700 mb-2">
+              Phone Number or Email Address
+            </label>
             <input
-              type="tel"
+              type="text"
               required
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3 focus:ring-2 focus:ring-stone-900 focus:border-transparent outline-none"
-              placeholder="Enter Phone Number"
+              className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3 focus:ring-2 focus:ring-stone-900 focus:border-transparent outline-none text-stone-900"
+              placeholder="07XX XXX XXX or your email"
             />
           </div>
 

@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Users, MapPin, Calendar, Plus, Save, Edit2, Trash2, MessageSquare, AlertCircle, Upload } from 'lucide-react';
+import { Users, MapPin, Calendar, Plus, Save, Edit2, Trash2, MessageSquare, AlertCircle, Upload, FileText } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
+import WardDocumentsSection from '../components/ui/WardDocumentsSection';
 
 export default function ClerkDashboard() {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'groups' | 'issues' | 'discussions'>('groups');
+  const [activeTab, setActiveTab] = useState<'groups' | 'issues' | 'discussions' | 'documents'>('groups');
+  const [selectedAdminWardId, setSelectedAdminWardId] = useState<string>('');
   const [wards, setWards] = useState<any[]>([]);
   const [groups, setGroups] = useState<any[]>([]);
   const [issues, setIssues] = useState<any[]>([]);
@@ -298,10 +300,10 @@ export default function ClerkDashboard() {
             <p className="text-stone-500 mt-1">Manage community groups and propose issues for the upcoming assembly.</p>
           </div>
           
-          <div className="flex bg-stone-200 p-1 rounded-full">
+          <div className="flex bg-stone-200 p-1 rounded-full flex-wrap gap-1">
             <button
               onClick={() => setActiveTab('groups')}
-              className={`px-6 py-2 rounded-full text-sm font-medium transition-colors ${
+              className={`px-4 sm:px-6 py-2 rounded-full text-xs sm:text-sm font-medium transition-colors cursor-pointer ${
                 activeTab === 'groups' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-600 hover:text-stone-900'
               }`}
             >
@@ -309,7 +311,7 @@ export default function ClerkDashboard() {
             </button>
             <button
               onClick={() => setActiveTab('issues')}
-              className={`px-6 py-2 rounded-full text-sm font-medium transition-colors ${
+              className={`px-4 sm:px-6 py-2 rounded-full text-xs sm:text-sm font-medium transition-colors cursor-pointer ${
                 activeTab === 'issues' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-600 hover:text-stone-900'
               }`}
             >
@@ -317,11 +319,20 @@ export default function ClerkDashboard() {
             </button>
             <button
               onClick={() => setActiveTab('discussions')}
-              className={`px-6 py-2 rounded-full text-sm font-medium transition-colors ${
+              className={`px-4 sm:px-6 py-2 rounded-full text-xs sm:text-sm font-medium transition-colors cursor-pointer ${
                 activeTab === 'discussions' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-600 hover:text-stone-900'
               }`}
             >
               Assemblies
+            </button>
+            <button
+              onClick={() => setActiveTab('documents')}
+              className={`px-4 sm:px-6 py-2 rounded-full text-xs sm:text-sm font-bold transition-colors cursor-pointer flex items-center gap-1.5 ${
+                activeTab === 'documents' ? 'bg-white text-sky-900 shadow-sm' : 'text-stone-600 hover:text-stone-900'
+              }`}
+            >
+              <FileText className="w-3.5 h-3.5" />
+              <span>Documents & Resolutions</span>
             </button>
           </div>
         </div>
@@ -800,6 +811,43 @@ export default function ClerkDashboard() {
                 ))
               )}
             </div>
+          </motion.div>
+        )}
+
+        {activeTab === 'documents' && (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+            {clerkWardId ? (
+              <WardDocumentsSection 
+                wardId={clerkWardId} 
+                wardName={clerkWardName || 'Assigned'} 
+              />
+            ) : wards.length > 0 ? (
+              <div className="space-y-6">
+                <div className="bg-white p-5 rounded-3xl border border-stone-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <h3 className="text-base font-bold text-sky-950">Select Ward Document Repository</h3>
+                    <p className="text-xs text-stone-500">As Administrator, switch between wards to manage resolutions & official documents.</p>
+                  </div>
+                  <select 
+                    value={selectedAdminWardId || wards[0]?.id} 
+                    onChange={e => setSelectedAdminWardId(e.target.value)}
+                    className="p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm font-bold text-sky-900 outline-none"
+                  >
+                    {wards.map(w => (
+                      <option key={w.id} value={w.id}>{w.name} Ward</option>
+                    ))}
+                  </select>
+                </div>
+                <WardDocumentsSection 
+                  wardId={selectedAdminWardId || wards[0]?.id} 
+                  wardName={wards.find(w => w.id === (selectedAdminWardId || wards[0]?.id))?.name || 'Selected'} 
+                />
+              </div>
+            ) : (
+              <div className="p-8 bg-white rounded-3xl border text-center text-stone-500">
+                No active wards found.
+              </div>
+            )}
           </motion.div>
         )}
 

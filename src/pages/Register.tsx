@@ -15,7 +15,8 @@ import {
   ArrowRight, 
   ShieldCheck, 
   MapPin, 
-  CheckCircle2 
+  CheckCircle2,
+  Mail
 } from 'lucide-react';
 
 export default function Register() {
@@ -24,6 +25,7 @@ export default function Register() {
 
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [selectedCounty, setSelectedCounty] = useState('');
   const [selectedWard, setSelectedWard] = useState('');
@@ -164,6 +166,7 @@ export default function Register() {
         .insert([{
           name: name.trim(),
           phone: phone.trim(),
+          email: email.trim() || null,
           password: hashedPassword,
           role: 'CITIZEN',
           wardId: targetWard.id,
@@ -202,6 +205,7 @@ export default function Register() {
         id: newUser.id,
         name: newUser.name,
         phone: newUser.phone,
+        email: newUser.email,
         role: newUser.role,
         wardId: targetWard.id,
         village: newUser.village,
@@ -275,7 +279,7 @@ export default function Register() {
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-stone-700 mb-1.5">
-                    Phone Number (SMS / M-Pesa) <span className="text-red-500">*</span>
+                    Phone Number <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
                     <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
@@ -289,6 +293,27 @@ export default function Register() {
                     />
                   </div>
                 </div>
+              </div>
+
+              {/* Optional Email Address */}
+              <div className="mt-4">
+                <label className="block text-xs font-bold text-stone-700 mb-1.5 flex items-center justify-between">
+                  <span>Email Address <span className="text-stone-400 font-normal">(Optional)</span></span>
+                  <span className="text-[10px] text-stone-400">For calendar & resolutions notices</span>
+                </label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="e.g. jane.mwangi@example.com (optional)"
+                    className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3 pl-9 text-sm focus:ring-2 focus:ring-sky-600 focus:border-transparent outline-none text-stone-900"
+                  />
+                </div>
+                <p className="text-[11px] text-stone-500 mt-1">
+                  Leave blank if you prefer SMS updates only.
+                </p>
               </div>
             </div>
 

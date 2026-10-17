@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { MapPin, Users, Calendar, ArrowLeft, Lightbulb, ThumbsUp, Plus, FileText, CheckCircle, Upload, ChevronDown, ChevronUp } from 'lucide-react';
 import DiscussionCard from '../components/ui/DiscussionCard';
 import JoinWardModal from '../components/ui/JoinWardModal';
+import WardDocumentsSection from '../components/ui/WardDocumentsSection';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { KENYA_COUNTIES } from '../data/kenyaCountiesAndWards';
@@ -467,11 +468,20 @@ export default function WardPage() {
             </div>
             
             {/* Past Assemblies & Resolutions */}
+            {/* Past Assemblies & Resolutions Teaser */}
             <div className="pt-8">
-              <h2 className="text-2xl font-bold text-sky-800 mb-6 flex items-center gap-2">
-                <FileText className="w-6 h-6 text-stone-600" />
-                Past Assemblies & Resolutions
-              </h2>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-sky-800 flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-stone-600" />
+                  Past Assemblies
+                </h2>
+                <a 
+                  href="#ward-documents"
+                  className="text-xs font-bold text-sky-600 hover:text-sky-700 underline"
+                >
+                  View Archive ↓
+                </a>
+              </div>
               <div className="space-y-4">
                 {pastAssemblies.length > 0 ? (
                   pastAssemblies.map((discussion: any) => (
@@ -481,8 +491,8 @@ export default function WardPage() {
                     />
                   ))
                 ) : (
-                  <div className="bg-white p-8 rounded-2xl border border-stone-200 text-center text-stone-500">
-                    No passed assemblies or resolutions yet.
+                  <div className="bg-white p-6 rounded-2xl border border-stone-200 text-center text-xs text-stone-500">
+                    No passed assemblies yet.
                   </div>
                 )}
               </div>
@@ -490,6 +500,11 @@ export default function WardPage() {
           </div>
 
         </div>
+
+        {/* Dedicated Official Documents, Minutes & Resolutions Repository */}
+        <section id="ward-documents" className="pt-10 border-t border-stone-200 scroll-mt-20">
+          <WardDocumentsSection wardId={ward.id} wardName={ward.name} />
+        </section>
       </div>
 
       <JoinWardModal 

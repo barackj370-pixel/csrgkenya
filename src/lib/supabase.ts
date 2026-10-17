@@ -59,6 +59,7 @@ interface MockDB {
   Discussion: any[];
   Group: any[];
   Resolution: any[];
+  AssemblyDocument: any[];
 }
 
 function getInitialMockDB(): MockDB {
@@ -176,6 +177,65 @@ function getInitialMockDB(): MockDB {
     }
   ];
 
+  const assemblyDocuments = [
+    {
+      id: 'doc-1',
+      wardId: 'ward-1',
+      title: 'Kangemi Citizen Assembly Resolutions Matrix - Q4 2025',
+      category: 'Assembly Resolutions',
+      documentDate: '2025-10-29',
+      summary: '12-point resolution signed by 15 community groups regarding Nairobi Water company rationing schedules, public market security lights, and solid waste collection points.',
+      fileName: 'Kangemi_Resolutions_Matrix_Oct2025.pdf',
+      fileSize: '1.4 MB',
+      fileType: 'application/pdf',
+      isPinned: true,
+      uploadedBy: 'Jane Wanjiku (Ward Clerk)',
+      createdAt: '2025-10-29T16:00:00.000Z'
+    },
+    {
+      id: 'doc-2',
+      wardId: 'ward-1',
+      title: 'Water & Sanitation Infrastructure Petition to Nairobi County',
+      category: 'Community Petition',
+      documentDate: '2025-08-14',
+      summary: 'Official petition on pipe leak repairs and installation of water kiosks at Waruku and Gichagi villages.',
+      fileName: 'Kangemi_Water_Sanitation_Petition.pdf',
+      fileSize: '890 KB',
+      fileType: 'application/pdf',
+      isPinned: false,
+      uploadedBy: 'Jane Wanjiku (Ward Clerk)',
+      createdAt: '2025-08-14T11:30:00.000Z'
+    },
+    {
+      id: 'doc-3',
+      wardId: 'ward-1',
+      title: 'Community Mini-Caucus Deliberations & Delegate Credentials',
+      category: 'Official Minutes',
+      documentDate: '2026-04-18',
+      summary: 'Minutes of Kangemi women groups and youth bunges ratifying priority issues and delegates for the National Assembly.',
+      fileName: 'Mini_Caucus_Minutes_April2026.pdf',
+      fileSize: '2.1 MB',
+      fileType: 'application/pdf',
+      isPinned: true,
+      uploadedBy: 'Admin User',
+      createdAt: '2026-04-18T14:00:00.000Z'
+    },
+    {
+      id: 'doc-4',
+      wardId: 'ward-2',
+      title: 'Kitusuru Ward Feeder Drainage & Road Maintenance Agreement',
+      category: 'Assembly Resolutions',
+      documentDate: '2025-11-20',
+      summary: 'Action plan between resident associations and public works department on culvert desilting before heavy rainfall.',
+      fileName: 'Kitusuru_Drainage_Resolutions.pdf',
+      fileSize: '1.1 MB',
+      fileType: 'application/pdf',
+      isPinned: true,
+      uploadedBy: 'Admin User',
+      createdAt: '2025-11-20T10:00:00.000Z'
+    }
+  ];
+
   return {
     Ward: wards,
     User: users,
@@ -183,6 +243,7 @@ function getInitialMockDB(): MockDB {
     Discussion: discussions,
     Group: groups,
     Resolution: resolutions,
+    AssemblyDocument: assemblyDocuments,
   };
 }
 
@@ -195,6 +256,10 @@ function loadDB(): MockDB {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (parsed.Ward && parsed.Ward.length > 0) {
+        if (!parsed.AssemblyDocument || parsed.AssemblyDocument.length === 0) {
+          parsed.AssemblyDocument = getInitialMockDB().AssemblyDocument;
+          saveDB(parsed);
+        }
         return parsed;
       }
     }
@@ -285,7 +350,10 @@ class MockQueryBuilder implements PromiseLike<{ data: any; error: any }> {
     return this;
   }
 
-  order(_col: string, _options?: { ascending?: boolean }) {
+  private orderRules: Array<{ col: string; ascending: boolean }> = [];
+
+  order(col: string, options?: { ascending?: boolean }) {
+    this.orderRules.push({ col, ascending: options?.ascending !== false });
     return this;
   }
 
@@ -365,6 +433,26 @@ class MockQueryBuilder implements PromiseLike<{ data: any; error: any }> {
       }
       return true;
     });
+
+    // Apply orderRules
+    if (this.orderRules.length > 0) {
+      results.sort((a, b) => {
+        for (const rule of this.orderRules) {
+          const valA = a[rule.col];
+          const valB = b[rule.col];
+          if (valA === valB) continue;
+          if (valA === undefined || valA === null) return 1;
+          if (valB === undefined || valB === null) return -1;
+          if (typeof valA === 'boolean' && typeof valB === 'boolean') {
+            const comp = valA === valB ? 0 : valA ? -1 : 1;
+            return rule.ascending ? -comp : comp;
+          }
+          const comp = valA > valB ? 1 : -1;
+          return rule.ascending ? comp : -comp;
+        }
+        return 0;
+      });
+    }
 
     if (this.limitCount !== undefined) {
       results = results.slice(0, this.limitCount);
