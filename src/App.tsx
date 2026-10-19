@@ -17,6 +17,9 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import StaffRegister from './pages/StaffRegister';
 import NationalAssemblyPage from './pages/NationalAssemblyPage';
+import Blog from './pages/Blog';
+import IndependentCandidatesPage from './pages/IndependentCandidatesPage';
+import CommitteeSittingsPage from './pages/CommitteeSittingsPage';
 
 export default function App() {
   return (
@@ -31,6 +34,9 @@ export default function App() {
             <Route path="/join" element={<Register />} />
             <Route path="/staff-register" element={<StaffRegister />} />
             <Route path="/national-assembly" element={<NationalAssemblyPage />} />
+            <Route path="/blog" element={<Blog />} />
+            <Route path="/independent-candidates" element={<IndependentCandidatesPage />} />
+            <Route path="/committee-sittings" element={<CommitteeSittingsPage />} />
             <Route path="/ward/:slug" element={<WardPage />} />
             <Route path="/discussion/:id" element={<DiscussionPage />} />
             <Route path="/admin" element={

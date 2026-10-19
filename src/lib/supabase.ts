@@ -62,21 +62,108 @@ interface MockDB {
   AssemblyDocument: any[];
 }
 
+function createDefaultGroupsForWard(w: { id: string; name: string }) {
+  const list = [
+    {
+      id: `grp-${w.id}-1`,
+      name: `${w.name} Agroecology & Smallholder Farmers Cooperative`,
+      wardId: w.id,
+      category: 'Agroecology & Kitchen Gardens',
+      description: `Mobilizing smallholder peasant farmers, organic compost builders, and indigenous seed guardians across ${w.name} Ward. Holding weekly mini-caucuses to draft agroecology resolutions for the upcoming National Citizen Assembly on December 10, 2026.`,
+      leaderName: '',
+      leaderRole: 'Cooperative Chairperson',
+      leaderPhone: '',
+      meetingDay: 'Every Saturday at 2:00 PM',
+      meetingFrequency: 'Weekly Mini-Caucus',
+      memberCount: '0',
+      members: '',
+      subTeams: []
+    },
+    {
+      id: `grp-${w.id}-2`,
+      name: `${w.name} Youth Civic Action & Bunge La Wananchi`,
+      wardId: w.id,
+      category: 'Citizen Caucus Meeting',
+      description: `Grassroots youth bunge monitoring Ward Development Funds (WDF), public dispensaries, and bursary allocations in ${w.name}. Leading youth citizen assemblies and drafting youth empowerment petitions for the December 10 National Assembly.`,
+      leaderName: '',
+      leaderRole: 'Youth Convener',
+      leaderPhone: '',
+      meetingDay: 'Every Sunday at 3:30 PM',
+      meetingFrequency: 'Weekly Mini-Caucus',
+      memberCount: '0',
+      members: '',
+      subTeams: []
+    },
+    {
+      id: `grp-${w.id}-3`,
+      name: `${w.name} Women Table Banking & Food Sovereignty Network`,
+      wardId: w.id,
+      category: 'Youth & Women Empowerment',
+      description: `Mutual support circle uniting women market traders, kitchen garden farmers, and community health champions in ${w.name}. Consolidating women’s economic justice resolutions for the December 10 National Assembly summit.`,
+      leaderName: '',
+      leaderRole: 'Network Coordinator',
+      leaderPhone: '',
+      meetingDay: 'Every Thursday at 4:00 PM',
+      meetingFrequency: 'Weekly Mini-Caucus',
+      memberCount: '0',
+      members: '',
+      subTeams: []
+    },
+    {
+      id: `grp-${w.id}-4`,
+      name: `${w.name} Civic Watch & Public Service Inspection Team`,
+      wardId: w.id,
+      category: 'Public Service Inspection',
+      description: `Community watchdog conducting on-site verifications of borehole repairs, murram feeder roads, and health center medicine supplies in ${w.name}. Compiling ground audit reports for direct presentation to citizen delegates on December 10, 2026.`,
+      leaderName: '',
+      leaderRole: 'Chief Community Inspector',
+      leaderPhone: '',
+      meetingDay: 'Bi-weekly Tuesdays at 10:00 AM',
+      meetingFrequency: 'Bi-Weekly Field Audit',
+      memberCount: '0',
+      members: '',
+      subTeams: []
+    }
+  ];
+
+  // Specific Sibembe group in Sikhendu Ward
+  if (w.id === 'ward-7' || w.name.toLowerCase() === 'sikhendu') {
+    list.unshift({
+      id: 'grp-sikhendu-sibembe',
+      name: 'Sibembe Community Group',
+      wardId: w.id,
+      category: 'Citizen Caucus Meeting',
+      description: 'Grassroots community caucus in Sibembe, Sikhendu Ward (Trans Nzoia County). Holding citizen mini-caucuses including the session scheduled for tomorrow (October 20, 2026) to consolidate wananchi issues and resolutions for the December 10 National Assembly.',
+      leaderName: 'Irene Nyongesa',
+      leaderRole: 'Group Leader & Convener',
+      leaderPhone: '',
+      meetingDay: 'Tomorrow, Tuesday Oct 20, 2026 at 10:00 AM',
+      meetingFrequency: 'Weekly Mini-Caucus',
+      memberCount: '1',
+      members: 'Irene Nyongesa (Group Leader)',
+      subTeams: []
+    });
+  }
+
+  return list;
+}
+
 function getInitialMockDB(): MockDB {
   const wards = [
-    { id: 'ward-1', name: 'Kangemi', slug: 'kangemi', description: 'Nairobi County - Kangemi Ward' },
-    { id: 'ward-2', name: 'Kitusuru', slug: 'kitusuru', description: 'Nairobi County - Kitusuru Ward' },
-    { id: 'ward-3', name: 'Karura', slug: 'karura', description: 'Nairobi County - Karura Ward' },
-    { id: 'ward-4', name: 'Mountain View', slug: 'mountain-view', description: 'Nairobi County - Mountain View Ward' },
-    { id: 'ward-5', name: 'Parklands', slug: 'parklands', description: 'Nairobi County - Parklands Ward' },
-    { id: 'ward-6', name: 'South Sakwa', slug: 'south-sakwa', description: 'Migori County - South Sakwa Ward' },
-    { id: 'ward-7', name: 'Sikhendu', slug: 'sikhendu', description: 'Trans Nzoia County - Sikhendu Ward' },
+    { id: 'ward-1', name: 'Kangemi', slug: 'kangemi', county: 'Nairobi', description: 'Nairobi County - Kangemi Ward' },
+    { id: 'ward-2', name: 'Kitusuru', slug: 'kitusuru', county: 'Nairobi', description: 'Nairobi County - Kitusuru Ward' },
+    { id: 'ward-3', name: 'Karura', slug: 'karura', county: 'Nairobi', description: 'Nairobi County - Karura Ward' },
+    { id: 'ward-4', name: 'Mountain View', slug: 'mountain-view', county: 'Nairobi', description: 'Nairobi County - Mountain View Ward' },
+    { id: 'ward-5', name: 'Parklands', slug: 'parklands', county: 'Nairobi', description: 'Nairobi County - Parklands Ward' },
+    { id: 'ward-6', name: 'South Sakwa', slug: 'south-sakwa', county: 'Migori', description: 'Migori County - South Sakwa Ward' },
+    { id: 'ward-7', name: 'Sikhendu', slug: 'sikhendu', county: 'Trans Nzoia', description: 'Trans Nzoia County - Sikhendu Ward' },
+    { id: 'ward-8', name: 'Masaba', slug: 'masaba', county: 'Migori', description: 'Migori County - Masaba Ward' },
   ];
 
   const users = [
     {
       id: 'user-admin-1',
-      name: 'Admin User',
+      name: 'Platform Administrator',
       phone: '0700000000',
       email: 'admin@csrg.ke',
       // sha-256 for 'admin123'
@@ -86,7 +173,7 @@ function getInitialMockDB(): MockDB {
     },
     {
       id: 'user-clerk-1',
-      name: 'Jane Wanjiku',
+      name: 'Ward Assembly Clerk',
       phone: '0711111111',
       email: 'clerk.kangemi@csrg.ke',
       // sha-256 for 'clerk123'
@@ -99,7 +186,7 @@ function getInitialMockDB(): MockDB {
   const discussions = wards.map((w, idx) => ({
     id: `disc-${idx + 1}`,
     title: `Citizen Assembly - ${w.name}`,
-    description: `Discussing pressing community issues and wananchi proposals in ${w.name} Ward for the upcoming assembly.`,
+    description: `Discussing pressing community issues and wananchi proposals in ${w.name} Ward for the upcoming National Citizen Assembly on December 10, 2026.`,
     wardId: w.id,
     date: new Date(2026, 11, 10).toISOString(),
     status: 'OPEN',
@@ -116,125 +203,14 @@ function getInitialMockDB(): MockDB {
     }
   ]);
 
-  const resolutions = [
-    {
-      id: 'res-1',
-      discussionId: 'disc-closed-1',
-      text: 'Prioritize water supply line upgrades and scheduled rationing notices by Q2 2026.',
-      createdAt: new Date(2025, 10, 29).toISOString()
-    },
-    {
-      id: 'res-2',
-      discussionId: 'disc-closed-1',
-      text: 'Establish a citizen road drainage oversight team to inspect culvert clearings before the rainy season.',
-      createdAt: new Date(2025, 10, 29).toISOString()
-    }
-  ];
+  const groups: any[] = [];
+  wards.forEach((w) => {
+    groups.push(...createDefaultGroupsForWard(w));
+  });
 
-  const groups = wards.map((w, idx) => ({
-    id: `grp-${idx + 1}`,
-    name: `${w.name} Community Action Group`,
-    wardId: w.id,
-    leaderName: idx % 2 === 0 ? 'Jane Wanjiku' : 'David Otieno',
-    meetingDay: 'Wednesday',
-    meetingFrequency: 'Weekly',
-    memberCount: '15',
-    members: 'Alice W., Bob K., Charlie M., Grace N., David O.'
-  }));
-
-  const issues = [
-    {
-      id: 'issue-1',
-      title: 'Water Supply Reliability & Transparent Rationing Schedule',
-      description: 'Residents experience unpredictable water disruptions. We request a published weekly timetable and fast response to burst main pipes.',
-      wardId: 'ward-1',
-      votes: 45,
-      createdAt: new Date(2026, 2, 10).toISOString()
-    },
-    {
-      id: 'issue-2',
-      title: 'Installation of Solar Street Lighting along Commercial Corridors',
-      description: 'High-mast solar lights are needed along the main market road to bolster security for evening traders and commuters.',
-      wardId: 'ward-1',
-      votes: 38,
-      createdAt: new Date(2026, 2, 14).toISOString()
-    },
-    {
-      id: 'issue-3',
-      title: 'Stormwater Culvert Clearing & Road Drainage',
-      description: 'Clearing clogged road drainages to prevent erosion and flash flooding along feeder pathways during seasonal rains.',
-      wardId: 'ward-2',
-      votes: 29,
-      createdAt: new Date(2026, 2, 18).toISOString()
-    },
-    {
-      id: 'issue-4',
-      title: 'Designated Community Waste Sorting & Collection Hub',
-      description: 'Establish a structured collection drop-off for plastics and organic waste to curb illegal dumping along riverbanks.',
-      wardId: 'ward-3',
-      votes: 34,
-      createdAt: new Date(2026, 2, 22).toISOString()
-    }
-  ];
-
-  const assemblyDocuments = [
-    {
-      id: 'doc-1',
-      wardId: 'ward-1',
-      title: 'Kangemi Citizen Assembly Resolutions Matrix - Q4 2025',
-      category: 'Assembly Resolutions',
-      documentDate: '2025-10-29',
-      summary: '12-point resolution signed by 15 community groups regarding Nairobi Water company rationing schedules, public market security lights, and solid waste collection points.',
-      fileName: 'Kangemi_Resolutions_Matrix_Oct2025.pdf',
-      fileSize: '1.4 MB',
-      fileType: 'application/pdf',
-      isPinned: true,
-      uploadedBy: 'Jane Wanjiku (Ward Clerk)',
-      createdAt: '2025-10-29T16:00:00.000Z'
-    },
-    {
-      id: 'doc-2',
-      wardId: 'ward-1',
-      title: 'Water & Sanitation Infrastructure Petition to Nairobi County',
-      category: 'Community Petition',
-      documentDate: '2025-08-14',
-      summary: 'Official petition on pipe leak repairs and installation of water kiosks at Waruku and Gichagi villages.',
-      fileName: 'Kangemi_Water_Sanitation_Petition.pdf',
-      fileSize: '890 KB',
-      fileType: 'application/pdf',
-      isPinned: false,
-      uploadedBy: 'Jane Wanjiku (Ward Clerk)',
-      createdAt: '2025-08-14T11:30:00.000Z'
-    },
-    {
-      id: 'doc-3',
-      wardId: 'ward-1',
-      title: 'Community Mini-Caucus Deliberations & Delegate Credentials',
-      category: 'Official Minutes',
-      documentDate: '2026-04-18',
-      summary: 'Minutes of Kangemi women groups and youth bunges ratifying priority issues and delegates for the National Assembly.',
-      fileName: 'Mini_Caucus_Minutes_April2026.pdf',
-      fileSize: '2.1 MB',
-      fileType: 'application/pdf',
-      isPinned: true,
-      uploadedBy: 'Admin User',
-      createdAt: '2026-04-18T14:00:00.000Z'
-    },
-    {
-      id: 'doc-4',
-      wardId: 'ward-2',
-      title: 'Kitusuru Ward Feeder Drainage & Road Maintenance Agreement',
-      category: 'Assembly Resolutions',
-      documentDate: '2025-11-20',
-      summary: 'Action plan between resident associations and public works department on culvert desilting before heavy rainfall.',
-      fileName: 'Kitusuru_Drainage_Resolutions.pdf',
-      fileSize: '1.1 MB',
-      fileType: 'application/pdf',
-      isPinned: true,
-      uploadedBy: 'Admin User',
-      createdAt: '2025-11-20T10:00:00.000Z'
-    }
-  ];
+  const issues: any[] = [];
+  const resolutions: any[] = [];
+  const assemblyDocuments: any[] = [];
 
   return {
     Ward: wards,
@@ -256,10 +232,158 @@ function loadDB(): MockDB {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (parsed.Ward && parsed.Ward.length > 0) {
-        if (!parsed.AssemblyDocument || parsed.AssemblyDocument.length === 0) {
-          parsed.AssemblyDocument = getInitialMockDB().AssemblyDocument;
-          saveDB(parsed);
+        // Strip legacy mock issues and mock resolutions
+        if (Array.isArray(parsed.Issue)) {
+          parsed.Issue = parsed.Issue.filter((it: any) => !String(it.id).startsWith('issue-'));
         }
+        if (Array.isArray(parsed.Resolution)) {
+          parsed.Resolution = parsed.Resolution.filter((r: any) => !String(r.id).startsWith('res-'));
+        }
+        if (!parsed.AssemblyDocument) {
+          parsed.AssemblyDocument = [];
+        }
+        if (!parsed.Group) {
+          parsed.Group = [];
+        }
+
+        // Deduplicate wards by lowercase name and slug
+        const seenWards = new Set<string>();
+        const dedupedWards: any[] = [];
+        for (const w of parsed.Ward) {
+          const normKey = (w.slug || w.name || '').trim().toLowerCase();
+          if (!seenWards.has(normKey)) {
+            seenWards.add(normKey);
+            dedupedWards.push(w);
+          }
+        }
+
+        // Ensure Masaba is always present in wards!
+        const hasMasaba = dedupedWards.some(
+          (w: any) => (w.slug && w.slug.toLowerCase() === 'masaba') || 
+                      (w.name && w.name.toLowerCase().trim() === 'masaba')
+        );
+        if (!hasMasaba) {
+          dedupedWards.push({
+            id: 'ward-8',
+            name: 'Masaba',
+            slug: 'masaba',
+            county: 'Migori',
+            description: 'Migori County - Masaba Ward'
+          });
+        }
+
+        // Ensure Sikhendu is always present in wards!
+        const hasSikhendu = dedupedWards.some(
+          (w: any) => (w.slug && w.slug.toLowerCase() === 'sikhendu') || 
+                      (w.name && w.name.toLowerCase().trim() === 'sikhendu')
+        );
+        if (!hasSikhendu) {
+          dedupedWards.push({
+            id: 'ward-7',
+            name: 'Sikhendu',
+            slug: 'sikhendu',
+            county: 'Trans Nzoia',
+            description: 'Trans Nzoia County - Sikhendu Ward'
+          });
+        }
+        parsed.Ward = dedupedWards;
+
+        // Ensure each ward has groups and discussions
+        for (const w of parsed.Ward) {
+          const wardGroups = parsed.Group.filter((g: any) => g.wardId === w.id);
+          if (wardGroups.length === 0) {
+            parsed.Group.push(...createDefaultGroupsForWard(w));
+          }
+        }
+
+        // Specifically ensure Sikhendu Ward always has the Sibembe Community Group
+        const sikhendu = parsed.Ward.find(
+          (w: any) => (w.slug && w.slug.toLowerCase() === 'sikhendu') || 
+                      (w.name && w.name.toLowerCase().trim() === 'sikhendu')
+        );
+        if (sikhendu) {
+          const hasSibembe = parsed.Group.some(
+            (g: any) => g.id === 'grp-sikhendu-sibembe' || 
+                        (g.name && g.name.toLowerCase().includes('sibembe'))
+          );
+          if (!hasSibembe) {
+            parsed.Group.unshift({
+              id: 'grp-sikhendu-sibembe',
+              name: 'Sibembe Community Group',
+              wardId: sikhendu.id,
+              category: 'Citizen Caucus Meeting',
+              description: 'Grassroots community caucus in Sibembe, Sikhendu Ward (Trans Nzoia County). Holding citizen mini-caucuses including the session scheduled for tomorrow (October 20, 2026) to consolidate wananchi issues and resolutions for the December 10 National Assembly.',
+              leaderName: 'Irene Nyongesa',
+              leaderRole: 'Group Leader & Convener',
+              leaderPhone: '',
+              meetingDay: 'Tomorrow, Tuesday Oct 20, 2026 at 10:00 AM',
+              meetingFrequency: 'Weekly Mini-Caucus',
+              memberCount: '1',
+              members: 'Irene Nyongesa (Group Leader)',
+              subTeams: []
+            });
+          }
+        }
+
+        // Clean any stale mock names from groups in local storage
+        const isMockPersonName = (val: string) => {
+          if (!val) return false;
+          const lower = val.toLowerCase();
+          return lower.includes('nyaboke') || 
+                 lower.includes('sarah') || 
+                 lower.includes('wanjiku') || 
+                 lower.includes('charlie') || 
+                 lower.includes('alice') || 
+                 lower.includes('bob');
+        };
+
+        if (Array.isArray(parsed.Group)) {
+          for (const g of parsed.Group) {
+            const isSibembe = g.id === 'grp-sikhendu-sibembe' || g.name?.toLowerCase().includes('sibembe');
+            if (isSibembe) {
+              g.leaderName = 'Irene Nyongesa';
+              g.leaderRole = 'Group Leader & Convener';
+              
+              // Clean members array for Sibembe
+              const rawMembers = (g.members || '').split(',').map((m: string) => m.trim()).filter(Boolean);
+              const cleanMembers = rawMembers.filter((m: string) => !isMockPersonName(m));
+              if (!cleanMembers.some((m: string) => m.includes('Irene Nyongesa'))) {
+                cleanMembers.unshift('Irene Nyongesa (Group Leader)');
+              }
+              g.members = cleanMembers.join(', ');
+              g.memberCount = cleanMembers.length.toString();
+            } else {
+              // Non-Sibembe groups: remove mock leader names unless real person registered account
+              if (g.leaderName && isMockPersonName(g.leaderName)) {
+                g.leaderName = '';
+              }
+              // Clean mock members
+              const rawMembers = (g.members || '').split(',').map((m: string) => m.trim()).filter(Boolean);
+              const cleanMembers = rawMembers.filter((m: string) => !isMockPersonName(m));
+              g.members = cleanMembers.join(', ');
+              g.memberCount = cleanMembers.length.toString();
+            }
+          }
+        }
+
+        for (const w of parsed.Ward) {
+          if (Array.isArray(parsed.Discussion)) {
+            const hasDisc = parsed.Discussion.some((d: any) => d.wardId === w.id && d.status === 'OPEN');
+            if (!hasDisc) {
+              parsed.Discussion.push({
+                id: `disc-${w.id}-open`,
+                title: `Citizen Assembly - ${w.name}`,
+                description: `Discussing pressing community issues and wananchi proposals in ${w.name} Ward for the upcoming National Citizen Assembly on December 10, 2026.`,
+                wardId: w.id,
+                date: new Date(2026, 11, 10).toISOString(),
+                status: 'OPEN',
+                createdById: 'user-admin-1',
+              });
+            }
+          }
+        }
+
+        saveDB(parsed);
         return parsed;
       }
     }
@@ -299,6 +423,8 @@ function expandRelations(tableName: string, row: any, db: MockDB) {
     item.ward = db.Ward.find((w) => w.id === item.wardId) || null;
     item.resolutions = db.Resolution.filter((r) => r.discussionId === item.id);
   } else if (tableName === 'Group') {
+    item.ward = db.Ward.find((w) => w.id === item.wardId) || null;
+  } else if (tableName === 'AssemblyDocument') {
     item.ward = db.Ward.find((w) => w.id === item.wardId) || null;
   }
   return item;
@@ -374,16 +500,37 @@ class MockQueryBuilder implements PromiseLike<{ data: any; error: any }> {
 
   async execute(): Promise<{ data: any; error: any }> {
     const db = loadDB();
-    const table: any[] = (db as any)[this.tableName] || [];
+    if (!(db as any)[this.tableName]) {
+      (db as any)[this.tableName] = [];
+    }
+    const table: any[] = (db as any)[this.tableName];
 
     if (this.action === 'insert') {
       const inserted: any[] = [];
       const newItems = Array.isArray(this.mutateData) ? this.mutateData : [this.mutateData];
       for (const item of newItems) {
+        if (this.tableName === 'Ward') {
+          const itemSlug = (item.slug || item.name || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+          const itemName = (item.name || '').trim().toLowerCase();
+          const existingWard = table.find((w: any) => 
+            ((w.slug || '').trim().toLowerCase() === itemSlug) ||
+            ((w.name || '').trim().toLowerCase() === itemName)
+          );
+          if (existingWard) {
+            inserted.push(existingWard);
+            continue;
+          }
+        }
         const id = item.id || `${this.tableName.toLowerCase()}-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
         const newItem = { ...item, id };
         table.push(newItem);
         inserted.push(newItem);
+
+        if (this.tableName === 'Ward') {
+          if (!db.Group) db.Group = [];
+          const defaultGroups = createDefaultGroupsForWard(newItem);
+          db.Group.push(...defaultGroups);
+        }
       }
       saveDB(db);
       if (this.isSingle) {
@@ -509,26 +656,6 @@ if (isRealConfigProvided) {
   try {
     clientInstance = createClient(rawEnvUrl!, rawEnvKey!);
     console.log('[CSRG Kenya] Successfully connected to live Supabase project:', rawEnvUrl);
-
-    // Auto-seed starter Kenyan wards if the newly created Supabase database is completely empty
-    if (typeof window !== 'undefined') {
-      (async () => {
-        try {
-          const { data: existingWards, error } = await clientInstance.from('Ward').select('id').limit(1);
-          if (!error && (!existingWards || existingWards.length === 0)) {
-            console.log('[CSRG Kenya] Empty database detected. Seeding starter Kenyan wards and assemblies...');
-            const initial = getInitialMockDB();
-            await clientInstance.from('Ward').insert(initial.Ward);
-            await clientInstance.from('AssemblyDocument').insert(initial.AssemblyDocument);
-            await clientInstance.from('Discussion').insert(initial.Discussion);
-            await clientInstance.from('Issue').insert(initial.Issue);
-            console.log('[CSRG Kenya] Starter data successfully seeded into Supabase.');
-          }
-        } catch (seedErr) {
-          console.warn('[CSRG Kenya] Auto-seed check finished:', seedErr);
-        }
-      })();
-    }
   } catch (err) {
     console.warn('[AI Studio] Supabase client init failed, switching to local store:', err);
     clientInstance = createMockClient();

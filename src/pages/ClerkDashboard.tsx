@@ -1,14 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Users, MapPin, Calendar, Plus, Save, Edit2, Trash2, MessageSquare, AlertCircle, Upload, FileText } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Users, MapPin, Calendar, Plus, Save, Edit2, Trash2, MessageSquare, AlertCircle, Upload, FileText, BookOpen } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import WardDocumentsSection from '../components/ui/WardDocumentsSection';
+import UpdateMiniCaucusModal from '../components/ui/UpdateMiniCaucusModal';
 
 export default function ClerkDashboard() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<'groups' | 'issues' | 'discussions' | 'documents'>('groups');
   const [selectedAdminWardId, setSelectedAdminWardId] = useState<string>('');
+  const [isMiniCaucusModalOpen, setIsMiniCaucusModalOpen] = useState(false);
   const [wards, setWards] = useState<any[]>([]);
   const [groups, setGroups] = useState<any[]>([]);
   const [issues, setIssues] = useState<any[]>([]);
@@ -333,6 +336,20 @@ export default function ClerkDashboard() {
             >
               <FileText className="w-3.5 h-3.5" />
               <span>Documents & Resolutions</span>
+            </button>
+            <Link
+              to="/blog"
+              className="px-4 sm:px-6 py-2 rounded-full text-xs sm:text-sm font-bold text-sky-700 bg-sky-50 hover:bg-sky-100 border border-sky-200 transition-colors flex items-center gap-1.5"
+            >
+              <BookOpen className="w-3.5 h-3.5 text-sky-600" />
+              <span>Blog (Add Post)</span>
+            </Link>
+            <button
+              onClick={() => setIsMiniCaucusModalOpen(true)}
+              className="px-4 sm:px-6 py-2 rounded-full text-xs sm:text-sm font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
+            >
+              <Calendar className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Mini-Caucuses (Carousel 1)</span>
             </button>
           </div>
         </div>
@@ -852,6 +869,11 @@ export default function ClerkDashboard() {
         )}
 
       </div>
+
+      <UpdateMiniCaucusModal
+        isOpen={isMiniCaucusModalOpen}
+        onClose={() => setIsMiniCaucusModalOpen(false)}
+      />
     </motion.div>
   );
 }

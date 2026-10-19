@@ -309,7 +309,7 @@ export default function Register() {
                     required
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="e.g. Jane Wanjiku Mwangi"
+                    placeholder="e.g. Full Legal / Citizen Name"
                     className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-sky-600 focus:border-transparent outline-none text-stone-900"
                   />
                 </div>
@@ -343,7 +343,7 @@ export default function Register() {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="e.g. jane.mwangi@example.com (optional)"
+                    placeholder="e.g. citizen@example.com (optional)"
                     className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3 pl-9 text-sm focus:ring-2 focus:ring-sky-600 focus:border-transparent outline-none text-stone-900"
                   />
                 </div>

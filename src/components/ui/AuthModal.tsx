@@ -250,7 +250,7 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login' }: Au
                         value={formData.name}
                         onChange={e => setFormData({...formData, name: e.target.value})}
                         className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 pl-9 text-sm focus:ring-2 focus:ring-sky-600 focus:border-transparent outline-none"
-                        placeholder="e.g. John K. Mwangi"
+                        placeholder="e.g. Full Legal / Citizen Name"
                       />
                     </div>
                   </div>

@@ -94,11 +94,23 @@ export default function Navbar() {
                 <span className="w-2 h-2 rounded-full bg-red-400 animate-pulse"></span>
                 National Assembly
               </Link>
+              <Link to="/independent-candidates" className="text-emerald-200 hover:text-white hover:bg-sky-700 px-3 py-2 rounded-md text-sm font-bold flex items-center gap-1">
+                <span>Independent Candidates</span>
+              </Link>
+              <a href="/#ward-resolutions" className="text-sky-50 hover:text-white hover:bg-sky-700 px-3 py-2 rounded-md text-sm font-medium">
+                Ward Resolutions
+              </a>
+              <Link to="/committee-sittings" className="text-sky-50 hover:text-white hover:bg-sky-700 px-3 py-2 rounded-md text-sm font-medium">
+                Committees
+              </Link>
+              <Link to="/blog" className="text-sky-50 hover:text-white hover:bg-sky-700 px-3 py-2 rounded-md text-sm font-medium">
+                Blog
+              </Link>
               <Link to="/about" className="text-sky-50 hover:text-white hover:bg-sky-700 px-3 py-2 rounded-md text-sm font-medium">
                 About Us
               </Link>
               <Link to="/contact" className="text-sky-50 hover:text-white hover:bg-sky-700 px-3 py-2 rounded-md text-sm font-medium">
-                Contact Us
+                Contact
               </Link>
               {user?.role === 'CITIZEN' && user?.wardId && (
                 <Link 
@@ -109,23 +121,28 @@ export default function Navbar() {
                   My Ward Wall
                 </Link>
               )}
-              {(user?.role === 'CLERK' || user?.role === 'ADMIN') && (
-                <Link to="/clerk" className="text-sky-50 hover:text-white hover:bg-sky-700 px-3 py-2 rounded-md text-sm font-medium">
-                  Clerk Portal
+              {/* Portals - Always discoverable */}
+              <div className="flex items-center gap-1 bg-sky-700/60 p-1 rounded-xl border border-sky-500/40">
+                <Link 
+                  to="/clerk" 
+                  className="text-sky-100 hover:text-white hover:bg-sky-800 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1"
+                >
+                  <span>Clerk Portal</span>
                 </Link>
-              )}
+                <Link 
+                  to="/admin" 
+                  className="text-sky-100 hover:text-white hover:bg-sky-800 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1"
+                >
+                  <LayoutDashboard className="w-3.5 h-3.5" />
+                  <span>Admin</span>
+                </Link>
+              </div>
             </div>
           </div>
           
           <div className="flex items-center gap-4">
             {/* Desktop Auth/Admin Buttons */}
             <div className="hidden md:flex items-center gap-3">
-              {user?.role === 'ADMIN' && (
-                <Link to="/admin" className="text-sky-50 hover:text-white hover:bg-sky-700 px-3 py-2 rounded-md text-sm font-medium flex items-center gap-1">
-                  <LayoutDashboard className="w-4 h-4" />
-                  Admin
-                </Link>
-              )}
               
               {user ? (
                 <button 
@@ -233,6 +250,38 @@ export default function Navbar() {
             </Link>
 
             <Link 
+              to="/independent-candidates" 
+              onClick={closeMobileMenu}
+              className="block px-3 py-3 rounded-xl text-base font-bold text-emerald-800 bg-emerald-50 border border-emerald-200"
+            >
+              Independent Candidates Portal
+            </Link>
+
+            <a 
+              href="/#ward-resolutions" 
+              onClick={closeMobileMenu}
+              className="block px-3 py-3 rounded-md text-base font-medium text-stone-700 hover:text-sky-800 hover:bg-stone-50"
+            >
+              Ward Assembly Resolutions
+            </a>
+
+            <Link 
+              to="/committee-sittings" 
+              onClick={closeMobileMenu}
+              className="block px-3 py-3 rounded-md text-base font-medium text-stone-700 hover:text-sky-800 hover:bg-stone-50"
+            >
+              12 Committee Sittings & Resolutions
+            </Link>
+
+            <Link 
+              to="/blog" 
+              onClick={closeMobileMenu}
+              className="block px-3 py-3 rounded-md text-base font-medium text-stone-700 hover:text-sky-800 hover:bg-stone-50"
+            >
+              Blog
+            </Link>
+
+            <Link 
               to="/about" 
               onClick={closeMobileMenu}
               className="block px-3 py-3 rounded-md text-base font-medium text-stone-700 hover:text-sky-800 hover:bg-stone-50"
@@ -259,25 +308,25 @@ export default function Navbar() {
               </Link>
             )}
 
-            {(user?.role === 'CLERK' || user?.role === 'ADMIN') && (
+            <div className="pt-2 pb-2 border-t border-b border-stone-200 my-2 space-y-1">
+              <div className="px-3 py-1 text-xs font-bold text-stone-400 uppercase tracking-wider">Staff & Admin Portals</div>
               <Link 
                 to="/clerk" 
                 onClick={closeMobileMenu}
-                className="block px-3 py-3 rounded-md text-base font-medium text-stone-700 hover:text-sky-800 hover:bg-stone-50"
+                className="block px-3 py-2.5 rounded-xl text-base font-bold text-sky-800 bg-sky-50 border border-sky-100 flex items-center justify-between"
               >
-                Clerk Portal
+                <span>Clerk Portal</span>
+                <span className="text-xs bg-sky-200 text-sky-900 px-2 py-0.5 rounded-full font-semibold">Ward Assemblies</span>
               </Link>
-            )}
-
-            {user?.role === 'ADMIN' && (
               <Link 
                 to="/admin" 
                 onClick={closeMobileMenu}
-                className="block px-3 py-3 rounded-md text-base font-medium text-stone-700 hover:text-sky-800 hover:bg-stone-50"
+                className="block px-3 py-2.5 rounded-xl text-base font-bold text-stone-800 bg-stone-100 border border-stone-200 flex items-center justify-between"
               >
-                Admin Dashboard
+                <span>Admin Dashboard</span>
+                <span className="text-xs bg-stone-300 text-stone-900 px-2 py-0.5 rounded-full font-semibold">Platform</span>
               </Link>
-            )}
+            </div>
 
             <div className="pt-4 mt-2 border-t border-stone-200 space-y-2">
               {user ? (

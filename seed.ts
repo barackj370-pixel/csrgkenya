@@ -79,16 +79,17 @@ async function main() {
       }
     });
     
-    // Create a sample group for each ward
+    // Create initial group for each ward with empty leader pending registration
+    const isSikhendu = ward.name.toLowerCase() === 'sikhendu' || ward.slug === 'sikhendu';
     await prisma.group.create({
       data: {
-        name: `${ward.name} Youth Group`,
+        name: isSikhendu ? 'Sibembe Community Group' : `${ward.name} Community Action Group`,
         wardId: ward.id,
-        leaderName: 'Jane Wanjiku',
-        meetingDay: 'Wednesday',
-        meetingFrequency: 'Weekly',
-        members: 'Alice, Bob, Charlie',
-        memberCount: 15
+        leaderName: isSikhendu ? 'Irene Nyongesa' : '',
+        meetingDay: isSikhendu ? 'Tomorrow, Tuesday Oct 20, 2026 at 10:00 AM' : 'Saturday at 2:00 PM',
+        meetingFrequency: 'Weekly Mini-Caucus',
+        members: isSikhendu ? 'Irene Nyongesa (Group Leader)' : '',
+        memberCount: isSikhendu ? 1 : 0
       }
     });
   }

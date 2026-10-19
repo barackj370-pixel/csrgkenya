@@ -14,14 +14,18 @@ import {
   Trash2, 
   FileCheck,
   ShieldAlert,
-  Tag
+  Tag,
+  Award
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { filterMockItems } from '../../lib/civicData';
 
 export interface AssemblyDocument {
   id: string;
   wardId: string;
+  wardName?: string;
+  county?: string;
   title: string;
   category: string;
   documentDate: string;
@@ -43,6 +47,7 @@ interface WardDocumentsSectionProps {
 export default function WardDocumentsSection({ wardId, wardName }: WardDocumentsSectionProps) {
   const { user } = useAuth();
   const [documents, setDocuments] = useState<AssemblyDocument[]>([]);
+  const [clerkOfficerName, setClerkOfficerName] = useState(user?.name || '');
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
@@ -71,7 +76,9 @@ export default function WardDocumentsSection({ wardId, wardName }: WardDocuments
     'Citizen Charter'
   ];
 
-  const canManage = Boolean(user && (user.role === 'ADMIN' || user.role === 'CLERK' || user.wardId === wardId));
+  // Admins can post on any ward, but Clerks can post only on their own ward wall
+  const isAssignedClerk = user?.role === 'CLERK' && (!user.wardId || user.wardId === wardId);
+  const canManage = Boolean(user && (user.role === 'ADMIN' || isAssignedClerk));
 
   useEffect(() => {
     fetchDocuments();
@@ -88,7 +95,7 @@ export default function WardDocumentsSection({ wardId, wardName }: WardDocuments
         .order('documentDate', { ascending: false });
 
       if (!error && data && data.length > 0) {
-        setDocuments(data);
+        setDocuments(filterMockItems(data));
       } else {
         // Fallback to local storage cache if table does not exist yet in Supabase
         try {
@@ -96,10 +103,9 @@ export default function WardDocumentsSection({ wardId, wardName }: WardDocuments
           if (raw) {
             const parsed = JSON.parse(raw);
             const localDocs = parsed.AssemblyDocument || [];
-            const wardDocs = localDocs.filter((d: any) => d.wardId === wardId || d.wardId === 'ward-1');
-            if (wardDocs.length > 0) {
-              setDocuments(wardDocs);
-            }
+            const cleanDocs = filterMockItems(localDocs);
+            const wardDocs = cleanDocs.filter((d: any) => d.wardId === wardId);
+            setDocuments(wardDocs);
           }
         } catch {
           // ignore
@@ -214,8 +220,15 @@ Generated via CSRG Citizen Assembly Digital Portal`;
     setUploading(true);
 
     try {
+      const authorText = user?.name 
+        ? `${user.name} (${user.role === 'CLERK' ? 'Ward Clerk' : user.role === 'ADMIN' ? 'Admin' : 'Representative'})` 
+        : clerkOfficerName.trim()
+          ? `${clerkOfficerName.trim()} (Ward Clerk)`
+          : 'Ward Clerk';
+
       const newDocItem: Omit<AssemblyDocument, 'id'> = {
         wardId,
+        wardName,
         title: uploadTitle.trim(),
         category: uploadCategory,
         documentDate: uploadDate,
@@ -225,7 +238,7 @@ Generated via CSRG Citizen Assembly Digital Portal`;
         fileType: selectedFile?.type || 'application/pdf',
         fileUrl: selectedFile?.dataUrl || undefined,
         isPinned: uploadIsPinned,
-        uploadedBy: user?.name ? `${user.name} (${user.role === 'CLERK' ? 'Ward Clerk' : user.role === 'ADMIN' ? 'Admin' : 'Representative'})` : 'Ward Secretariat',
+        uploadedBy: authorText,
         createdAt: new Date().toISOString()
       };
 
@@ -247,11 +260,21 @@ Generated via CSRG Citizen Assembly Digital Portal`;
           const parsed = raw ? JSON.parse(raw) : {};
           parsed.AssemblyDocument = [fallbackDoc, ...(parsed.AssemblyDocument || [])];
           localStorage.setItem('csrg_mock_db_v1', JSON.stringify(parsed));
+          window.dispatchEvent(new Event('storage'));
         } catch {
           // ignore
         }
       } else if (data) {
         setDocuments(prev => [data, ...prev]);
+        try {
+          const raw = localStorage.getItem('csrg_mock_db_v1');
+          const parsed = raw ? JSON.parse(raw) : {};
+          parsed.AssemblyDocument = [data, ...(parsed.AssemblyDocument || [])];
+          localStorage.setItem('csrg_mock_db_v1', JSON.stringify(parsed));
+          window.dispatchEvent(new Event('storage'));
+        } catch {
+          // ignore
+        }
       }
 
       // Reset form
@@ -704,6 +727,22 @@ Generated via CSRG Citizen Assembly Digital Portal`;
                     placeholder="Briefly outline key decisions, agreed action points, and committee assignments..."
                     className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3 text-xs sm:text-sm focus:ring-2 focus:ring-sky-600 outline-none text-stone-900"
                   />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-stone-700 mb-1">
+                    Officiating Clerk / Admin Name
+                  </label>
+                  <input
+                    type="text"
+                    value={clerkOfficerName}
+                    onChange={(e) => setClerkOfficerName(e.target.value)}
+                    placeholder={user?.name ? `${user.name} (${user.role})` : 'e.g. Ward Clerk / Certifying Official'}
+                    className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3 text-xs sm:text-sm focus:ring-2 focus:ring-sky-600 outline-none text-stone-900"
+                  />
+                  <p className="text-[11px] text-stone-400 mt-1">
+                    Certified by Ward Clerk or Administrator. This resolution will immediately reflect on the Homepage Resolutions section under Ward.
+                  </p>
                 </div>
 
                 {/* File Attachment */}

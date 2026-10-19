@@ -1,22 +1,38 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MapPin, Users, Calendar, ArrowLeft, Lightbulb, ThumbsUp, Plus, FileText, CheckCircle, Upload, ChevronDown, ChevronUp } from 'lucide-react';
 import DiscussionCard from '../components/ui/DiscussionCard';
 import JoinWardModal from '../components/ui/JoinWardModal';
 import WardDocumentsSection from '../components/ui/WardDocumentsSection';
+import WardGroupActivitiesSection from '../components/ui/WardGroupActivitiesSection';
+import GroupWallExpanded from '../components/ui/GroupWallExpanded';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { KENYA_COUNTIES } from '../data/kenyaCountiesAndWards';
 
 export default function WardPage() {
   const { slug } = useParams();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const [ward, setWard] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
   const [hasJoined, setHasJoined] = useState(false);
   const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
+
+  useEffect(() => {
+    const groupParam = searchParams.get('group');
+    if (groupParam && ward?.groups && ward.groups.length > 0) {
+      const match = ward.groups.find((g: any) => 
+        g.id === groupParam || 
+        g.name.toLowerCase().includes(groupParam.toLowerCase())
+      );
+      if (match) {
+        setExpandedGroup(match.id);
+      }
+    }
+  }, [searchParams, ward]);
 
   const [newIssue, setNewIssue] = useState({ title: '', description: '' });
   const brainstormIssues = ward?.issues || [];
@@ -265,18 +281,27 @@ export default function WardPage() {
                 <p className="text-xl text-stone-400 mt-2">{ward.description}</p>
               </div>
             </div>
-            {!hasJoined ? (
-              <button 
-                onClick={() => setIsJoinModalOpen(true)}
-                className="bg-white text-sky-800 px-8 py-3 rounded-full font-bold hover:bg-stone-100 transition-colors shadow-lg"
+            <div className="flex flex-wrap items-center gap-3">
+              <a 
+                href="#ward-documents"
+                className="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-3 rounded-full font-bold transition-all shadow-md flex items-center gap-2 text-xs sm:text-sm cursor-pointer"
               >
-                Join Ward as Citizen
-              </button>
-            ) : (
-              <div className="bg-sky-500/20 text-green-400 border border-sky-500/30 px-6 py-3 rounded-full font-bold flex items-center gap-2">
-                <Users className="w-5 h-5" /> Joined as Citizen
-              </div>
-            )}
+                <FileText className="w-4 h-4" />
+                <span>Post / View Resolutions</span>
+              </a>
+              {!hasJoined ? (
+                <button 
+                  onClick={() => setIsJoinModalOpen(true)}
+                  className="bg-white text-sky-800 px-6 py-3 rounded-full font-bold hover:bg-stone-100 transition-colors shadow-lg text-xs sm:text-sm"
+                >
+                  Join Ward as Citizen
+                </button>
+              ) : (
+                <div className="bg-sky-500/20 text-green-400 border border-sky-500/30 px-5 py-3 rounded-full font-bold flex items-center gap-2 text-xs sm:text-sm">
+                  <Users className="w-4 h-4" /> Joined as Citizen
+                </div>
+              )}
+            </div>
           </div>
           <div className="flex items-center gap-6 mt-8">
             <div className="flex items-center gap-2 bg-white/10 px-4 py-2 rounded-full">
@@ -367,82 +392,122 @@ export default function WardPage() {
               </div>
             </div>
 
-            {/* Registered Groups Section */}
+            {/* Registered Groups & Mini-Caucuses Section */}
             <div className="mt-12">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center">
-                  <Users className="w-6 h-6" />
-                </div>
-                <div>
-                  <h2 className="text-3xl font-bold text-sky-800">Registered Groups</h2>
-                  <p className="text-stone-500">Community groups actively participating in {ward.name}.</p>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-sky-100 text-sky-800 rounded-2xl flex items-center justify-center shrink-0">
+                    <Users className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="bg-amber-100 text-amber-800 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full uppercase">
+                        Dec 10 National Assembly Mini-Caucuses
+                      </span>
+                    </div>
+                    <h2 className="text-2xl sm:text-3xl font-black text-sky-900">
+                      Community Groups & Mini-Caucuses
+                    </h2>
+                    <p className="text-stone-500 text-xs sm:text-sm">
+                      Grassroots groups in {ward.name} holding weekly mini-caucuses. Click any group to expand their wall to post issues, resolutions, share activities, and manage members.
+                    </p>
+                  </div>
                 </div>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {ward.groups && ward.groups.length > 0 ? (
-                  ward.groups.map((group: any) => (
-                    <div 
-                      key={group.id} 
-                      className="bg-white rounded-2xl border border-stone-200 shadow-sm relative overflow-hidden group/card cursor-pointer transition-shadow hover:shadow-md"
-                      onClick={() => setExpandedGroup(expandedGroup === group.id ? null : group.id)}
-                    >
-                      <div className="p-6">
-                        <div className="flex items-start justify-between mb-2">
-                          <h4 className="text-xl font-bold text-sky-800">{group.name}</h4>
-                          <span className="bg-stone-100 text-stone-700 text-xs font-bold px-2 py-1 rounded-md">{group.memberCount} Members</span>
-                        </div>
-                        <p className="text-sm font-medium text-stone-600 mb-2">Leader: {group.leaderName}</p>
-                        <div className="flex items-center text-sm text-sky-600 font-medium">
-                          {expandedGroup === group.id ? (
-                            <><ChevronUp className="w-4 h-4 mr-1" /> Hide Members</>
-                          ) : (
-                            <><ChevronDown className="w-4 h-4 mr-1" /> View Members</>
-                          )}
-                        </div>
-                      </div>
 
-                      <AnimatePresence>
-                        {expandedGroup === group.id && (
-                          <motion.div 
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: 'auto', opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            className="border-t border-stone-100 bg-stone-50 overflow-hidden"
-                            onClick={(e) => e.stopPropagation()} // Prevent collapse when clicking inside
-                          >
-                            <div className="p-6 space-y-4">
-                              <div className="flex items-center justify-between">
-                                <p className="text-xs font-bold text-stone-400 uppercase tracking-wider">Members List</p>
-                                <label className="cursor-pointer bg-white border border-stone-200 hover:bg-stone-100 text-stone-700 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 shadow-sm">
-                                  <Upload className="w-3.5 h-3.5" />
-                                  <span>Add via .txt/.csv</span>
-                                  <input 
-                                    type="file" 
-                                    accept=".txt,.csv"
-                                    onChange={(e) => handleFileUpload(e, group.id, group.members)}
-                                    className="hidden" 
-                                  />
-                                </label>
-                              </div>
-                              
-                              {group.members ? (
-                                <ul className="list-disc pl-5 text-sm text-stone-600 space-y-1">
-                                  {group.members.split(',').map((member: string, i: number) => (
-                                    <li key={i}>{member.trim()}</li>
-                                  ))}
-                                </ul>
-                              ) : (
-                                <p className="text-sm text-stone-500 italic">No members listed yet.</p>
-                              )}
+              {/* Groups Grid */}
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {ward.groups && ward.groups.length > 0 ? (
+                    ward.groups.map((group: any) => {
+                      const isExpanded = expandedGroup === group.id;
+                      return (
+                        <div 
+                          key={group.id} 
+                          className={`bg-white rounded-2xl border transition-all p-5 shadow-sm cursor-pointer ${
+                            isExpanded 
+                              ? 'border-sky-500 ring-2 ring-sky-100 shadow-md' 
+                              : 'border-stone-200 hover:border-sky-300 hover:shadow-md'
+                          }`}
+                          onClick={() => setExpandedGroup(isExpanded ? null : group.id)}
+                        >
+                          <div className="flex items-start justify-between gap-3 mb-2">
+                            <div>
+                              <span className="bg-stone-100 text-stone-700 text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider block w-fit mb-1">
+                                {group.category || 'Grassroots Mini-Caucus'}
+                              </span>
+                              <h4 className="text-lg font-black text-stone-900 group-hover:text-sky-800 leading-snug">
+                                {group.name}
+                              </h4>
                             </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
+                            <span className="bg-sky-50 text-sky-800 text-xs font-bold px-2.5 py-1 rounded-full border border-sky-100 shrink-0">
+                              {group.memberCount || (group.members ? group.members.split(',').length : 0)} Members
+                            </span>
+                          </div>
+
+                          <div className="space-y-1.5 text-xs text-stone-600 mb-3">
+                            <p className="font-semibold text-stone-700 flex items-center gap-1.5">
+                              <span className="text-amber-500 font-bold">★ Head / Leader:</span>
+                              {(() => {
+                                const isSibembe = group.id === 'grp-sikhendu-sibembe' || group.name?.toLowerCase().includes('sibembe');
+                                const isMock = (n: string) => {
+                                  if (!n) return false;
+                                  const l = n.toLowerCase();
+                                  return l.includes('nyaboke') || l.includes('sarah') || l.includes('wanjiku') || l.includes('alice') || l.includes('bob');
+                                };
+                                const leaderName = isSibembe ? 'Irene Nyongesa' : (group.leaderName && !isMock(group.leaderName) ? group.leaderName : 'Pending registered leader');
+                                const leaderRole = isSibembe ? 'Group Leader & Convener' : (group.leaderRole || 'Group Leader');
+                                return <span>{leaderName} ({leaderRole})</span>;
+                              })()}
+                            </p>
+                            <p className="text-stone-500 flex items-center gap-1.5">
+                              <Calendar className="w-3.5 h-3.5 text-stone-400" />
+                              <span>{group.meetingDay || 'Every Saturday at 2:00 PM'}</span>
+                            </p>
+                            <p className="text-stone-500 line-clamp-2 italic">
+                              "{group.description?.slice(0, 110) || 'Holding weekly community mini-caucuses before the Dec 10 National Assembly.'}..."
+                            </p>
+                          </div>
+
+                          <div className="pt-3 border-t border-stone-100 flex items-center justify-between text-xs font-bold text-sky-700">
+                            <span>
+                              {isExpanded ? 'Hide Group Wall ▲' : 'Open Group Wall & Mini-Caucus Space ▼'}
+                            </span>
+                            <span className="text-stone-400 text-[10px] font-normal">
+                              Post issues • Resolutions • Activities
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="col-span-full bg-white p-8 rounded-2xl border border-stone-200 text-center text-stone-500">
+                      No groups registered yet.
                     </div>
-                  ))
-                ) : (
-                  <div className="col-span-full bg-white p-8 rounded-2xl border border-stone-200 text-center text-stone-500">
-                    No groups registered yet.
+                  )}
+                </div>
+
+                {/* Expanded Group Wall View */}
+                {expandedGroup && (
+                  <div className="pt-2">
+                    {(() => {
+                      const activeGrp = ward.groups?.find((g: any) => g.id === expandedGroup);
+                      if (!activeGrp) return null;
+                      return (
+                        <GroupWallExpanded
+                          group={activeGrp}
+                          wardName={ward.name}
+                          wardCounty={ward.county}
+                          onClose={() => setExpandedGroup(null)}
+                          onUpdateGroup={(updated) => {
+                            setWard((prev: any) => ({
+                              ...prev,
+                              groups: prev.groups.map((g: any) => g.id === updated.id ? updated : g)
+                            }));
+                          }}
+                        />
+                      );
+                    })()}
                   </div>
                 )}
               </div>
@@ -514,6 +579,15 @@ export default function WardPage() {
           </div>
 
         </div>
+
+        {/* Ward Mini-Caucuses & Groups Activities Wall */}
+        <section id="ward-group-activities" className="pt-10 border-t border-stone-200 scroll-mt-20">
+          <WardGroupActivitiesSection 
+            wardId={ward.id} 
+            wardName={ward.name} 
+            groups={ward.groups || []}
+          />
+        </section>
 
         {/* Dedicated Official Documents, Minutes & Resolutions Repository */}
         <section id="ward-documents" className="pt-10 border-t border-stone-200 scroll-mt-20">
