@@ -280,9 +280,165 @@ Generated via CSRG Citizen Assembly Digital Portal`;
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header bar */}
-      <div className="bg-white rounded-3xl border border-stone-200 p-6 sm:p-8 shadow-sm">
+    <div className="space-y-8">
+      {/* ========================================================================= */}
+      {/* 1. PINNED RESOLUTIONS AT THE VERY TOP OF EVERYTHING (ABOVE PAST ASSEMBLIES) */}
+      {/* ========================================================================= */}
+      <div className="bg-gradient-to-br from-amber-500/10 via-amber-400/5 to-white rounded-3xl border-2 border-amber-300 p-6 sm:p-8 shadow-sm space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-amber-200/80 pb-5">
+          <div>
+            <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+              <span className="bg-amber-500 text-white text-[11px] font-black px-3 py-1 rounded-full uppercase tracking-wider flex items-center gap-1 shadow-xs">
+                <Pin className="w-3 h-3 fill-white rotate-45" /> Pinned Resolutions
+              </span>
+              <span className="text-xs font-bold text-amber-950 bg-amber-200/80 px-2.5 py-0.5 rounded-full">
+                {wardName} Ward Civic Priority ({pinnedDocs.length})
+              </span>
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-black text-stone-900 flex items-center gap-2.5">
+              <Award className="w-7 h-7 text-amber-600" />
+              Pinned Landmark Resolutions
+            </h2>
+            <p className="text-stone-600 text-xs sm:text-sm mt-1 max-w-2xl leading-relaxed">
+              Official resolutions and binding citizen mandates ratified by consensus across citizen assemblies and mini-caucuses in {wardName} Ward. Pinned at the top for immediate access and community oversight.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => {
+                setUploadIsPinned(true);
+                setIsUploadModalOpen(true);
+              }}
+              className="inline-flex items-center gap-2 bg-amber-400 hover:bg-amber-300 text-stone-950 font-black px-5 py-3 rounded-2xl text-xs sm:text-sm transition-all shadow-sm hover:shadow-md cursor-pointer border border-amber-300"
+            >
+              <Upload className="w-4 h-4" />
+              <span>+ Upload / Post Resolution</span>
+            </button>
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="bg-white/80 rounded-2xl border border-stone-200 p-8 text-center">
+            <div className="inline-block animate-spin rounded-full h-7 w-7 border-b-2 border-amber-600 mb-2"></div>
+            <p className="text-xs text-stone-500">Loading pinned resolutions...</p>
+          </div>
+        ) : pinnedDocs.length === 0 ? (
+          <div className="bg-white/80 rounded-2xl border border-dashed border-amber-300 p-8 text-center space-y-2">
+            <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center mx-auto">
+              <Pin className="w-6 h-6 rotate-45" />
+            </div>
+            <h4 className="text-base font-bold text-stone-900">No Pinned Resolutions Yet in {wardName} Ward</h4>
+            <p className="text-stone-500 text-xs max-w-md mx-auto">
+              Official resolutions adopted in ward citizen assemblies or uploaded as landmark mandates will be pinned right here at the very top.
+            </p>
+            <button
+              onClick={() => {
+                setUploadIsPinned(true);
+                setIsUploadModalOpen(true);
+              }}
+              className="mt-2 inline-flex items-center gap-1.5 text-xs font-bold text-amber-950 bg-amber-200 hover:bg-amber-300 px-4 py-2 rounded-xl transition-colors cursor-pointer"
+            >
+              <Upload className="w-3.5 h-3.5" />
+              <span>Upload / Pin First Resolution</span>
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {pinnedDocs.map(doc => (
+              <div
+                key={doc.id}
+                className="bg-white border-2 border-amber-300 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all relative overflow-hidden flex flex-col justify-between group"
+              >
+                <div className="absolute top-0 right-0">
+                  <span className="bg-amber-500 text-white text-[10px] font-black px-3 py-1 rounded-bl-xl uppercase tracking-wider flex items-center gap-1">
+                    <Pin className="w-2.5 h-2.5 fill-white" /> Pinned
+                  </span>
+                </div>
+
+                <div>
+                  <div className="flex items-center gap-2 mb-2 pr-16 flex-wrap">
+                    <span className="text-[11px] font-bold text-sky-800 bg-sky-100/80 px-2.5 py-0.5 rounded-md">
+                      {doc.category}
+                    </span>
+                    <span className="text-[11px] text-stone-500 flex items-center gap-1 font-medium">
+                      <Calendar className="w-3 h-3 text-stone-400" />
+                      {formatDateDisplay(doc.documentDate)}
+                    </span>
+                    {doc.uploadedBy && (
+                      <span className="text-[11px] text-stone-500 italic">
+                        By {doc.uploadedBy}
+                      </span>
+                    )}
+                  </div>
+
+                  <h4 className="text-base sm:text-lg font-bold text-sky-950 mb-2 leading-snug">
+                    {doc.title}
+                  </h4>
+
+                  {doc.summary && (
+                    <p className="text-xs sm:text-sm text-stone-700 mb-4 line-clamp-3 leading-relaxed whitespace-pre-line">
+                      {doc.summary}
+                    </p>
+                  )}
+                </div>
+
+                <div className="pt-3 border-t border-amber-200/60 flex items-center justify-between text-xs gap-2">
+                  <div className="text-[11px] text-stone-500 truncate max-w-[150px]">
+                    {doc.fileName || 'Resolution Document'} • {doc.fileSize || 'PDF'}
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setPreviewDoc(doc)}
+                      className="bg-stone-50 hover:bg-stone-100 text-stone-700 px-3 py-1.5 rounded-lg border border-stone-200 font-bold flex items-center gap-1 text-xs transition-colors cursor-pointer"
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                      <span>View</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={(e) => handleDownload(doc, e)}
+                      className="bg-sky-600 hover:bg-sky-700 text-white px-3 py-1.5 rounded-lg font-bold flex items-center gap-1 text-xs transition-colors shadow-sm cursor-pointer"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>Download</span>
+                    </button>
+
+                    {canManage && (
+                      <div className="flex items-center gap-1 border-l border-stone-200 pl-1.5 ml-1">
+                        <button
+                          type="button"
+                          title="Unpin document"
+                          onClick={(e) => handleTogglePin(doc, e)}
+                          className="p-1.5 text-amber-600 hover:bg-amber-100 rounded-lg transition-colors cursor-pointer"
+                        >
+                          <Pin className="w-3.5 h-3.5 fill-amber-600" />
+                        </button>
+                        <button
+                          type="button"
+                          title="Delete document"
+                          onClick={(e) => handleDelete(doc.id, e)}
+                          className="p-1.5 text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ========================================================================= */}
+      {/* 2. PAST ASSEMBLIES & RESOLUTIONS DOCUMENTS (BELOW PINNED RESOLUTIONS) */}
+      {/* ========================================================================= */}
+      <div className="bg-white rounded-3xl border border-stone-200 p-6 sm:p-8 shadow-sm space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-stone-100 pb-6">
           <div>
             <div className="flex items-center gap-2 mb-1">
@@ -302,7 +458,10 @@ Generated via CSRG Citizen Assembly Digital Portal`;
 
           <div>
             <button
-              onClick={() => setIsUploadModalOpen(true)}
+              onClick={() => {
+                setUploadIsPinned(false);
+                setIsUploadModalOpen(true);
+              }}
               className="inline-flex items-center gap-2 bg-sky-600 hover:bg-sky-700 text-white font-bold px-5 py-3 rounded-2xl text-xs sm:text-sm transition-all shadow-md hover:shadow-lg cursor-pointer shrink-0"
             >
               <Upload className="w-4 h-4" />
@@ -312,7 +471,7 @@ Generated via CSRG Citizen Assembly Digital Portal`;
         </div>
 
         {/* Filters and Search Bar */}
-        <div className="pt-6 grid grid-cols-1 md:grid-cols-12 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
           <div className="md:col-span-6 relative">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
             <input
@@ -357,120 +516,36 @@ Generated via CSRG Citizen Assembly Digital Portal`;
             </select>
           </div>
         </div>
-      </div>
 
-      {/* Loading state */}
-      {loading ? (
-        <div className="bg-white rounded-3xl border border-stone-200 p-12 text-center">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-sky-600 mb-3"></div>
-          <p className="text-xs text-stone-500">Loading ward assembly documents & resolutions...</p>
-        </div>
-      ) : filteredDocuments.length === 0 ? (
-        <div className="bg-white rounded-3xl border border-stone-200 p-12 text-center space-y-3">
-          <div className="w-14 h-14 rounded-2xl bg-stone-100 text-stone-400 flex items-center justify-center mx-auto">
-            <FileText className="w-7 h-7" />
+        {/* Loading / Empty / Archive List */}
+        {loading ? (
+          <div className="bg-stone-50 rounded-2xl border border-stone-200 p-12 text-center">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-sky-600 mb-3"></div>
+            <p className="text-xs text-stone-500">Loading ward assembly archive...</p>
           </div>
-          <h3 className="text-lg font-bold text-sky-950">No Documents Found</h3>
-          <p className="text-stone-500 text-xs max-w-md mx-auto">
-            {searchQuery || selectedCategory !== 'All' || selectedYear !== 'All' 
-              ? 'No documents match your current filter criteria. Try resetting filters.'
-              : `No official assembly documents or resolutions have been uploaded for ${wardName} Ward yet.`}
-          </p>
-          <button
-            onClick={() => setIsUploadModalOpen(true)}
-            className="mt-2 inline-flex items-center gap-1.5 text-xs font-bold text-sky-600 hover:text-sky-700 bg-sky-50 px-4 py-2 rounded-xl"
-          >
-            <Upload className="w-3.5 h-3.5" />
-            Upload First Assembly Document
-          </button>
-        </div>
-      ) : (
-        <div className="space-y-6">
-          {/* 1. PINNED RESOLUTIONS SECTION */}
-          {pinnedDocs.length > 0 && (
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 text-xs font-extrabold text-amber-900 uppercase tracking-wider">
-                <Pin className="w-4 h-4 text-amber-600 rotate-45" />
-                <span>Pinned Landmark Resolutions ({pinnedDocs.length})</span>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {pinnedDocs.map(doc => (
-                  <div
-                    key={doc.id}
-                    className="bg-gradient-to-br from-amber-50/70 via-white to-amber-50/30 border-2 border-amber-300 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all relative overflow-hidden flex flex-col justify-between"
-                  >
-                    <div className="absolute top-0 right-0">
-                      <span className="bg-amber-500 text-white text-[10px] font-black px-3 py-1 rounded-bl-xl uppercase tracking-wider flex items-center gap-1">
-                        <Pin className="w-2.5 h-2.5 fill-white" /> Pinned
-                      </span>
-                    </div>
-
-                    <div>
-                      <div className="flex items-center gap-2 mb-2 pr-16">
-                        <span className="text-[11px] font-bold text-sky-800 bg-sky-100/80 px-2.5 py-0.5 rounded-md">
-                          {doc.category}
-                        </span>
-                        <span className="text-[11px] text-stone-500 flex items-center gap-1 font-medium">
-                          <Calendar className="w-3 h-3 text-stone-400" />
-                          {formatDateDisplay(doc.documentDate)}
-                        </span>
-                      </div>
-
-                      <h4 className="text-base font-bold text-sky-950 mb-2 leading-snug">
-                        {doc.title}
-                      </h4>
-
-                      {doc.summary && (
-                        <p className="text-xs text-stone-600 mb-4 line-clamp-3 leading-relaxed">
-                          {doc.summary}
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="pt-3 border-t border-amber-200/60 flex items-center justify-between text-xs">
-                      <div className="text-[11px] text-stone-500 truncate max-w-[150px]">
-                        {doc.fileName} • {doc.fileSize || 'PDF'}
-                      </div>
-
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => setPreviewDoc(doc)}
-                          className="bg-white hover:bg-stone-100 text-stone-700 px-3 py-1.5 rounded-lg border border-stone-200 font-bold flex items-center gap-1 text-xs transition-colors cursor-pointer"
-                        >
-                          <Eye className="w-3.5 h-3.5" />
-                          <span>View</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={(e) => handleDownload(doc, e)}
-                          className="bg-sky-600 hover:bg-sky-700 text-white px-3 py-1.5 rounded-lg font-bold flex items-center gap-1 text-xs transition-colors shadow-sm cursor-pointer"
-                        >
-                          <Download className="w-3.5 h-3.5" />
-                          <span>Download</span>
-                        </button>
-
-                        {canManage && (
-                          <button
-                            type="button"
-                            title="Unpin document"
-                            onClick={(e) => handleTogglePin(doc, e)}
-                            className="p-1.5 text-amber-600 hover:bg-amber-100 rounded-lg transition-colors cursor-pointer"
-                          >
-                            <Pin className="w-3.5 h-3.5 fill-amber-600" />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+        ) : regularDocs.length === 0 ? (
+          <div className="bg-stone-50 rounded-2xl border border-stone-200 p-12 text-center space-y-3">
+            <div className="w-14 h-14 rounded-2xl bg-stone-100 text-stone-400 flex items-center justify-center mx-auto">
+              <FileText className="w-7 h-7" />
             </div>
-          )}
-
-          {/* 2. CHRONOLOGICAL ARCHIVE BY DATE */}
+            <h3 className="text-lg font-bold text-sky-950">No Archive Documents Found</h3>
+            <p className="text-stone-500 text-xs max-w-md mx-auto">
+              {searchQuery || selectedCategory !== 'All' || selectedYear !== 'All' 
+                ? 'No documents match your current filter criteria. Try resetting filters.'
+                : `No additional archive documents found for ${wardName} Ward. Check the pinned resolutions above or upload minutes.`}
+            </p>
+            <button
+              onClick={() => {
+                setUploadIsPinned(false);
+                setIsUploadModalOpen(true);
+              }}
+              className="mt-2 inline-flex items-center gap-1.5 text-xs font-bold text-sky-600 hover:text-sky-700 bg-sky-50 px-4 py-2 rounded-xl cursor-pointer"
+            >
+              <Upload className="w-3.5 h-3.5" />
+              Upload Assembly Document
+            </button>
+          </div>
+        ) : (
           <div className="space-y-3 pt-2">
             <div className="flex items-center justify-between text-xs font-extrabold text-stone-700 uppercase tracking-wider">
               <span className="flex items-center gap-1.5">
@@ -573,8 +648,8 @@ Generated via CSRG Citizen Assembly Digital Portal`;
               ))}
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* 3. UPLOAD DOCUMENT MODAL */}
       <AnimatePresence>
