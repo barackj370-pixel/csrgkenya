@@ -43,14 +43,14 @@ export default function UpdateMiniCaucusModal({
   const [wardName, setWardName] = useState('Sikhendu');
   const [wardId, setWardId] = useState('ward-7');
   const [county, setCounty] = useState('Trans Nzoia');
-  const [groupName, setGroupName] = useState('Sibembe Group / Caucus');
-  const [title, setTitle] = useState('Sikhendu Ward Citizen Mini-Caucus (Sibembe Group)');
-  const [dateLabel, setDateLabel] = useState('Happening Tomorrow at 10:00 AM');
+  const [groupName, setGroupName] = useState('Sibembe Food Coop');
+  const [title, setTitle] = useState('Sikhendu Ward Citizen Mini-Caucus (Sibembe Food Coop)');
+  const [dateLabel, setDateLabel] = useState('Concluded: Tuesday, Oct 20 (10:00 AM – 12:00 PM • 2 Hours)');
   const [venue, setVenue] = useState('Sibembe Community Center / Grounds, Sikhendu Ward');
   const [agenda, setAgenda] = useState('Grassroots wananchi deliberation ahead of the upcoming National Citizen Assembly on December 10, 2026. Consolidating community priorities on agroecology, smallholder seed sovereignty, rural feeder road maintenance, and adopting citizen resolutions.');
-  const [status, setStatus] = useState<'UPCOMING_TOMORROW' | 'ACTIVE_TODAY' | 'UPCOMING' | 'CONCLUDED'>('UPCOMING_TOMORROW');
+  const [status, setStatus] = useState<'UPCOMING_TOMORROW' | 'ACTIVE_TODAY' | 'UPCOMING' | 'CONCLUDED'>('CONCLUDED');
   const [isSpotlight, setIsSpotlight] = useState(true);
-  const [facilitatorRole, setFacilitatorRole] = useState('Irene Nyongesa (Sibembe Group Leader)');
+  const [facilitatorRole, setFacilitatorRole] = useState('Irene Nyongesa (Sibembe Food Coop Leader)');
   const [contactPhone, setContactPhone] = useState('');
 
   // Load existing caucuses & wards
@@ -83,12 +83,12 @@ export default function UpdateMiniCaucusModal({
     setWardName(c.wardName || 'Sikhendu');
     setWardId(c.wardId || 'ward-7');
     setCounty(c.county || 'Trans Nzoia');
-    setGroupName(c.groupName || 'Sibembe Group / Caucus');
+    setGroupName(c.groupName || 'Sibembe Food Coop');
     setTitle(c.title || '');
-    setDateLabel(c.dateLabel || 'Happening Tomorrow at 10:00 AM');
+    setDateLabel(c.dateLabel || 'Concluded: Tuesday, Oct 20 (10:00 AM – 12:00 PM • 2 Hours)');
     setVenue(c.venue || '');
     setAgenda(c.agenda || '');
-    setStatus(c.status || 'UPCOMING_TOMORROW');
+    setStatus(c.status || 'CONCLUDED');
     setIsSpotlight(c.isSpotlight ?? true);
     setFacilitatorRole(c.facilitatorRole || 'Group Convener');
     setContactPhone(c.contactPhone || '');
@@ -102,10 +102,10 @@ export default function UpdateMiniCaucusModal({
     setCounty('Trans Nzoia');
     setGroupName('');
     setTitle('');
-    setDateLabel('Tomorrow at 10:00 AM');
+    setDateLabel('Tuesday (10:00 AM – 12:00 PM)');
     setVenue('');
     setAgenda('Consolidating grassroots priorities and resolutions ahead of the National Citizen Assembly on December 10, 2026.');
-    setStatus('UPCOMING_TOMORROW');
+    setStatus('UPCOMING');
     setIsSpotlight(true);
     setFacilitatorRole('Caucus Convener');
     setContactPhone('');
@@ -200,7 +200,7 @@ export default function UpdateMiniCaucusModal({
             Schedule & Update Mini-Caucuses
           </h2>
           <p className="text-xs md:text-sm text-stone-300 mt-1 max-w-xl">
-            Pre-assembly citizen mini-caucuses (like Sikhendu Ward Sibembe group happening tomorrow) lead directly to the National Citizen Assembly on December 10, 2026. Updates display in real-time on Carousel Slide 1.
+            Pre-assembly citizen mini-caucuses (like Sikhendu Ward Sibembe group) lead directly to the National Citizen Assembly on December 10, 2026. Updates display in real-time on Carousel Slide 1.
           </p>
         </div>
 
@@ -308,7 +308,7 @@ export default function UpdateMiniCaucusModal({
                     setTitle(`${wardName} Ward Citizen Mini-Caucus (${e.target.value})`);
                   }
                 }}
-                placeholder="e.g. Sibembe Group / Caucus"
+                placeholder="e.g. Sibembe Food Coop"
                 className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-sky-600 outline-none"
               />
             </div>
@@ -322,7 +322,7 @@ export default function UpdateMiniCaucusModal({
                 required
                 value={dateLabel}
                 onChange={e => setDateLabel(e.target.value)}
-                placeholder="e.g. Happening Tomorrow at 10:00 AM or Tuesday Oct 20"
+                placeholder="e.g. Concluded: Tuesday, Oct 20 (10:00 AM – 12:00 PM)"
                 className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-sky-600 outline-none"
               />
             </div>
@@ -338,7 +338,7 @@ export default function UpdateMiniCaucusModal({
               required
               value={title}
               onChange={e => setTitle(e.target.value)}
-              placeholder="e.g. Sikhendu Ward Citizen Mini-Caucus (Sibembe Group)"
+              placeholder="e.g. Sikhendu Ward Citizen Mini-Caucus (Sibembe Food Coop)"
               className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-sky-600 outline-none font-bold"
             />
           </div>
@@ -382,10 +382,10 @@ export default function UpdateMiniCaucusModal({
                 onChange={e => setStatus(e.target.value as any)}
                 className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-sky-600 outline-none"
               >
-                <option value="UPCOMING_TOMORROW">Happening Tomorrow (Pulsing Green)</option>
+                <option value="CONCLUDED">Concluded / Resolutions Passed (10:00 AM – 12:00 PM)</option>
                 <option value="ACTIVE_TODAY">Active Today / In Session</option>
                 <option value="UPCOMING">Upcoming This Week</option>
-                <option value="CONCLUDED">Concluded / Resolutions Passed</option>
+                <option value="UPCOMING_TOMORROW">Happening Tomorrow</option>
               </select>
             </div>
 

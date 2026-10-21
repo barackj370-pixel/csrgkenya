@@ -143,8 +143,36 @@ export default function Login() {
         <div className="mt-4 pt-4 border-t border-stone-100 text-center text-xs text-stone-400">
           Ward Clerk or Administrator?{' '}
           <Link to="/staff-register" className="text-stone-600 hover:text-stone-900 font-medium hover:underline">
-            Staff Portal
+            Register as Clerk / Admin
           </Link>
+        </div>
+
+        <div className="mt-4 pt-3 border-t border-stone-100">
+          <p className="text-[11px] font-bold text-stone-500 uppercase tracking-wider text-center mb-2">
+            Quick Staff & Admin Demo Login:
+          </p>
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <button
+              type="button"
+              onClick={() => {
+                setPhone('0711111111');
+                setPassword('clerk123');
+              }}
+              className="p-2 bg-sky-50 hover:bg-sky-100 text-sky-900 rounded-xl font-bold border border-sky-200 text-center cursor-pointer transition-colors"
+            >
+              📋 Clerk (clerk123)
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setPhone('0700000000');
+                setPassword('admin123');
+              }}
+              className="p-2 bg-stone-100 hover:bg-stone-200 text-stone-900 rounded-xl font-bold border border-stone-300 text-center cursor-pointer transition-colors"
+            >
+              🛡️ Admin (admin123)
+            </button>
+          </div>
         </div>
       </div>
     </motion.div>

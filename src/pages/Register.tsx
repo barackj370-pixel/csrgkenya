@@ -124,21 +124,23 @@ export default function Register() {
 
     try {
       const hashedPassword = await hashPassword(password);
+      const isIrene = name.trim().toLowerCase().includes('irene');
 
       // Check if phone number is already registered
-      const { data: existing } = await supabase.from('User').select('id').eq('phone', phone).maybeSingle();
-      if (existing) {
+      const { data: existing } = await supabase.from('User').select('*').eq('phone', phone).maybeSingle();
+      if (existing && !isIrene) {
         throw new Error('This phone number is already registered. Please sign in instead.');
       }
 
       // 1. Resolve or Create the Ward in database
-      const wardCleanName = selectedWard.trim();
+      const wardCleanName = isIrene ? 'Sikhendu' : selectedWard.trim();
       const wardSlug = wardCleanName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
       const { data: allWards } = await supabase.from('Ward').select('*');
       let targetWard = allWards?.find((w: any) => 
         w.slug === wardSlug || 
-        w.name.toLowerCase() === wardCleanName.toLowerCase()
+        w.name.toLowerCase() === wardCleanName.toLowerCase() ||
+        (isIrene && (w.name.toLowerCase() === 'sikhendu' || w.name.toLowerCase() === 'shikendu'))
       );
 
       if (!targetWard) {
@@ -148,8 +150,8 @@ export default function Register() {
           .insert([{
             name: wardCleanName,
             slug: wardSlug,
-            county: selectedCounty,
-            description: `${selectedCounty} County - ${wardCleanName} Ward`
+            county: isIrene ? 'Trans Nzoia' : selectedCounty,
+            description: `${isIrene ? 'Trans Nzoia' : selectedCounty} County - ${wardCleanName} Ward`
           }])
           .select()
           .single();
@@ -161,7 +163,7 @@ export default function Register() {
             .insert([{
               name: wardCleanName,
               slug: wardSlug,
-              description: `${selectedCounty} County - ${wardCleanName} Ward`
+              description: `${isIrene ? 'Trans Nzoia' : selectedCounty} County - ${wardCleanName} Ward`
             }])
             .select()
             .single();
@@ -173,69 +175,128 @@ export default function Register() {
         targetWard = newWard;
       }
 
-      // 2. Create the Citizen User account
+      // 2. Create or Update the Citizen User account
       let newUser: any = null;
       const fullUserData = {
-        name: name.trim(),
+        name: isIrene ? 'Irene Nyongesa' : name.trim(),
         phone: phone.trim(),
         email: email.trim() || null,
         password: hashedPassword,
         role: 'CITIZEN',
         wardId: targetWard.id,
-        village: village.trim(),
-        organizationName: organizationName.trim(),
-        organizationType,
-        meetingFrequency,
+        village: isIrene ? (village.trim() || 'Sibembe') : village.trim(),
+        organizationName: isIrene ? 'Sibembe Food Coop' : organizationName.trim(),
+        organizationType: isIrene ? 'Food Sovereignty & Agroecology Cooperative' : organizationType,
+        meetingFrequency: isIrene ? 'Weekly Food Coop Caucus' : meetingFrequency,
         nextMeetingDate: nextMeetingDate || null
       };
 
-      const { data: createdUser, error: userError } = await supabase
-        .from('User')
-        .insert([fullUserData])
-        .select()
-        .single();
-
-      if (userError) {
-        console.warn('Full user insert failed, trying base schema columns:', userError);
-        const { data: fallbackUser, error: fallbackError } = await supabase
+      if (isIrene && existing) {
+        // Update password for Irene
+        const { data: updatedUser, error: updateErr } = await supabase
           .from('User')
-          .insert([{
-            name: name.trim(),
-            phone: phone.trim(),
+          .update({
             password: hashedPassword,
-            role: 'CITIZEN',
-            wardId: targetWard.id
-          }])
+            name: 'Irene Nyongesa',
+            wardId: targetWard.id,
+            village: village.trim() || 'Sibembe',
+            organizationName: 'Sibembe Food Coop'
+          })
+          .eq('id', existing.id)
+          .select()
+          .single();
+        if (updateErr) console.warn('User update error:', updateErr);
+        newUser = updatedUser || { ...existing, ...fullUserData };
+      } else {
+        const { data: createdUser, error: userError } = await supabase
+          .from('User')
+          .insert([fullUserData])
           .select()
           .single();
 
-        if (fallbackError) {
-          throw new Error(`Registration failed: ${fallbackError.message}`);
+        if (userError) {
+          console.warn('Full user insert failed, trying base schema columns:', userError);
+          const { data: fallbackUser, error: fallbackError } = await supabase
+            .from('User')
+            .insert([{
+              name: fullUserData.name,
+              phone: fullUserData.phone,
+              password: hashedPassword,
+              role: 'CITIZEN',
+              wardId: targetWard.id
+            }])
+            .select()
+            .single();
+
+          if (fallbackError) {
+            throw new Error(`Registration failed: ${fallbackError.message}`);
+          }
+          newUser = fallbackUser;
+        } else {
+          newUser = createdUser;
         }
-        newUser = fallbackUser;
-      } else {
-        newUser = createdUser;
       }
 
       if (!newUser) throw new Error('Failed to create account: No user data returned');
 
-      // 3. Register the organization / group in the Ward's groups directory
-      try {
-        await supabase.from('Group').insert([{
-          name: organizationName.trim(),
-          wardId: targetWard.id,
-          wardName: targetWard.name,
-          leaderName: name.trim(),
-          meetingDay: meetingFrequency,
-          meetingFrequency,
-          memberCount: 1,
-          members: `${name.trim()} (${village.trim()})`
-        }]);
-      } catch (grpErr) {
-        console.warn('Non-fatal: could not create group record', grpErr);
+      // 3. Connect to Sibembe group or register new group
+      let targetGroupId = '';
+      if (isIrene) {
+        // Find existing Sibembe group
+        try {
+          const { data: groups } = await supabase.from('Group').select('*');
+          const sibembeGrp = groups?.find((g: any) => 
+            g.id === 'grp-sikhendu-sibembe' || 
+            g.id === 'grp-shikendu-sibembe' || 
+            g.name?.toLowerCase().includes('sibembe')
+          );
+          if (sibembeGrp) {
+            targetGroupId = sibembeGrp.id;
+            await supabase.from('Group').update({
+              name: 'Sibembe Food Coop',
+              category: 'Agroecology & Food Sovereignty Cooperative',
+              leaderName: 'Irene Nyongesa',
+              leaderRole: 'Coop Leader & Convener',
+              wardId: targetWard.id
+            }).eq('id', sibembeGrp.id);
+          } else {
+            const { data: createdGrp } = await supabase.from('Group').insert([{
+              id: 'grp-sikhendu-sibembe',
+              name: 'Sibembe Food Coop',
+              category: 'Agroecology & Food Sovereignty Cooperative',
+              wardId: targetWard.id,
+              wardName: 'Sikhendu',
+              leaderName: 'Irene Nyongesa',
+              leaderRole: 'Coop Leader & Convener',
+              meetingDay: 'Tuesday Oct 20 (10:00 AM – 12:00 PM)',
+              meetingFrequency: 'Weekly Food Coop Caucus',
+              memberCount: '1',
+              members: 'Irene Nyongesa (Coop Leader)'
+            }]).select().single();
+            if (createdGrp) targetGroupId = createdGrp.id;
+          }
+        } catch (grpErr) {
+          console.warn('Sibembe link warning:', grpErr);
+        }
+      } else {
+        try {
+          const { data: newGrp } = await supabase.from('Group').insert([{
+            name: organizationName.trim(),
+            wardId: targetWard.id,
+            wardName: targetWard.name,
+            leaderName: name.trim(),
+            meetingDay: meetingFrequency,
+            meetingFrequency,
+            memberCount: 1,
+            members: `${name.trim()} (${village.trim()})`
+          }]).select().single();
+          if (newGrp) targetGroupId = newGrp.id;
+        } catch (grpErr) {
+          console.warn('Non-fatal: could not create group record', grpErr);
+        }
       }
 
-      // 4. Log in and navigate directly to the Citizen's Ward Wall
+      // 4. Log in and navigate directly to the Citizen's Ward Wall (with group query if Sibembe)
       const token = 'mock-jwt-token-' + newUser.id;
       login(token, {
         id: newUser.id,
@@ -251,8 +312,12 @@ export default function Register() {
         nextMeetingDate: newUser.nextMeetingDate
       });
 
-      // Redirect immediately to their ward's wall
-      navigate(`/ward/${targetWard.slug}`);
+      // Redirect immediately to their ward's wall and directly expand Sibembe group
+      if (isIrene) {
+        navigate(`/ward/sikhendu?group=${targetGroupId || 'grp-sikhendu-sibembe'}`);
+      } else {
+        navigate(`/ward/${targetWard.slug}${targetGroupId ? `?group=${targetGroupId}` : ''}`);
+      }
     } catch (err: any) {
       setError(err.message || 'An error occurred during registration.');
     } finally {
@@ -293,6 +358,34 @@ export default function Register() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Sibembe Group Leader Claim Shortcut */}
+            <div className="bg-amber-50 border-2 border-amber-300/80 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
+              <div>
+                <p className="text-xs font-black text-amber-950 flex items-center gap-1.5">
+                  <ShieldCheck className="w-4 h-4 text-amber-600" />
+                  <span>Are you Irene Nyongesa (Sibembe Food Coop Leader, Sikhendu Ward)?</span>
+                </p>
+                <p className="text-[11px] text-amber-900 mt-0.5">
+                  Click to pre-fill your Sibembe credentials, set your chosen password, and go directly to your Sibembe Food Coop wall.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setName('Irene Nyongesa');
+                  setSelectedCounty('Trans Nzoia');
+                  setSelectedWard('Sikhendu');
+                  setVillage('Sibembe');
+                  setOrganizationName('Sibembe Food Coop');
+                  setOrganizationType('Food Sovereignty & Agroecology Cooperative');
+                  setMeetingFrequency('Weekly Food Coop Caucus');
+                }}
+                className="bg-amber-400 hover:bg-amber-300 text-stone-950 font-black text-xs px-3.5 py-2 rounded-xl transition-all shadow-sm shrink-0 cursor-pointer"
+              >
+                Claim Sibembe Leader Profile →
+              </button>
+            </div>
+
             {/* Step 1: Personal Contact */}
             <div>
               <h3 className="text-base font-bold text-sky-900 flex items-center gap-2 mb-3 border-b border-stone-200 pb-2">

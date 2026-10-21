@@ -382,7 +382,9 @@ export interface GroupWallIssue {
   votes: number;
   votedUserIds?: string[];
   submittedBy: string;
-  status: 'DELIBERATING' | 'ESCALATED_TO_ASSEMBLY' | 'RESOLVED';
+  status: 'DELIBERATING' | 'DELIBERATED' | 'PASSED_MOTION' | 'ADOPTED_RESOLUTION' | 'ESCALATED_TO_ASSEMBLY' | 'RESOLVED' | 'PROPOSED';
+  certifiedBy?: string;
+  passedAt?: string;
   createdAt: string;
 }
 
@@ -422,6 +424,65 @@ export async function getGroupWallIssues(groupId: string): Promise<GroupWallIssu
     // ignore
   }
 
+  // Initial passed motions & deliberated issues for Sibembe Citizen Assembly (Oct 20, 10am-12pm)
+  if (groupId === 'grp-sikhendu-sibembe' || groupId.includes('sibembe')) {
+    const initialSibembeIssues: GroupWallIssue[] = [
+      {
+        id: `gissue-sibembe-1`,
+        groupId,
+        wardId: 'ward-7',
+        groupName: 'Sibembe Food Coop',
+        wardName: 'Sikhendu',
+        title: 'Passed Motion: Immediate Community Audit of Feeder Roads Grading & Culverts',
+        description: 'Deliberated in the 2-hour mini-caucus on Tuesday Oct 20 (10:00 AM – 12:00 PM). Wananchi resolved to conduct on-site murram inspections and stop substandard contractor payouts.',
+        proposedSolution: 'Form a 5-member citizen verification team from Sibembe to inspect culvert depth before county works sign-off.',
+        votes: 42,
+        submittedBy: 'Irene Nyongesa (Coop Leader)',
+        status: 'PASSED_MOTION',
+        certifiedBy: 'Irene Nyongesa (Coop Leader)',
+        passedAt: '2026-10-20T11:30:00Z',
+        createdAt: '2026-10-20T10:15:00Z'
+      },
+      {
+        id: `gissue-sibembe-2`,
+        groupId,
+        wardId: 'ward-7',
+        groupName: 'Sibembe Food Coop',
+        wardName: 'Sikhendu',
+        title: 'Passed Motion: Solar Pump Installation & Fair Water Rationing at Sibembe Center',
+        description: 'Passed unanimously by 38 attending wananchi. The diesel generator borehole is too expensive for smallholders; solar conversion is mandated.',
+        proposedSolution: 'Petition the Trans Nzoia County Water Directorate to allocate Ward Climate Resilience funds for a 5kW solar submersible pump.',
+        votes: 38,
+        submittedBy: 'Francis Wafula (Borehole Committee)',
+        status: 'PASSED_MOTION',
+        certifiedBy: 'Irene Nyongesa (Coop Leader)',
+        passedAt: '2026-10-20T11:45:00Z',
+        createdAt: '2026-10-20T10:30:00Z'
+      },
+      {
+        id: `gissue-sibembe-3`,
+        groupId,
+        wardId: 'ward-7',
+        groupName: 'Sibembe Food Coop',
+        wardName: 'Sikhendu',
+        title: 'Adopted Resolution: Smallholder Indigenous Bio-Inputs & Local Seed Bank Hub',
+        description: 'Adopted by full consensus for presentation at the December 10, 2026 National Citizen Assembly summit.',
+        proposedSolution: 'Establish a community-managed indigenous seed repository at Sibembe grounds to protect traditional maize, bean, and vegetable varieties.',
+        votes: 55,
+        submittedBy: 'Irene Nyongesa (Coop Leader)',
+        status: 'ADOPTED_RESOLUTION',
+        certifiedBy: 'Irene Nyongesa (Coop Leader)',
+        passedAt: '2026-10-20T11:55:00Z',
+        createdAt: '2026-10-20T10:45:00Z'
+      }
+    ];
+
+    try {
+      localStorage.setItem(`csrg_grp_issues_${groupId}`, JSON.stringify(initialSibembeIssues));
+    } catch {}
+    return initialSibembeIssues;
+  }
+
   return [];
 }
 
@@ -449,6 +510,70 @@ export async function saveGroupWallIssue(issue: Omit<GroupWallIssue, 'id' | 'vot
   }
 
   return newIssue;
+}
+
+export async function updateGroupWallIssueStatus(
+  id: string, 
+  groupId: string, 
+  status: GroupWallIssue['status'], 
+  certifiedBy?: string
+): Promise<GroupWallIssue | null> {
+  try {
+    const raw = localStorage.getItem(`csrg_grp_issues_${groupId}`);
+    if (raw) {
+      const list: GroupWallIssue[] = JSON.parse(raw);
+      const item = list.find(it => it.id === id);
+      if (item) {
+        item.status = status;
+        if (certifiedBy) item.certifiedBy = certifiedBy;
+        if (status === 'PASSED_MOTION' || status === 'ADOPTED_RESOLUTION') {
+          item.passedAt = new Date().toISOString();
+
+          // Mirror into csrg_mock_db_v1.Resolution so it reflects across the whole site
+          try {
+            const dbRaw = localStorage.getItem('csrg_mock_db_v1');
+            if (dbRaw) {
+              const db = JSON.parse(dbRaw);
+              if (!Array.isArray(db.Resolution)) db.Resolution = [];
+              const existingRes = db.Resolution.find((r: any) => r.id === `res-${item.id}`);
+              const resData = {
+                id: `res-${item.id}`,
+                title: `${status === 'PASSED_MOTION' ? 'Passed Motion' : 'Adopted Resolution'}: ${item.title}`,
+                description: `${item.description} | Solution: ${item.proposedSolution || 'Deliberated in Citizen Mini-Caucus'}`,
+                wardId: item.wardId || 'ward-7',
+                wardName: item.wardName || 'Sikhendu',
+                groupName: item.groupName || 'Sibembe Food Coop',
+                status: 'PASSED',
+                certifiedBy: item.certifiedBy || 'Irene Nyongesa',
+                certifiedRole: 'Coop Leader & Convener',
+                votesFor: (item.votes || 1) + 20,
+                votesAgainst: 0,
+                createdAt: item.passedAt
+              };
+              if (existingRes) {
+                Object.assign(existingRes, resData);
+              } else {
+                db.Resolution.unshift(resData);
+              }
+              localStorage.setItem('csrg_mock_db_v1', JSON.stringify(db));
+            }
+          } catch (mErr) {
+            console.warn('Failed to mirror issue to resolutions:', mErr);
+          }
+        }
+        localStorage.setItem(`csrg_grp_issues_${groupId}`, JSON.stringify(list));
+        
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('csrg_issues_updated', { detail: { id, groupId, status } }));
+          window.dispatchEvent(new Event('storage'));
+        }
+        return item;
+      }
+    }
+  } catch (e) {
+    console.warn('Failed to update issue status:', e);
+  }
+  return null;
 }
 
 export async function voteGroupWallIssue(id: string, groupId: string, voterId?: string): Promise<number> {
@@ -489,6 +614,57 @@ export async function getGroupWallResolutions(groupId: string): Promise<GroupWal
     // ignore
   }
 
+  // Initial adopted resolutions for Sibembe Citizen Assembly (October 20 session)
+  if (groupId === 'grp-sikhendu-sibembe' || groupId.includes('sibembe')) {
+    const initialSibembeResolutions: GroupWallResolution[] = [
+      {
+        id: `gres-sibembe-1`,
+        groupId,
+        wardId: 'ward-7',
+        groupName: 'Sibembe Food Coop',
+        wardName: 'Sikhendu',
+        title: 'Resolution 01/SIK/2026: Mandate for the December 10 National Citizen Assembly',
+        summary: 'Adopted unanimously by consensus at the 2-hour Sibembe Food Coop Citizen Assembly (10:00 AM – 12:00 PM, Oct 20, 2026). We resolve that smallholder agroecological bio-inputs and public feeder road audits be codified into county law.',
+        actionPoints: [
+          'Immediate audit of public water borehole maintenance funds in Sibembe and Sikhendu Ward',
+          'Establish a community seed multiplication bank for drought-tolerant indigenous crops',
+          'Deploy 3 grassroots delegates led by Irene Nyongesa to present this resolution on Dec 10, 2026'
+        ],
+        adoptedDate: '2026-10-20',
+        certifiedBy: 'Irene Nyongesa',
+        certifiedRole: 'Coop Leader & Convener',
+        resolutionNumber: 'RES-SIK-01/2026',
+        supportCount: 48,
+        createdAt: '2026-10-20T11:55:00Z'
+      },
+      {
+        id: `gres-sibembe-2`,
+        groupId,
+        wardId: 'ward-7',
+        groupName: 'Sibembe Food Coop',
+        wardName: 'Sikhendu',
+        title: 'Resolution 02/SIK/2026: Grassroots Bunge Oversight on Ward Bursary Allocations',
+        summary: 'Adopted by consensus on Oct 20, 2026. Resolves that all Ward Education Bursary committees must publish transparent recipient lists at community bunge kiosks.',
+        actionPoints: [
+          'Mandate quarterly village bunge validation of vulnerable student lists before disbursement',
+          'Allocate 15% minimum quota for children of smallholder peasant farming households',
+          'Elect citizen ombudsman to monitor dispensary medicine availability in Sikhendu Ward'
+        ],
+        adoptedDate: '2026-10-20',
+        certifiedBy: 'Irene Nyongesa',
+        certifiedRole: 'Coop Leader & Convener',
+        resolutionNumber: 'RES-SIK-02/2026',
+        supportCount: 39,
+        createdAt: '2026-10-20T12:00:00Z'
+      }
+    ];
+
+    try {
+      localStorage.setItem(`csrg_grp_resolutions_${groupId}`, JSON.stringify(initialSibembeResolutions));
+    } catch {}
+    return initialSibembeResolutions;
+  }
+
   return [];
 }
 
@@ -496,7 +672,7 @@ export async function saveGroupWallResolution(res: Omit<GroupWallResolution, 'id
   const newRes: GroupWallResolution = {
     ...res,
     id: generateCleanId('gres'),
-    resolutionNumber: `RES-${Date.now().toString().slice(-4)}`,
+    resolutionNumber: `RES-${(res.wardName || 'SHI').slice(0, 3).toUpperCase()}-${Date.now().toString().slice(-4)}`,
     supportCount: 1,
     createdAt: new Date().toISOString()
   };
@@ -513,6 +689,36 @@ export async function saveGroupWallResolution(res: Omit<GroupWallResolution, 'id
     localStorage.setItem(`csrg_grp_resolutions_${res.groupId}`, JSON.stringify([newRes, ...list]));
   } catch {
     // ignore
+  }
+
+  // Mirror across site into csrg_mock_db_v1.Resolution so it shows on WardPage resolutions, Homepage resolutions, and National Assembly
+  try {
+    const dbRaw = localStorage.getItem('csrg_mock_db_v1');
+    if (dbRaw) {
+      const db = JSON.parse(dbRaw);
+      if (!Array.isArray(db.Resolution)) db.Resolution = [];
+      db.Resolution.unshift({
+        id: newRes.id,
+        title: newRes.title,
+        description: `${newRes.summary} | Key actions: ${newRes.actionPoints?.join('; ') || 'Adopted by consensus'}`,
+        wardId: newRes.wardId,
+        wardName: newRes.wardName,
+        groupName: newRes.groupName,
+        status: 'PASSED',
+        certifiedBy: newRes.certifiedBy,
+        certifiedRole: newRes.certifiedRole,
+        votesFor: newRes.supportCount + 28,
+        votesAgainst: 0,
+        createdAt: newRes.createdAt
+      });
+      localStorage.setItem('csrg_mock_db_v1', JSON.stringify(db));
+    }
+  } catch (e) {
+    console.warn('Failed to mirror resolution into mock DB:', e);
+  }
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('csrg_resolutions_updated', { detail: newRes }));
   }
 
   return newRes;
@@ -577,16 +783,16 @@ export const DEFAULT_MINI_CAUCUSES: MiniCaucusEvent[] = [
     wardId: 'ward-7',
     wardName: 'Sikhendu',
     county: 'Trans Nzoia',
-    groupName: 'Sibembe Group / Caucus',
+    groupName: 'Sibembe Food Coop',
     groupId: 'grp-sikhendu-sibembe',
-    title: 'Sikhendu Ward Citizen Mini-Caucus (Sibembe Group)',
-    dateLabel: 'Happening Tomorrow at 10:00 AM',
+    title: 'Sikhendu Ward Citizen Mini-Caucus (Sibembe Food Coop)',
+    dateLabel: 'Concluded: Tuesday, Oct 20 (10:00 AM – 12:00 PM)',
     dateIso: '2026-10-20T10:00:00',
     venue: 'Sibembe Community Center / Grounds, Sikhendu Ward',
-    agenda: 'Grassroots wananchi deliberation ahead of the upcoming National Citizen Assembly on December 10, 2026. Consolidating community priorities on agroecology, smallholder seed sovereignty, rural feeder road maintenance, and adopting citizen resolutions.',
-    status: 'UPCOMING_TOMORROW',
+    agenda: '2-Hour Grassroots citizen deliberation on October 20, 2026 (10:00 AM – 12:00 PM). Passed motions and adopted resolutions on agroecology, borehole repairs, and community oversight ahead of the December 10 National Citizen Assembly.',
+    status: 'CONCLUDED',
     isSpotlight: true,
-    facilitatorRole: 'Irene Nyongesa (Sibembe Group Leader)',
+    facilitatorRole: 'Irene Nyongesa (Sibembe Food Coop Leader)',
     updatedAt: new Date().toISOString()
   }
 ];
@@ -597,13 +803,28 @@ export async function getMiniCaucuses(wardId?: string): Promise<MiniCaucusEvent[
     if (raw) {
       const list: MiniCaucusEvent[] = JSON.parse(raw);
       if (Array.isArray(list) && list.length > 0) {
+        // Migrate any older Shikendu spellings or stale "tomorrow" status
+        for (const c of list) {
+          if (c.wardName?.toLowerCase() === 'shikendu') {
+            c.wardName = 'Sikhendu';
+          }
+          if (c.id === 'caucus-sikhendu-sibembe' || (c.wardName?.toLowerCase() === 'sikhendu' && c.groupName?.toLowerCase().includes('sibembe')) || (c.wardName?.toLowerCase() === 'shikendu' && c.groupName?.toLowerCase().includes('sibembe'))) {
+            c.wardName = 'Sikhendu';
+            c.groupName = 'Sibembe Food Coop';
+            c.title = 'Sikhendu Ward Citizen Mini-Caucus (Sibembe Food Coop)';
+            c.venue = 'Sibembe Community Center / Grounds, Sikhendu Ward';
+            c.dateLabel = 'Concluded: Tuesday, Oct 20 (10:00 AM – 12:00 PM)';
+            c.status = 'CONCLUDED';
+            c.facilitatorRole = 'Irene Nyongesa (Sibembe Food Coop Leader)';
+            c.agenda = '2-Hour Grassroots citizen deliberation on October 20, 2026 (10:00 AM – 12:00 PM). Passed motions and adopted resolutions on agroecology, borehole repairs, and community oversight ahead of the December 10 National Citizen Assembly.';
+          }
+        }
+
         const sibembeItem = list.find(
           c => c.id === 'caucus-sikhendu-sibembe' || 
-               (c.wardName?.toLowerCase() === 'sikhendu' && c.groupName?.toLowerCase().includes('sibembe'))
+               ((c.wardName?.toLowerCase() === 'sikhendu' || c.wardName?.toLowerCase() === 'shikendu') && c.groupName?.toLowerCase().includes('sibembe'))
         );
-        if (sibembeItem) {
-          sibembeItem.facilitatorRole = 'Irene Nyongesa (Sibembe Group Leader)';
-        } else {
+        if (!sibembeItem) {
           list.unshift(DEFAULT_MINI_CAUCUSES[0]);
         }
         localStorage.setItem('csrg_mini_caucuses_v1', JSON.stringify(list));

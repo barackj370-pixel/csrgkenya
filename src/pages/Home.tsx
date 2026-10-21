@@ -19,7 +19,8 @@ import {
   Sparkles,
   ExternalLink,
   CheckCircle2,
-  LayoutDashboard
+  LayoutDashboard,
+  Radio
 } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import WardCard from '../components/ui/WardCard';
@@ -28,6 +29,7 @@ import NationalAssemblyBanner from '../components/ui/NationalAssemblyBanner';
 import PastAssembliesSection from '../components/ui/PastAssembliesSection';
 import NationalActivitiesSection from '../components/ui/NationalActivitiesSection';
 import HomepageWardResolutions from '../components/ui/HomepageWardResolutions';
+import CitizenLiveStream from '../components/ui/CitizenLiveStream';
 import { supabase } from '../lib/supabase';
 import { 
   searchKenyaWards, 
@@ -68,6 +70,7 @@ export default function Home() {
   const [miniCaucuses, setMiniCaucuses] = useState<MiniCaucusEvent[]>([]);
   const [activeCaucusIndex, setActiveCaucusIndex] = useState(0);
   const [isMiniCaucusModalOpen, setIsMiniCaucusModalOpen] = useState(false);
+  const [isLiveStreamOpen, setIsLiveStreamOpen] = useState(false);
   const [carouselAds, setCarouselAds] = useState<CarouselAd[]>([]);
   const [recentBlogs, setRecentBlogs] = useState<BlogPost[]>([]);
   const [featuredCandidates, setFeaturedCandidates] = useState<IndependentCandidate[]>([]);
@@ -166,8 +169,12 @@ export default function Home() {
               (() => {
                 const activeCaucus = miniCaucuses[activeCaucusIndex] || miniCaucuses[0];
                 if (!activeCaucus) return null;
-                const isTomorrow = activeCaucus.status === 'UPCOMING_TOMORROW' || activeCaucus.dateLabel.toLowerCase().includes('tomorrow');
-                const isToday = activeCaucus.status === 'ACTIVE_TODAY' || activeCaucus.dateLabel.toLowerCase().includes('today');
+                const isSibembe = activeCaucus.groupName?.toLowerCase().includes('sibembe') || 
+                                  activeCaucus.title?.toLowerCase().includes('sibembe') || 
+                                  activeCaucus.id.includes('sibembe');
+                const isConcluded = activeCaucus.status === 'CONCLUDED' || isSibembe || activeCaucus.dateLabel.toLowerCase().includes('concluded');
+                const isTomorrow = !isConcluded && (activeCaucus.status === 'UPCOMING_TOMORROW' || activeCaucus.dateLabel.toLowerCase().includes('tomorrow'));
+                const isToday = !isConcluded && (activeCaucus.status === 'ACTIVE_TODAY' || activeCaucus.dateLabel.toLowerCase().includes('today'));
 
                 const targetWardSlug = activeCaucus.wardName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
                 const targetGroupParam = activeCaucus.groupId || 'grp-sikhendu-sibembe';
@@ -185,17 +192,21 @@ export default function Home() {
                       {/* Top Badges */}
                       <div className="flex flex-wrap items-center gap-2 mb-3">
                         <span className={`text-[11px] font-black px-3.5 py-1 rounded-full uppercase tracking-wider flex items-center gap-1.5 shadow-sm ${
-                          isToday 
+                          isConcluded
+                            ? 'bg-emerald-400 text-stone-950 font-black ring-2 ring-emerald-300 shadow-md'
+                            : isToday 
                             ? 'bg-red-500 text-white animate-pulse'
                             : isTomorrow
-                            ? 'bg-emerald-400 text-stone-950 font-black ring-2 ring-emerald-300 shadow-md'
+                            ? 'bg-amber-400 text-stone-950 font-black ring-2 ring-amber-300 shadow-md'
                             : 'bg-amber-400 text-stone-950 font-black'
                         }`}>
-                          <span className={`w-2 h-2 rounded-full ${isToday ? 'bg-white' : 'bg-emerald-950'} animate-ping`} />
-                          {isToday 
+                          <span className={`w-2 h-2 rounded-full ${isToday ? 'bg-white animate-ping' : isConcluded ? 'bg-emerald-950' : 'bg-amber-950'}`} />
+                          {isConcluded
+                            ? '✅ CONCLUDED • 2-HOUR MINI-CAUCUS (10:00 AM – 12:00 PM) • RESOLUTIONS ADOPTED'
+                            : isToday 
                             ? '🔴 HAPPENING TODAY • CITIZEN MINI-CAUCUS'
                             : isTomorrow
-                            ? '🟢 HAPPENING TOMORROW • CITIZEN MINI-CAUCUS'
+                            ? '🟢 UPCOMING CITIZEN MINI-CAUCUS'
                             : '🗓️ CITIZEN MINI-CAUCUS SESSION'
                           }
                         </span>
@@ -219,7 +230,7 @@ export default function Home() {
                         <div className="flex items-start gap-2.5">
                           <Clock className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                           <div>
-                            <p className="font-bold text-stone-300 uppercase text-[10px] tracking-wider">Date & Time</p>
+                            <p className="font-bold text-stone-300 uppercase text-[10px] tracking-wider">Date & Duration</p>
                             <p className="text-white font-semibold text-xs sm:text-sm">{activeCaucus.dateLabel}</p>
                           </div>
                         </div>
@@ -245,8 +256,17 @@ export default function Home() {
 
                         <button
                           type="button"
+                          onClick={() => setIsLiveStreamOpen(true)}
+                          className="inline-flex items-center justify-center gap-2 bg-red-600 hover:bg-red-500 text-white px-5 py-3.5 rounded-2xl font-black text-xs sm:text-sm transition-all shadow-lg hover:shadow-xl cursor-pointer"
+                        >
+                          <Radio className="w-4 h-4 animate-pulse" />
+                          <span>🔴 Watch Live Stream & Proceedings</span>
+                        </button>
+
+                        <button
+                          type="button"
                           onClick={() => setIsMiniCaucusModalOpen(true)}
-                          className="inline-flex items-center justify-center gap-2 bg-sky-850 hover:bg-sky-750 text-white px-5 py-3.5 rounded-2xl font-bold text-xs sm:text-sm transition-all border border-sky-600/70 cursor-pointer shadow-md"
+                          className="inline-flex items-center justify-center gap-2 bg-sky-850 hover:bg-sky-750 text-white px-4 py-3.5 rounded-2xl font-bold text-xs sm:text-sm transition-all border border-sky-600/70 cursor-pointer shadow-md"
                         >
                           <Calendar className="w-4 h-4 text-emerald-400" />
                           <span>+ Update / Schedule Mini-Caucus</span>
@@ -871,6 +891,18 @@ export default function Home() {
           setCurrentSlide(0); // Switch directly to Carousel 1 to view live update!
         }}
       />
+
+      {/* Citizen Live Stream Modal (Direct WebRTC / MediaStream, Free, Zero YouTube) */}
+      {isLiveStreamOpen && (
+        <CitizenLiveStream
+          groupId={miniCaucuses[activeCaucusIndex]?.groupId || 'grp-sikhendu-sibembe'}
+          groupName={miniCaucuses[activeCaucusIndex]?.groupName || 'Sibembe Food Coop'}
+          wardName={miniCaucuses[activeCaucusIndex]?.wardName || 'Sikhendu'}
+          leaderName={miniCaucuses[activeCaucusIndex]?.facilitatorRole || 'Irene Nyongesa (Sibembe Food Coop Leader)'}
+          isLeader={user?.name?.toLowerCase().includes('irene') || false}
+          onClose={() => setIsLiveStreamOpen(false)}
+        />
+      )}
     </motion.div>
   );
 }

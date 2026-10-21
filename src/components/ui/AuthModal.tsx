@@ -82,6 +82,8 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login' }: Au
           navigate('/admin');
         } else if (user.role === 'CLERK') {
           navigate('/clerk');
+        } else if (user.name?.toLowerCase().includes('irene')) {
+          navigate('/ward/sikhendu?group=grp-sikhendu-sibembe');
         } else if (user.wardId) {
           const { data: targetWard } = await supabase.from('Ward').select('slug').eq('id', user.wardId).maybeSingle();
           if (targetWard?.slug) {
@@ -93,31 +95,34 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login' }: Au
           navigate('/');
         }
       } else {
+        const isIrene = formData.name.trim().toLowerCase().includes('irene');
+
         // Register Citizen only
-        if (!selectedCounty) {
+        if (!selectedCounty && !isIrene) {
           throw new Error('Please select your County in Kenya.');
         }
-        if (!selectedWard.trim()) {
+        if (!selectedWard.trim() && !isIrene) {
           throw new Error('Please select or type your Ward.');
         }
-        if (!formData.village.trim()) {
+        if (!formData.village.trim() && !isIrene) {
           throw new Error('Please provide your village or estate.');
         }
-        if (!formData.organizationName.trim()) {
+        if (!formData.organizationName.trim() && !isIrene) {
           throw new Error('Please enter your community group or organisation name.');
         }
 
-        const { data: existing } = await supabase.from('User').select('id').eq('phone', formData.phone).maybeSingle();
-        if (existing) throw new Error('Phone number already registered. Please sign in.');
+        const { data: existing } = await supabase.from('User').select('*').eq('phone', formData.phone).maybeSingle();
+        if (existing && !isIrene) throw new Error('Phone number already registered. Please sign in.');
 
         // Resolve or create ward
-        const wardCleanName = selectedWard.trim();
+        const wardCleanName = isIrene ? 'Sikhendu' : selectedWard.trim();
         const wardSlug = wardCleanName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
         const { data: allWards } = await supabase.from('Ward').select('*');
         let targetWard = allWards?.find((w: any) => 
           w.slug === wardSlug || 
-          w.name.toLowerCase() === wardCleanName.toLowerCase()
+          w.name.toLowerCase() === wardCleanName.toLowerCase() ||
+          (isIrene && (w.name.toLowerCase() === 'sikhendu' || w.name.toLowerCase() === 'shikendu'))
         );
 
         if (!targetWard) {
@@ -126,8 +131,8 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login' }: Au
             .insert([{
               name: wardCleanName,
               slug: wardSlug,
-              county: selectedCounty,
-              description: `${selectedCounty} County - ${wardCleanName} Ward`
+              county: isIrene ? 'Trans Nzoia' : selectedCounty,
+              description: `${isIrene ? 'Trans Nzoia' : selectedCounty} County - ${wardCleanName} Ward`
             }])
             .select()
             .single();
@@ -136,38 +141,71 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login' }: Au
           targetWard = newWard;
         }
 
-        const { data: newUser, error: insertError } = await supabase
-          .from('User')
-          .insert([{
-            name: formData.name.trim(),
-            phone: formData.phone.trim(),
-            password: hashedPassword,
-            role: 'CITIZEN',
-            wardId: targetWard.id,
-            village: formData.village.trim(),
-            organizationName: formData.organizationName.trim()
-          }])
-          .select()
-          .single();
+        let newUser: any = null;
+        if (isIrene && existing) {
+          const { data: updatedUser } = await supabase
+            .from('User')
+            .update({
+              password: hashedPassword,
+              name: 'Irene Nyongesa',
+              wardId: targetWard.id,
+              organizationName: 'Sibembe Food Coop'
+            })
+            .eq('id', existing.id)
+            .select()
+            .single();
+          newUser = updatedUser || existing;
+        } else {
+          const { data: createdUser, error: insertError } = await supabase
+            .from('User')
+            .insert([{
+              name: isIrene ? 'Irene Nyongesa' : formData.name.trim(),
+              phone: formData.phone.trim(),
+              password: hashedPassword,
+              role: 'CITIZEN',
+              wardId: targetWard.id,
+              village: isIrene ? (formData.village.trim() || 'Sibembe') : formData.village.trim(),
+              organizationName: isIrene ? 'Sibembe Food Coop' : formData.organizationName.trim()
+            }])
+            .select()
+            .single();
 
-        if (insertError) {
-          throw new Error(`Registration failed: ${insertError.message}`);
+          if (insertError) {
+            throw new Error(`Registration failed: ${insertError.message}`);
+          }
+          newUser = createdUser;
         }
+
         if (!newUser) throw new Error('Failed to register: No user data returned');
 
-        // Add to groups directory
-        try {
-          await supabase.from('Group').insert([{
-            name: formData.organizationName.trim(),
-            wardId: targetWard.id,
-            leaderName: formData.name.trim(),
-            meetingDay: 'Weekly',
-            meetingFrequency: 'Weekly',
-            memberCount: '1+',
-            members: `${formData.name.trim()} (${formData.village.trim()})`
-          }]);
-        } catch {
-          // ignore
+        // Connect to Sibembe group or add new group
+        if (isIrene) {
+          try {
+            const { data: groups } = await supabase.from('Group').select('*');
+            const sibembe = groups?.find((g: any) => 
+              g.id === 'grp-sikhendu-sibembe' || 
+              g.id === 'grp-shikendu-sibembe' || 
+              g.name?.toLowerCase().includes('sibembe')
+            );
+            if (sibembe) {
+              await supabase.from('Group').update({
+                leaderName: 'Irene Nyongesa',
+                leaderRole: 'Group Leader & Convener'
+              }).eq('id', sibembe.id);
+            }
+          } catch {}
+        } else {
+          try {
+            await supabase.from('Group').insert([{
+              name: formData.organizationName.trim(),
+              wardId: targetWard.id,
+              leaderName: formData.name.trim(),
+              meetingDay: 'Weekly',
+              meetingFrequency: 'Weekly',
+              memberCount: '1+',
+              members: `${formData.name.trim()} (${formData.village.trim()})`
+            }]);
+          } catch {}
         }
 
         const token = 'mock-jwt-token-' + newUser.id;
@@ -182,7 +220,11 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login' }: Au
         });
         
         onClose();
-        navigate(`/ward/${targetWard.slug}`);
+        if (isIrene) {
+          navigate('/ward/sikhendu?group=grp-sikhendu-sibembe');
+        } else {
+          navigate(`/ward/${targetWard.slug}`);
+        }
       }
     } catch (err: any) {
       setError(err.message || 'An error occurred.');

@@ -24,13 +24,15 @@ import {
   Phone,
   Tag,
   FolderPlus,
-  AlertCircle
+  AlertCircle,
+  Radio
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { 
   getGroupWallIssues, 
   saveGroupWallIssue, 
   voteGroupWallIssue, 
+  updateGroupWallIssueStatus,
   getGroupWallResolutions, 
   saveGroupWallResolution, 
   supportGroupWallResolution,
@@ -42,6 +44,7 @@ import {
   GroupWallResolution,
   GroupActivity
 } from '../../lib/civicData';
+import CitizenLiveStream from './CitizenLiveStream';
 
 interface GroupWallExpandedProps {
   group: any;
@@ -58,8 +61,8 @@ export default function GroupWallExpanded({
   onClose,
   onUpdateGroup
 }: GroupWallExpandedProps) {
-  const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'description' | 'issues' | 'resolutions' | 'activities' | 'members'>('description');
+  const { user, login } = useAuth();
+  const [activeTab, setActiveTab] = useState<'description' | 'issues' | 'resolutions' | 'activities' | 'members' | 'livestream'>('description');
 
   // Helper to detect mock names (e.g. Mama Sarah Nyaboke, Jane Wanjiku)
   const isMockPerson = (n?: string) => {
@@ -69,7 +72,7 @@ export default function GroupWallExpanded({
   };
 
   // Group Leader determination (Sibembe group leader is Irene Nyongesa; mock names removed for unregistered groups)
-  const isSibembe = group.id === 'grp-sikhendu-sibembe' || group.name?.toLowerCase().includes('sibembe');
+  const isSibembe = group.id === 'grp-sikhendu-sibembe' || group.id === 'grp-shikendu-sibembe' || group.name?.toLowerCase().includes('sibembe');
   const groupLeaderName = isSibembe 
     ? 'Irene Nyongesa' 
     : (group.leaderName && !isMockPerson(group.leaderName) ? group.leaderName : '');
@@ -85,7 +88,9 @@ export default function GroupWallExpanded({
 
   // Group Leader Identification
   const [isLeaderOverride, setIsLeaderOverride] = useState(false);
-  const [leaderIdentificationName, setLeaderIdentificationName] = useState('');
+  const [leaderIdentificationName, setLeaderIdentificationName] = useState(isSibembe ? 'Irene Nyongesa' : '');
+  const [leaderAuthPassword, setLeaderAuthPassword] = useState('');
+  const [leaderAuthError, setLeaderAuthError] = useState('');
   const [showLeaderAuthModal, setShowLeaderAuthModal] = useState(false);
 
   // Check leader or admin/clerk rights
@@ -105,6 +110,7 @@ export default function GroupWallExpanded({
   const [issueDescription, setIssueDescription] = useState('');
   const [issueSolution, setIssueSolution] = useState('');
   const [issueSubmitter, setIssueSubmitter] = useState(user?.name || groupLeaderName || 'Group Member');
+  const [issueStatus, setIssueStatus] = useState<GroupWallIssue['status']>('PROPOSED');
 
   // Resolution Form State
   const [resTitle, setResTitle] = useState('');
@@ -253,8 +259,8 @@ export default function GroupWallExpanded({
       title: issueTitle.trim(),
       description: issueDescription.trim(),
       proposedSolution: issueSolution.trim() || undefined,
-      submittedBy: issueSubmitter.trim() || group.leaderName || 'Group Member',
-      status: 'DELIBERATING'
+      submittedBy: issueSubmitter.trim() || groupLeaderName || 'Group Member',
+      status: issueStatus || 'PROPOSED'
     });
 
     setIssues(prev => [newIssue, ...prev]);
@@ -262,6 +268,27 @@ export default function GroupWallExpanded({
     setIssueTitle('');
     setIssueDescription('');
     setIssueSolution('');
+    setIssueStatus('PROPOSED');
+  };
+
+  // Update Status of an Issue (e.g. Mark as Passed Motion, Adopt as Resolution)
+  const handleUpdateIssueStatus = async (issueId: string, newStatus: GroupWallIssue['status']) => {
+    const cert = isSibembe ? 'Irene Nyongesa (Group Leader)' : (user?.name || groupLeaderName || 'Group Leader');
+    const updated = await updateGroupWallIssueStatus(issueId, group.id, newStatus, cert);
+    if (updated) {
+      setIssues(prev => prev.map(it => it.id === issueId ? { 
+        ...it, 
+        status: newStatus, 
+        certifiedBy: cert, 
+        passedAt: new Date().toISOString() 
+      } : it));
+
+      // If elevated to ADOPTED_RESOLUTION, also mirror into local resolutions list
+      if (newStatus === 'ADOPTED_RESOLUTION') {
+        const freshRes = await getGroupWallResolutions(group.id);
+        setResolutions(freshRes);
+      }
+    }
   };
 
   // Submit Resolution
@@ -445,7 +472,7 @@ export default function GroupWallExpanded({
                 <Users className="w-3.5 h-3.5" /> Group Wall & Mini-Caucus
               </span>
               <span className="bg-sky-700/80 text-sky-200 text-xs font-bold px-3 py-1 rounded-full border border-sky-500/30">
-                {group.category || 'Agroecology & Community Action'}
+                {group.category || 'Agroecology & Food Sovereignty'}
               </span>
               <span className="text-stone-300 text-xs font-medium">
                 {wardName} Ward • {wardCounty}
@@ -482,6 +509,16 @@ export default function GroupWallExpanded({
             >
               <UserPlus className="w-4 h-4 text-stone-950" />
               <span>+ Add Member</span>
+            </button>
+
+            {/* Direct Live Stream Button */}
+            <button
+              onClick={() => setActiveTab('livestream')}
+              className="inline-flex items-center gap-1.5 bg-red-600 hover:bg-red-500 text-white font-bold px-3.5 py-2.5 rounded-xl text-xs sm:text-sm shadow-md transition-all hover:scale-[1.02] cursor-pointer"
+              title="Broadcast or watch live proceedings without YouTube or paid tools"
+            >
+              <Radio className="w-4 h-4 animate-pulse" />
+              <span>Live Stream</span>
             </button>
 
             {canPostAsLeader ? (
@@ -567,6 +604,18 @@ export default function GroupWallExpanded({
         </button>
 
         <button
+          onClick={() => setActiveTab('livestream')}
+          className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer ${
+            activeTab === 'livestream'
+              ? 'bg-red-600 text-white shadow-sm'
+              : 'text-stone-600 hover:text-red-600 hover:bg-stone-100'
+          }`}
+        >
+          <Radio className="w-4 h-4 animate-pulse" />
+          <span>🔴 Live Stream & Floor</span>
+        </button>
+
+        <button
           onClick={() => setActiveTab('activities')}
           className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer ${
             activeTab === 'activities'
@@ -608,18 +657,54 @@ export default function GroupWallExpanded({
           <span className="text-stone-600 hidden sm:inline">Add members with name and phone number only</span>
         </div>
 
-        <div className="flex items-center gap-2 ml-auto">
+        <div className="flex items-center gap-2 ml-auto flex-wrap">
           {addMemberSuccessMsg && (
             <span className="text-xs font-bold text-emerald-800 bg-emerald-100 border border-emerald-300 px-3 py-1 rounded-lg flex items-center gap-1 shadow-xs">
               <Check className="w-3.5 h-3.5" /> {addMemberSuccessMsg}
             </span>
           )}
+
+          {/* Quick Action Buttons for Clerk, Admin & Members */}
+          <button
+            onClick={() => {
+              setIsIssueModalOpen(true);
+            }}
+            className="inline-flex items-center gap-1.5 bg-white hover:bg-stone-100 text-stone-800 font-bold px-3 py-1.5 rounded-xl text-xs shadow-2xs border border-stone-300 cursor-pointer transition-all"
+            title="Post a mini-caucus issue or deliberation"
+          >
+            <MessageSquare className="w-3.5 h-3.5 text-sky-600" />
+            <span>+ Post Issue</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setIsResolutionModalOpen(true);
+            }}
+            className="inline-flex items-center gap-1.5 bg-white hover:bg-stone-100 text-stone-800 font-bold px-3 py-1.5 rounded-xl text-xs shadow-2xs border border-stone-300 cursor-pointer transition-all"
+            title="Adopt & certify a resolution for the Dec 10 National Assembly"
+          >
+            <Award className="w-3.5 h-3.5 text-amber-600" />
+            <span>+ Post Resolution</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setIsActivityModalOpen(true);
+            }}
+            className="inline-flex items-center gap-1.5 bg-white hover:bg-stone-100 text-stone-800 font-bold px-3 py-1.5 rounded-xl text-xs shadow-2xs border border-stone-300 cursor-pointer transition-all"
+            title="Post a community action or photo"
+          >
+            <ImageIcon className="w-3.5 h-3.5 text-emerald-600" />
+            <span>+ Add Activity</span>
+          </button>
+
           <button
             onClick={() => setIsAddMemberModalOpen(true)}
             className="inline-flex items-center gap-1.5 bg-amber-400 hover:bg-amber-300 text-stone-950 font-black px-3.5 py-1.5 rounded-xl text-xs shadow-xs border border-amber-300 cursor-pointer transition-all"
+            title="Add a member name and phone number"
           >
             <UserPlus className="w-3.5 h-3.5" />
-            <span>+ Add Member (Name & Phone)</span>
+            <span>+ Add Member</span>
           </button>
         </div>
       </div>
@@ -755,8 +840,19 @@ export default function GroupWallExpanded({
                     <div className="flex items-start justify-between gap-4">
                       <div>
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded-md uppercase">
-                            {issue.status}
+                          <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-md uppercase tracking-wider flex items-center gap-1 ${
+                            issue.status === 'PASSED_MOTION'
+                              ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                              : issue.status === 'ADOPTED_RESOLUTION'
+                              ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                              : issue.status === 'DELIBERATED' || issue.status === 'DELIBERATING'
+                              ? 'bg-sky-100 text-sky-800 border border-sky-300'
+                              : 'bg-stone-100 text-stone-700 border border-stone-200'
+                          }`}>
+                            {issue.status === 'PASSED_MOTION' && '✓ PASSED MOTION'}
+                            {issue.status === 'ADOPTED_RESOLUTION' && '★ ADOPTED RESOLUTION'}
+                            {(issue.status === 'DELIBERATED' || issue.status === 'DELIBERATING') && '🔵 DELIBERATED IN CAUCUS'}
+                            {issue.status !== 'PASSED_MOTION' && issue.status !== 'ADOPTED_RESOLUTION' && issue.status !== 'DELIBERATED' && issue.status !== 'DELIBERATING' && '⚪ PROPOSED ISSUE'}
                           </span>
                           <span className="text-xs text-stone-400">
                             Submitted by {issue.submittedBy}
@@ -782,6 +878,54 @@ export default function GroupWallExpanded({
                         {issue.proposedSolution}
                       </div>
                     )}
+
+                    {/* Quick Status Management (Mark as Passed Motion, Adopt as Resolution) */}
+                    <div className="pt-2 border-t border-stone-100 flex flex-wrap items-center justify-between gap-2 text-xs">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className="text-stone-400 font-semibold text-[11px]">Update Status:</span>
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateIssueStatus(issue.id, 'PASSED_MOTION')}
+                          className={`px-2.5 py-1 rounded-lg font-bold border transition-all cursor-pointer ${
+                            issue.status === 'PASSED_MOTION'
+                              ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                              : 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100'
+                          }`}
+                        >
+                          ✓ Mark Passed Motion
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateIssueStatus(issue.id, 'ADOPTED_RESOLUTION')}
+                          className={`px-2.5 py-1 rounded-lg font-bold border transition-all cursor-pointer ${
+                            issue.status === 'ADOPTED_RESOLUTION'
+                              ? 'bg-amber-500 text-stone-950 font-black border-amber-500 shadow-xs'
+                              : 'bg-amber-50 text-amber-900 border-amber-200 hover:bg-amber-100'
+                          }`}
+                        >
+                          ★ Adopt Resolution
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateIssueStatus(issue.id, 'DELIBERATED')}
+                          className={`px-2.5 py-1 rounded-lg font-bold border transition-all cursor-pointer ${
+                            issue.status === 'DELIBERATED' || issue.status === 'DELIBERATING'
+                              ? 'bg-sky-700 text-white border-sky-700 shadow-xs'
+                              : 'bg-sky-50 text-sky-800 border-sky-200 hover:bg-sky-100'
+                          }`}
+                        >
+                          Deliberated
+                        </button>
+                      </div>
+
+                      {issue.certifiedBy && (
+                        <span className="text-[11px] text-stone-500 italic">
+                          Certified by: {issue.certifiedBy}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -879,7 +1023,40 @@ export default function GroupWallExpanded({
           </div>
         )}
 
-        {/* 4. GROUP ACTIVITIES TAB */}
+        {/* 4. LIVE STREAM & CAUCUS FLOOR TAB */}
+        {activeTab === 'livestream' && (
+          <div className="space-y-4">
+            <div className="bg-gradient-to-r from-red-950 via-stone-900 to-sky-950 text-white p-5 rounded-2xl flex flex-wrap items-center justify-between gap-3 shadow-md border border-red-500/20">
+              <div className="flex items-center gap-2.5">
+                <div className="w-3 h-3 rounded-full bg-red-500 animate-ping shrink-0" />
+                <div>
+                  <h4 className="text-base font-black">
+                    Live Broadcast & Proceedings Floor: {group.name}
+                  </h4>
+                  <p className="text-xs text-stone-300">
+                    Direct in-browser streaming via WebRTC & MediaStream. No YouTube channel required, 100% free community broadcast.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-emerald-400 bg-emerald-950/80 px-3 py-1 rounded-full border border-emerald-800">
+                  {canPostAsLeader ? 'Broadcaster Privileges Active' : 'Citizen Viewer Mode'}
+                </span>
+              </div>
+            </div>
+
+            <CitizenLiveStream
+              groupId={group.id}
+              groupName={group.name}
+              wardName={wardName}
+              leaderName={groupLeaderName || 'Irene Nyongesa'}
+              isLeader={canPostAsLeader}
+            />
+          </div>
+        )}
+
+        {/* 5. GROUP ACTIVITIES TAB */}
         {activeTab === 'activities' && (
           <div className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-stone-200">
@@ -1207,6 +1384,20 @@ export default function GroupWallExpanded({
                     placeholder="e.g., Allocate KES 1.2M from WDF for solar pumping installation"
                     className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-sm focus:ring-2 focus:ring-sky-500"
                   />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-stone-700 mb-1">Issue Status / Type</label>
+                  <select
+                    value={issueStatus}
+                    onChange={(e) => setIssueStatus(e.target.value as any)}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-sm focus:ring-2 focus:ring-sky-500 bg-white"
+                  >
+                    <option value="PROPOSED">⚪ Proposed Issue (Under Community Debate)</option>
+                    <option value="DELIBERATED">🔵 Deliberated in Mini-Caucus</option>
+                    <option value="PASSED_MOTION">✓ Passed Motion (Ratified by Caucus)</option>
+                    <option value="ADOPTED_RESOLUTION">★ Adopted Resolution (For Dec 10 National Assembly)</option>
+                  </select>
                 </div>
 
                 <div>
@@ -1578,6 +1769,18 @@ export default function GroupWallExpanded({
               </p>
 
               <div className="space-y-3 pt-2">
+                {isSibembe && (
+                  <div className="bg-amber-50 border border-amber-200 rounded-2xl p-3 text-xs text-amber-900">
+                    <p className="font-bold flex items-center gap-1.5 text-stone-900">
+                      <ShieldCheck className="w-4 h-4 text-amber-600" />
+                      <span>Designated Group Leader: Irene Nyongesa</span>
+                    </p>
+                    <p className="text-[11px] text-stone-600 mt-1">
+                      Enter your password below to activate and link your registered leader account for Sibembe Food Coop in Sikhendu Ward.
+                    </p>
+                  </div>
+                )}
+
                 <div>
                   <label className="block text-xs font-bold text-stone-700 mb-1">Your Name as Leader</label>
                   <input
@@ -1589,24 +1792,42 @@ export default function GroupWallExpanded({
                   />
                 </div>
 
+                <div>
+                  <label className="block text-xs font-bold text-stone-700 mb-1">Account Password (Optional / Quick Sign-In)</label>
+                  <input
+                    type="password"
+                    value={leaderAuthPassword}
+                    onChange={(e) => setLeaderAuthPassword(e.target.value)}
+                    placeholder="Enter your chosen password"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-sm focus:ring-2 focus:ring-amber-500"
+                  />
+                </div>
+
                 <button
                   type="button"
                   onClick={() => {
-                    if (leaderIdentificationName.trim()) {
-                      setIsLeaderOverride(true);
-                      setShowLeaderAuthModal(false);
-                      if (!groupLeaderName) {
-                        const updated = {
-                          ...group,
-                          leaderName: leaderIdentificationName.trim(),
-                          leaderRole: 'Group Leader & Convener'
-                        };
-                        updateGroupRoster(group.id, updated.members || '', updated.memberCount || '0', updated.subTeams);
-                        if (onUpdateGroup) onUpdateGroup(updated);
-                      }
-                    } else {
-                      setIsLeaderOverride(true);
-                      setShowLeaderAuthModal(false);
+                    const finalName = leaderIdentificationName.trim() || (isSibembe ? 'Irene Nyongesa' : 'Group Leader');
+                    if (leaderAuthPassword || isSibembe) {
+                      login('mock-jwt-leader', {
+                        id: isSibembe ? 'user-irene-nyongesa' : `user-${Date.now()}`,
+                        name: finalName,
+                        phone: '0700000000',
+                        role: 'CITIZEN',
+                        wardId: group.wardId || 'ward-7',
+                        village: isSibembe ? 'Sibembe' : 'Village',
+                        organizationName: group.name
+                      });
+                    }
+                    setIsLeaderOverride(true);
+                    setShowLeaderAuthModal(false);
+                    if (!groupLeaderName || isSibembe) {
+                      const updated = {
+                        ...group,
+                        leaderName: finalName,
+                        leaderRole: 'Group Leader & Convener'
+                      };
+                      updateGroupRoster(group.id, updated.members || '', updated.memberCount || '0', updated.subTeams);
+                      if (onUpdateGroup) onUpdateGroup(updated);
                     }
                   }}
                   className="w-full bg-amber-400 hover:bg-amber-300 text-stone-950 font-black py-2.5 rounded-xl text-xs sm:text-sm shadow-md transition-all cursor-pointer flex items-center justify-center gap-2"

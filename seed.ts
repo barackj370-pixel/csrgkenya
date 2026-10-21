@@ -79,19 +79,22 @@ async function main() {
       }
     });
     
-    // Create initial group for each ward with empty leader pending registration
-    const isSikhendu = ward.name.toLowerCase() === 'sikhendu' || ward.slug === 'sikhendu';
-    await prisma.group.create({
-      data: {
-        name: isSikhendu ? 'Sibembe Community Group' : `${ward.name} Community Action Group`,
-        wardId: ward.id,
-        leaderName: isSikhendu ? 'Irene Nyongesa' : '',
-        meetingDay: isSikhendu ? 'Tomorrow, Tuesday Oct 20, 2026 at 10:00 AM' : 'Saturday at 2:00 PM',
-        meetingFrequency: 'Weekly Mini-Caucus',
-        members: isSikhendu ? 'Irene Nyongesa (Group Leader)' : '',
-        memberCount: isSikhendu ? 1 : 0
-      }
-    });
+    // Only Sikhendu has Sibembe Food Coop registered for now. Other wards only have groups added by clerks or admin!
+    const isSikhendu = ward.name.toLowerCase() === 'shikendu' || ward.slug === 'shikendu' || ward.name.toLowerCase() === 'sikhendu' || ward.slug === 'sikhendu';
+    if (isSikhendu) {
+      await prisma.group.create({
+        data: {
+          name: 'Sibembe Food Coop',
+          wardId: ward.id,
+          category: 'Agroecology & Food Sovereignty Cooperative',
+          leaderName: 'Irene Nyongesa',
+          meetingDay: 'Tuesday Oct 20, 2026 (10:00 AM – 12:00 PM • 2-Hour Deliberation)',
+          meetingFrequency: 'Weekly Food Coop Caucus',
+          members: 'Irene Nyongesa (Coop Leader)',
+          memberCount: 1
+        }
+      });
+    }
   }
 
   console.log('Database seeded successfully');

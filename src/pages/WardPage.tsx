@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MapPin, Users, Calendar, ArrowLeft, Lightbulb, ThumbsUp, Plus, FileText, CheckCircle, Upload, ChevronDown, ChevronUp } from 'lucide-react';
+import { MapPin, Users, Calendar, ArrowLeft, Lightbulb, ThumbsUp, Plus, FileText, CheckCircle, Upload, ChevronDown, ChevronUp, X, ShieldCheck, Sparkles } from 'lucide-react';
 import DiscussionCard from '../components/ui/DiscussionCard';
 import JoinWardModal from '../components/ui/JoinWardModal';
 import WardDocumentsSection from '../components/ui/WardDocumentsSection';
@@ -21,6 +21,18 @@ export default function WardPage() {
   const [hasJoined, setHasJoined] = useState(false);
   const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
 
+  // Add Group Modal State for Clerk and Admin
+  const [isAddGroupModalOpen, setIsAddGroupModalOpen] = useState(false);
+  const [newGroupName, setNewGroupName] = useState('');
+  const [newGroupCategory, setNewGroupCategory] = useState('Agroecology & Smallholder Farmers');
+  const [newGroupLeader, setNewGroupLeader] = useState('');
+  const [newGroupPhone, setNewGroupPhone] = useState('');
+  const [newGroupMeetingDay, setNewGroupMeetingDay] = useState('Every Saturday at 2:00 PM');
+  const [newGroupVenue, setNewGroupVenue] = useState('');
+  const [newGroupDescription, setNewGroupDescription] = useState('');
+  const [isSubmittingGroup, setIsSubmittingGroup] = useState(false);
+  const [groupSuccessMsg, setGroupSuccessMsg] = useState('');
+
   useEffect(() => {
     const groupParam = searchParams.get('group');
     if (groupParam && ward?.groups && ward.groups.length > 0) {
@@ -30,9 +42,65 @@ export default function WardPage() {
       );
       if (match) {
         setExpandedGroup(match.id);
+        setTimeout(() => {
+          const el = document.getElementById('ward-groups-section');
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, 150);
       }
     }
   }, [searchParams, ward]);
+
+  const handleCreateGroup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newGroupName.trim() || !ward?.id) return;
+    setIsSubmittingGroup(true);
+
+    const leader = newGroupLeader.trim() || user?.name || 'Group Convener';
+    const cleanId = `grp-${ward.slug || 'ward'}-${Date.now()}`;
+    const groupData = {
+      id: cleanId,
+      name: newGroupName.trim(),
+      wardId: ward.id,
+      category: newGroupCategory,
+      leaderName: leader,
+      leaderRole: 'Group Leader & Convener',
+      leaderPhone: newGroupPhone.trim() || undefined,
+      meetingDay: newGroupMeetingDay.trim() || 'Every Saturday at 2:00 PM',
+      venue: newGroupVenue.trim() || `${ward.name} Community Hall`,
+      description: newGroupDescription.trim() || `${newGroupName.trim()} holding weekly community mini-caucuses before the National Citizen Assembly.`,
+      memberCount: '1',
+      members: newGroupPhone.trim() ? `${leader} (${newGroupPhone.trim()})` : leader
+    };
+
+    try {
+      const { data } = await supabase.from('Group').insert([groupData]).select().single();
+      const createdItem = data || groupData;
+      setWard((prev: any) => ({
+        ...prev,
+        groups: [...(prev.groups || []), createdItem]
+      }));
+      setExpandedGroup(createdItem.id);
+      setIsAddGroupModalOpen(false);
+      setGroupSuccessMsg(`Successfully registered ${createdItem.name} under ${ward.name} Ward!`);
+      setTimeout(() => setGroupSuccessMsg(''), 5000);
+
+      // Reset form
+      setNewGroupName('');
+      setNewGroupLeader('');
+      setNewGroupPhone('');
+      setNewGroupVenue('');
+      setNewGroupDescription('');
+
+      // Notify Navbar and other listeners to refresh dropdown
+      window.dispatchEvent(new Event('csrg_group_created'));
+    } catch (err) {
+      console.warn('Failed to insert group', err);
+    } finally {
+      setIsSubmittingGroup(false);
+    }
+  };
 
   const [newIssue, setNewIssue] = useState({ title: '', description: '' });
   const brainstormIssues = ward?.issues || [];
@@ -393,7 +461,7 @@ export default function WardPage() {
             </div>
 
             {/* Registered Groups & Mini-Caucuses Section */}
-            <div className="mt-12">
+            <div className="mt-12 scroll-mt-24" id="ward-groups-section">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 bg-sky-100 text-sky-800 rounded-2xl flex items-center justify-center shrink-0">
@@ -413,7 +481,30 @@ export default function WardPage() {
                     </p>
                   </div>
                 </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={() => setIsAddGroupModalOpen(true)}
+                    className="bg-amber-400 hover:bg-amber-300 text-stone-950 font-black px-4 py-2.5 rounded-xl text-xs sm:text-sm shadow-md transition-all flex items-center gap-1.5 border border-amber-300 cursor-pointer"
+                    title="Clerk or Admin: Add a registered community group to this ward"
+                  >
+                    <Plus className="w-4 h-4 text-stone-950" />
+                    <span>+ Add Group / Caucus</span>
+                  </button>
+                </div>
               </div>
+
+              {groupSuccessMsg && (
+                <div className="mb-4 p-3.5 bg-emerald-50 border border-emerald-300 text-emerald-800 rounded-2xl text-xs sm:text-sm font-bold flex items-center justify-between shadow-xs animate-in fade-in">
+                  <span className="flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>{groupSuccessMsg}</span>
+                  </span>
+                  <button onClick={() => setGroupSuccessMsg('')} className="text-emerald-700 hover:text-emerald-950 cursor-pointer p-1">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
 
               {/* Groups Grid */}
               <div className="space-y-4">
@@ -449,7 +540,7 @@ export default function WardPage() {
                             <p className="font-semibold text-stone-700 flex items-center gap-1.5">
                               <span className="text-amber-500 font-bold">★ Head / Leader:</span>
                               {(() => {
-                                const isSibembe = group.id === 'grp-sikhendu-sibembe' || group.name?.toLowerCase().includes('sibembe');
+                                const isSibembe = group.id === 'grp-sikhendu-sibembe' || group.id === 'grp-shikendu-sibembe' || group.name?.toLowerCase().includes('sibembe');
                                 const isMock = (n: string) => {
                                   if (!n) return false;
                                   const l = n.toLowerCase();
@@ -474,15 +565,26 @@ export default function WardPage() {
                               {isExpanded ? 'Hide Group Wall ▲' : 'Open Group Wall & Mini-Caucus Space ▼'}
                             </span>
                             <span className="text-stone-400 text-[10px] font-normal">
-                              Post issues • Resolutions • Activities
+                              Issues • Resolutions • 🔴 Live Stream
                             </span>
                           </div>
                         </div>
                       );
                     })
                   ) : (
-                    <div className="col-span-full bg-white p-8 rounded-2xl border border-stone-200 text-center text-stone-500">
-                      No groups registered yet.
+                    <div className="col-span-full bg-white p-8 rounded-2xl border border-dashed border-stone-300 text-center text-stone-500 shadow-2xs">
+                      <Users className="w-12 h-12 text-stone-300 mx-auto mb-2" />
+                      <p className="text-base font-bold text-stone-800">No Groups Registered in {ward.name} Ward Yet</p>
+                      <p className="text-xs text-stone-500 mt-1 max-w-md mx-auto">
+                        In accordance with citizen assembly guidelines, only community groups added by a clerk or administrator appear here. In Sikhendu Ward, Sibembe Food Coop is registered; you can register a new group below.
+                      </p>
+                      <button
+                        onClick={() => setIsAddGroupModalOpen(true)}
+                        className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 bg-amber-400 hover:bg-amber-300 text-stone-950 rounded-xl text-xs sm:text-sm font-black transition-all shadow-md border border-amber-300 cursor-pointer"
+                      >
+                        <Plus className="w-4 h-4 text-stone-950" />
+                        <span>+ Register Group / Caucus to {ward.name}</span>
+                      </button>
                     </div>
                   )}
                 </div>
@@ -594,6 +696,168 @@ export default function WardPage() {
           <WardDocumentsSection wardId={ward.id} wardName={ward.name} />
         </section>
       </div>
+
+      {/* Clerk & Admin Modal: Register Group / Caucus for this Ward */}
+      <AnimatePresence>
+        {isAddGroupModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl border border-stone-200 space-y-4 max-h-[90vh] overflow-y-auto"
+            >
+              <div className="flex items-center justify-between border-b border-stone-100 pb-3">
+                <div>
+                  <span className="text-[10px] font-black uppercase tracking-wider bg-amber-100 text-amber-900 px-2 py-0.5 rounded-full">
+                    Clerk & Admin Action
+                  </span>
+                  <h4 className="text-xl font-black text-stone-900 mt-1">
+                    Register Group / Caucus in {ward.name} Ward
+                  </h4>
+                  <p className="text-xs text-stone-500">
+                    Groups added here will appear under {ward.name} in the Citizen Assemblies menu and on this Ward Wall.
+                  </p>
+                </div>
+                <button 
+                  onClick={() => setIsAddGroupModalOpen(false)} 
+                  className="text-stone-400 hover:text-stone-600 p-1 cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleCreateGroup} className="space-y-3.5">
+                <div>
+                  <label className="block text-xs font-bold text-stone-700 mb-1">
+                    Group / Caucus Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={newGroupName}
+                    onChange={(e) => setNewGroupName(e.target.value)}
+                    placeholder="e.g. Sibembe Agroecology Community Group"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-sm focus:ring-2 focus:ring-sky-500 font-medium"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-stone-700 mb-1">
+                      Caucus Category
+                    </label>
+                    <select
+                      value={newGroupCategory}
+                      onChange={(e) => setNewGroupCategory(e.target.value)}
+                      className="w-full px-3 py-2.5 rounded-xl border border-stone-200 text-xs focus:ring-2 focus:ring-sky-500 bg-white"
+                    >
+                      <option value="Agroecology & Smallholder Farmers">Agroecology & Smallholder Farmers</option>
+                      <option value="Women Food Sovereignty Cooperative">Women Food Sovereignty Cooperative</option>
+                      <option value="Youth Civic & Budget Oversight">Youth Civic & Budget Oversight</option>
+                      <option value="Natural Resources & Water Protection">Natural Resources & Water Protection</option>
+                      <option value="Grassroots Labor & Harambee">Grassroots Labor & Harambee</option>
+                      <option value="General Ward Citizen Caucus">General Ward Citizen Caucus</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-stone-700 mb-1">
+                      Meeting Cadence
+                    </label>
+                    <input
+                      type="text"
+                      value={newGroupMeetingDay}
+                      onChange={(e) => setNewGroupMeetingDay(e.target.value)}
+                      placeholder="e.g. Every Saturday at 2:00 PM"
+                      className="w-full px-3 py-2.5 rounded-xl border border-stone-200 text-xs focus:ring-2 focus:ring-sky-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-stone-700 mb-1">
+                      Leader / Convener Name *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={newGroupLeader}
+                      onChange={(e) => setNewGroupLeader(e.target.value)}
+                      placeholder="e.g. Irene Nyongesa"
+                      className="w-full px-3 py-2.5 rounded-xl border border-stone-200 text-xs focus:ring-2 focus:ring-sky-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-stone-700 mb-1">
+                      Leader Phone Number (Kenya)
+                    </label>
+                    <input
+                      type="tel"
+                      value={newGroupPhone}
+                      onChange={(e) => setNewGroupPhone(e.target.value)}
+                      placeholder="e.g. +254 712 345 678"
+                      className="w-full px-3 py-2.5 rounded-xl border border-stone-200 text-xs focus:ring-2 focus:ring-sky-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-stone-700 mb-1">
+                    Meeting Venue in {ward.name}
+                  </label>
+                  <input
+                    type="text"
+                    value={newGroupVenue}
+                    onChange={(e) => setNewGroupVenue(e.target.value)}
+                    placeholder={`e.g. ${ward.name} Community Hall / Sibembe Grounds`}
+                    className="w-full px-3 py-2 rounded-xl border border-stone-200 text-xs focus:ring-2 focus:ring-sky-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-stone-700 mb-1">
+                    Mandate & Description
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={newGroupDescription}
+                    onChange={(e) => setNewGroupDescription(e.target.value)}
+                    placeholder={`Describe the goals of this group in ${ward.name} Ward before the Dec 10 National Assembly...`}
+                    className="w-full px-3 py-2 rounded-xl border border-stone-200 text-xs focus:ring-2 focus:ring-sky-500"
+                  />
+                </div>
+
+                <div className="pt-2 flex items-center justify-end gap-3 border-t border-stone-100">
+                  <button
+                    type="button"
+                    onClick={() => setIsAddGroupModalOpen(false)}
+                    className="px-4 py-2 text-stone-600 text-xs font-bold hover:bg-stone-100 rounded-xl cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmittingGroup}
+                    className="bg-amber-400 hover:bg-amber-300 text-stone-950 font-black px-5 py-2.5 rounded-xl text-xs shadow-md border border-amber-300 cursor-pointer flex items-center gap-2"
+                  >
+                    {isSubmittingGroup ? (
+                      <span>Registering...</span>
+                    ) : (
+                      <>
+                        <Plus className="w-4 h-4 text-stone-950" />
+                        <span>Register Caucus to {ward.name}</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       <JoinWardModal 
         isOpen={isJoinModalOpen} 
