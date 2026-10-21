@@ -18,7 +18,13 @@ import {
   ShieldCheck,
   Clock,
   ArrowRight,
-  Filter
+  Filter,
+  BookOpen,
+  ExternalLink,
+  ChevronDown,
+  ChevronUp,
+  Copy,
+  Printer
 } from 'lucide-react';
 import { getWardResolutions, saveWardResolution, WardResolutionDoc, filterMockItems } from '../../lib/civicData';
 import { useAuth } from '../../contexts/AuthContext';
@@ -36,6 +42,17 @@ export default function HomepageWardResolutions() {
   // Modals
   const [isPostModalOpen, setIsPostModalOpen] = useState(false);
   const [previewDoc, setPreviewDoc] = useState<WardResolutionDoc | null>(null);
+  const [expandedDocIds, setExpandedDocIds] = useState<Set<string>>(new Set());
+
+  const toggleExpandDoc = (id: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setExpandedDocIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   // Form state
   const [formWardName, setFormWardName] = useState('Kangemi');
@@ -337,16 +354,29 @@ Generated via CSRG Citizen Assembly Digital Portal`;
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {filteredResolutions.map(item => {
             const wardSlug = item.wardName?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'kangemi';
+            const isExpanded = expandedDocIds.has(item.id);
             return (
               <motion.div
                 key={item.id}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-white rounded-2xl border border-stone-200 p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between relative group"
+                className={`rounded-2xl border-2 p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between relative group ${
+                  item.isPinned 
+                    ? 'bg-gradient-to-br from-amber-500/10 via-amber-400/5 to-white border-amber-400 ring-2 ring-amber-300/40' 
+                    : 'bg-white border-stone-200'
+                }`}
               >
+                {item.isPinned && (
+                  <div className="absolute top-0 right-0">
+                    <span className="bg-amber-500 text-stone-950 text-[10px] font-black px-2.5 py-0.5 rounded-bl-xl uppercase tracking-wider flex items-center gap-1 shadow-xs">
+                      <Pin className="w-2.5 h-2.5 fill-stone-950" /> Pinned
+                    </span>
+                  </div>
+                )}
+
                 <div>
                   {/* Top Badges */}
-                  <div className="flex items-center justify-between gap-2 mb-3">
+                  <div className="flex items-center justify-between gap-2 mb-3 pr-14">
                     <Link
                       to={`/ward/${wardSlug}`}
                       className="inline-flex items-center gap-1 bg-sky-50 hover:bg-sky-100 text-sky-800 text-[11px] font-bold px-2.5 py-0.5 rounded-md transition-colors"
@@ -356,11 +386,6 @@ Generated via CSRG Citizen Assembly Digital Portal`;
                     </Link>
 
                     <div className="flex items-center gap-1.5">
-                      {item.isPinned && (
-                        <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1">
-                          <Pin className="w-2.5 h-2.5" /> Pinned
-                        </span>
-                      )}
                       <span className="text-[11px] text-stone-400 font-medium">
                         {item.documentDate}
                       </span>
@@ -368,14 +393,41 @@ Generated via CSRG Citizen Assembly Digital Portal`;
                   </div>
 
                   {/* Title */}
-                  <h3 className="text-base font-bold text-stone-900 group-hover:text-sky-700 transition-colors line-clamp-2 mb-2 leading-snug">
+                  <h3 
+                    onClick={() => setPreviewDoc(item)}
+                    className="text-base font-bold text-stone-900 group-hover:text-amber-700 transition-colors line-clamp-2 mb-2 leading-snug cursor-pointer"
+                    title="Click to view and read full resolution"
+                  >
                     {item.title}
                   </h3>
 
-                  {/* Summary */}
-                  <p className="text-xs text-stone-600 line-clamp-3 leading-relaxed mb-4">
-                    {item.summary || 'Certified citizen assembly resolution ratified for implementation and executive oversight.'}
-                  </p>
+                  {/* Summary with inline expand */}
+                  {item.summary && (
+                    <div className="mb-4 bg-stone-50/80 rounded-xl p-3 border border-stone-200/80">
+                      <p className={`text-xs text-stone-700 leading-relaxed whitespace-pre-line ${isExpanded ? '' : 'line-clamp-3'}`}>
+                        {item.summary}
+                      </p>
+                      {item.summary.length > 120 && (
+                        <button
+                          type="button"
+                          onClick={(e) => toggleExpandDoc(item.id, e)}
+                          className="text-xs font-black text-amber-800 hover:text-amber-900 mt-2 inline-flex items-center gap-1 cursor-pointer bg-white px-2 py-0.5 rounded-md border border-amber-300 transition-colors"
+                        >
+                          {isExpanded ? (
+                            <>
+                              <span>Collapse Text</span>
+                              <ChevronUp className="w-3 h-3" />
+                            </>
+                          ) : (
+                            <>
+                              <span>Read Whole Resolution Inline</span>
+                              <ChevronDown className="w-3 h-3" />
+                            </>
+                          )}
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Footer Meta & Actions */}
@@ -392,10 +444,11 @@ Generated via CSRG Citizen Assembly Digital Portal`;
                   <div className="flex items-center gap-2 pt-1">
                     <button
                       onClick={() => setPreviewDoc(item)}
-                      className="flex-1 inline-flex items-center justify-center gap-1.5 bg-stone-100 hover:bg-stone-200 text-stone-800 px-3 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 bg-amber-100 hover:bg-amber-200 text-amber-950 px-3 py-2 rounded-xl text-xs font-black transition-colors cursor-pointer border border-amber-300 shadow-2xs"
+                      title="Read full resolution and inspect document"
                     >
-                      <Eye className="w-3.5 h-3.5 text-stone-600" />
-                      <span>Read Text</span>
+                      <BookOpen className="w-3.5 h-3.5 text-amber-800" />
+                      <span>Read Full Resolution</span>
                     </button>
                     <button
                       onClick={(e) => handleDownload(item, e)}
@@ -664,82 +717,189 @@ Generated via CSRG Citizen Assembly Digital Portal`;
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden z-10 max-h-[85vh] flex flex-col"
+              className="relative bg-white rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden z-10 max-h-[92vh] flex flex-col border border-stone-200"
             >
-              <div className="bg-gradient-to-r from-sky-950 via-sky-900 to-sky-800 text-white p-6 relative shrink-0">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <ShieldCheck className="w-5 h-5 text-emerald-400" />
-                    <span className="text-xs uppercase tracking-wider font-bold text-sky-200">
-                      Official Certified Record
-                    </span>
+              {/* Reader Header */}
+              <div className="bg-gradient-to-r from-stone-950 via-sky-950 to-stone-900 text-white p-6 sm:p-7 relative shrink-0 border-b border-amber-500/30">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-[10px] bg-sky-500/30 text-sky-200 px-3 py-1 rounded-full uppercase font-black border border-sky-400/30">
+                        {previewDoc.category}
+                      </span>
+                      {previewDoc.isPinned && (
+                        <span className="text-[10px] bg-amber-400 text-stone-950 px-2.5 py-1 rounded-full uppercase font-black flex items-center gap-1 shadow-xs">
+                          <Pin className="w-2.5 h-2.5 fill-stone-950" /> Pinned Landmark Resolution
+                        </span>
+                      )}
+                      <span className="text-xs text-amber-300 font-bold">
+                        {previewDoc.wardName || 'Ward'} Ward • {previewDoc.county || 'Kenya'}
+                      </span>
+                    </div>
+
+                    <h3 className="text-xl sm:text-2xl font-black text-white leading-snug">
+                      {previewDoc.title}
+                    </h3>
+
+                    <div className="flex flex-wrap items-center gap-3 text-xs text-stone-300">
+                      <span>Ratification Date: <strong>{previewDoc.documentDate}</strong></span>
+                      <span>•</span>
+                      <span>Certified by: <strong>{previewDoc.uploadedBy || 'Ward Secretariat'}</strong></span>
+                    </div>
                   </div>
+
                   <button
                     onClick={() => setPreviewDoc(null)}
-                    className="p-1.5 text-stone-400 hover:text-white rounded-full transition-colors"
+                    className="p-2 text-stone-400 hover:text-white hover:bg-white/10 rounded-full transition-colors cursor-pointer shrink-0"
+                    title="Close Reader"
                   >
                     <X className="w-5 h-5" />
                   </button>
                 </div>
-                <h3 className="text-xl font-bold text-white mt-2 leading-snug">
-                  {previewDoc.title}
-                </h3>
-                <div className="flex flex-wrap items-center gap-3 text-xs text-sky-200 mt-2">
-                  <span className="flex items-center gap-1">
-                    <MapPin className="w-3.5 h-3.5" /> {previewDoc.wardName || 'Ward'} Ward, {previewDoc.county || 'Kenya'}
-                  </span>
-                  <span>•</span>
-                  <span className="flex items-center gap-1">
-                    <Calendar className="w-3.5 h-3.5" /> {previewDoc.documentDate}
-                  </span>
-                  <span>•</span>
-                  <span>{previewDoc.category}</span>
+              </div>
+
+              {/* Reader Body */}
+              <div className="p-6 sm:p-8 overflow-y-auto space-y-6 flex-1 text-sm text-stone-700 bg-stone-50/40">
+                {/* 1. In-Browser Document / PDF Preview (if fileUrl present) */}
+                {previewDoc.fileUrl && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-xs font-bold text-stone-800">
+                      <span className="flex items-center gap-1.5 text-sky-900">
+                        <FileText className="w-4 h-4 text-sky-600" />
+                        <span>Attached Document Viewer ({previewDoc.fileName || 'Official Record'})</span>
+                      </span>
+                      <a
+                        href={previewDoc.fileUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sky-700 hover:text-sky-900 font-extrabold flex items-center gap-1 hover:underline"
+                      >
+                        <span>Open Full Screen in New Tab</span>
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </a>
+                    </div>
+
+                    <div className="rounded-2xl border-2 border-stone-300 overflow-hidden bg-stone-900 shadow-sm">
+                      {previewDoc.fileUrl.startsWith('data:image') || previewDoc.fileType?.includes('image') ? (
+                        <div className="p-3 bg-stone-100 text-center">
+                          <img
+                            src={previewDoc.fileUrl}
+                            alt={previewDoc.title}
+                            className="max-h-[500px] w-auto mx-auto rounded-xl object-contain shadow-xs"
+                          />
+                        </div>
+                      ) : (
+                        <iframe
+                          src={previewDoc.fileUrl}
+                          className="w-full h-[450px] bg-white border-0"
+                          title={previewDoc.title}
+                        />
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* 2. Whole Resolution Mandate & Deliberations Text */}
+                <div className="bg-white border-2 border-amber-200/80 rounded-3xl p-6 sm:p-8 shadow-sm space-y-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3 border-b border-amber-100 pb-3">
+                    <h4 className="text-xs font-black text-stone-900 uppercase tracking-wider flex items-center gap-2">
+                      <BookOpen className="w-4 h-4 text-amber-600" />
+                      <span>Whole Resolution Mandate & Deliberations Text</span>
+                    </h4>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const copyContent = `${previewDoc.title}\nDate: ${previewDoc.documentDate}\nWard: ${previewDoc.wardName} Ward, ${previewDoc.county}\nCertified By: ${previewDoc.uploadedBy || 'Ward Secretariat'}\n\n${previewDoc.summary || ''}`;
+                        navigator.clipboard.writeText(copyContent);
+                        alert('Full resolution text copied to clipboard!');
+                      }}
+                      className="inline-flex items-center gap-1.5 text-xs text-sky-700 hover:text-sky-900 font-bold bg-sky-50 hover:bg-sky-100 px-3 py-1.5 rounded-xl border border-sky-200 transition-colors cursor-pointer"
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                      <span>Copy Full Text</span>
+                    </button>
+                  </div>
+
+                  <div className="text-stone-800 text-sm sm:text-base leading-relaxed whitespace-pre-wrap font-sans">
+                    {previewDoc.summary || 'Official deliberations signed and confirmed by community representatives.'}
+                  </div>
+                </div>
+
+                {/* 3. Archival Metadata & Certification Seal */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-white border border-stone-200 rounded-2xl p-4 space-y-2">
+                    <h5 className="text-xs font-extrabold text-sky-950 uppercase tracking-wider">
+                      Archival & Certification Details
+                    </h5>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div>
+                        <span className="text-stone-400 block">File Record:</span>
+                        <span className="font-semibold text-stone-800 truncate block">{previewDoc.fileName || 'Standard Record'}</span>
+                      </div>
+                      <div>
+                        <span className="text-stone-400 block">File Size:</span>
+                        <span className="font-semibold text-stone-800">{previewDoc.fileSize || 'Standard Document'}</span>
+                      </div>
+                      <div>
+                        <span className="text-stone-400 block">Ratified Date:</span>
+                        <span className="font-semibold text-stone-800">{previewDoc.documentDate}</span>
+                      </div>
+                      <div>
+                        <span className="text-stone-400 block">Signatory / Clerk:</span>
+                        <span className="font-semibold text-stone-800 truncate block">{previewDoc.uploadedBy || 'Ward Secretariat'}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-gradient-to-r from-emerald-500/10 via-stone-50 to-amber-500/10 border border-stone-200 rounded-2xl p-4 flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0">
+                      <ShieldCheck className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h5 className="text-xs font-bold text-stone-900">Certified Wananchi Public Record</h5>
+                      <p className="text-[11px] text-stone-600 mt-0.5">
+                        Binding grassroots resolution ratified in accordance with the Constitution of Kenya.
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <div className="p-6 overflow-y-auto space-y-5 flex-1">
-                <div>
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-stone-400 mb-2">
-                    Summary of Resolutions & Deliberations
-                  </h4>
-                  <div className="bg-stone-50 p-4 rounded-2xl border border-stone-200 text-xs sm:text-sm text-stone-800 leading-relaxed whitespace-pre-line">
-                    {previewDoc.summary || 'Official deliberations ratified by the citizen assembly.'}
-                  </div>
+              {/* Reader Sticky Footer */}
+              <div className="p-4 sm:p-5 bg-white border-t border-stone-200 shrink-0 flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => window.print()}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border border-stone-300 text-stone-700 hover:bg-stone-100 font-bold text-xs cursor-pointer transition-colors"
+                  >
+                    <Printer className="w-3.5 h-3.5" />
+                    <span>Print</span>
+                  </button>
+                  <Link
+                    to={`/ward/${previewDoc.wardName?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}#ward-documents`}
+                    className="text-xs font-bold text-sky-700 hover:underline flex items-center gap-1"
+                  >
+                    <span>Open {previewDoc.wardName} Ward Wall</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
                 </div>
 
-                <div className="bg-sky-50/60 p-4 rounded-2xl border border-sky-100 flex items-center justify-between">
-                  <div>
-                    <span className="text-[11px] text-sky-900 font-bold block">
-                      Certified By: {previewDoc.uploadedBy || 'Ward Assembly Secretariat'}
-                    </span>
-                    <span className="text-[10px] text-stone-500">
-                      Archived on {new Date(previewDoc.createdAt).toLocaleDateString()}
-                    </span>
-                  </div>
+                <div className="flex items-center gap-2">
                   <button
                     onClick={() => handleDownload(previewDoc)}
-                    className="inline-flex items-center gap-1.5 bg-sky-600 hover:bg-sky-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition-colors shadow-sm"
+                    className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl text-xs font-black transition-colors shadow-xs cursor-pointer"
                   >
                     <Download className="w-3.5 h-3.5" />
                     <span>Download Record</span>
                   </button>
+                  <button
+                    onClick={() => setPreviewDoc(null)}
+                    className="px-5 py-2.5 bg-stone-200 hover:bg-stone-300 text-stone-800 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                  >
+                    Close
+                  </button>
                 </div>
-              </div>
-
-              <div className="p-4 border-t border-stone-100 bg-stone-50 flex items-center justify-between shrink-0">
-                <Link
-                  to={`/ward/${previewDoc.wardName?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}#ward-documents`}
-                  className="text-xs font-bold text-sky-700 hover:underline flex items-center gap-1"
-                >
-                  <span>Go to {previewDoc.wardName} Ward Wall</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </Link>
-                <button
-                  onClick={() => setPreviewDoc(null)}
-                  className="px-5 py-2 bg-stone-200 hover:bg-stone-300 text-stone-800 rounded-xl text-xs font-bold transition-colors"
-                >
-                  Close
-                </button>
               </div>
             </motion.div>
           </div>

@@ -14,8 +14,14 @@ import {
   Trash2, 
   FileCheck,
   ShieldAlert,
-  Tag,
-  Award
+  Award,
+  BookOpen,
+  Copy,
+  ExternalLink,
+  ChevronDown,
+  ChevronUp,
+  ShieldCheck,
+  Printer
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
@@ -41,6 +47,17 @@ export default function WardDocumentsSection({ wardId, wardName, wardCounty = 'K
   // Modals state
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [previewDoc, setPreviewDoc] = useState<AssemblyDocument | null>(null);
+  const [expandedDocIds, setExpandedDocIds] = useState<Set<string>>(new Set());
+
+  const toggleExpandDoc = (id: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setExpandedDocIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   // Upload Form state
   const [uploadTitle, setUploadTitle] = useState('');
@@ -345,92 +362,122 @@ Generated via CSRG Citizen Assembly Digital Portal`;
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {pinnedDocs.map(doc => (
-              <div
-                key={doc.id}
-                className="bg-white border-2 border-amber-300 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all relative overflow-hidden flex flex-col justify-between group"
-              >
-                <div className="absolute top-0 right-0">
-                  <span className="bg-amber-500 text-white text-[10px] font-black px-3 py-1 rounded-bl-xl uppercase tracking-wider flex items-center gap-1">
-                    <Pin className="w-2.5 h-2.5 fill-white" /> Pinned
-                  </span>
-                </div>
+            {pinnedDocs.map(doc => {
+              const isExpanded = expandedDocIds.has(doc.id);
+              return (
+                <div
+                  key={doc.id}
+                  className="bg-white border-2 border-amber-300 rounded-2xl p-5 sm:p-6 shadow-sm hover:shadow-md transition-all relative overflow-hidden flex flex-col justify-between group"
+                >
+                  <div className="absolute top-0 right-0">
+                    <span className="bg-amber-500 text-white text-[10px] font-black px-3 py-1 rounded-bl-xl uppercase tracking-wider flex items-center gap-1">
+                      <Pin className="w-2.5 h-2.5 fill-white" /> Pinned
+                    </span>
+                  </div>
 
-                <div>
-                  <div className="flex items-center gap-2 mb-2 pr-16 flex-wrap">
-                    <span className="text-[11px] font-bold text-sky-800 bg-sky-100/80 px-2.5 py-0.5 rounded-md">
-                      {doc.category}
-                    </span>
-                    <span className="text-[11px] text-stone-500 flex items-center gap-1 font-medium">
-                      <Calendar className="w-3 h-3 text-stone-400" />
-                      {formatDateDisplay(doc.documentDate)}
-                    </span>
-                    {doc.uploadedBy && (
-                      <span className="text-[11px] text-stone-500 italic">
-                        By {doc.uploadedBy}
+                  <div>
+                    <div className="flex items-center gap-2 mb-2.5 pr-16 flex-wrap">
+                      <span className="text-[11px] font-bold text-sky-800 bg-sky-100/80 px-2.5 py-0.5 rounded-md">
+                        {doc.category}
                       </span>
-                    )}
-                  </div>
+                      <span className="text-[11px] text-stone-500 flex items-center gap-1 font-medium">
+                        <Calendar className="w-3 h-3 text-stone-400" />
+                        {formatDateDisplay(doc.documentDate)}
+                      </span>
+                      {doc.uploadedBy && (
+                        <span className="text-[11px] text-stone-500 italic">
+                          By {doc.uploadedBy}
+                        </span>
+                      )}
+                    </div>
 
-                  <h4 className="text-base sm:text-lg font-bold text-sky-950 mb-2 leading-snug">
-                    {doc.title}
-                  </h4>
-
-                  {doc.summary && (
-                    <p className="text-xs sm:text-sm text-stone-700 mb-4 line-clamp-3 leading-relaxed whitespace-pre-line">
-                      {doc.summary}
-                    </p>
-                  )}
-                </div>
-
-                <div className="pt-3 border-t border-amber-200/60 flex items-center justify-between text-xs gap-2">
-                  <div className="text-[11px] text-stone-500 truncate max-w-[150px]">
-                    {doc.fileName || 'Resolution Document'} • {doc.fileSize || 'PDF'}
-                  </div>
-
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      type="button"
+                    <h4 
                       onClick={() => setPreviewDoc(doc)}
-                      className="bg-stone-50 hover:bg-stone-100 text-stone-700 px-3 py-1.5 rounded-lg border border-stone-200 font-bold flex items-center gap-1 text-xs transition-colors cursor-pointer"
+                      className="text-lg sm:text-xl font-bold text-sky-950 mb-3 leading-snug hover:text-amber-700 cursor-pointer transition-colors"
+                      title="Click to view and read full resolution"
                     >
-                      <Eye className="w-3.5 h-3.5" />
-                      <span>View</span>
-                    </button>
+                      {doc.title}
+                    </h4>
 
-                    <button
-                      type="button"
-                      onClick={(e) => handleDownload(doc, e)}
-                      className="bg-sky-600 hover:bg-sky-700 text-white px-3 py-1.5 rounded-lg font-bold flex items-center gap-1 text-xs transition-colors shadow-sm cursor-pointer"
-                    >
-                      <Download className="w-3.5 h-3.5" />
-                      <span>Download</span>
-                    </button>
-
-                    {canManage && (
-                      <div className="flex items-center gap-1 border-l border-stone-200 pl-1.5 ml-1">
-                        <button
-                          type="button"
-                          title="Unpin document"
-                          onClick={(e) => handleTogglePin(doc, e)}
-                          className="p-1.5 text-amber-600 hover:bg-amber-100 rounded-lg transition-colors cursor-pointer"
-                        >
-                          <Pin className="w-3.5 h-3.5 fill-amber-600" />
-                        </button>
-                        <button
-                          type="button"
-                          title="Delete document"
-                          onClick={(e) => handleDelete(doc.id, e)}
-                          className="p-1.5 text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                    {doc.summary && (
+                      <div className="mb-4 bg-amber-50/40 rounded-xl p-3.5 border border-amber-200/60">
+                        <p className={`text-xs sm:text-sm text-stone-800 leading-relaxed whitespace-pre-line ${isExpanded ? '' : 'line-clamp-3'}`}>
+                          {doc.summary}
+                        </p>
+                        {doc.summary.length > 140 && (
+                          <button
+                            type="button"
+                            onClick={(e) => toggleExpandDoc(doc.id, e)}
+                            className="text-xs font-black text-amber-800 hover:text-amber-900 mt-2 inline-flex items-center gap-1 cursor-pointer bg-white/80 hover:bg-white px-2.5 py-1 rounded-lg border border-amber-300 transition-colors"
+                          >
+                            {isExpanded ? (
+                              <>
+                                <span>Collapse Text</span>
+                                <ChevronUp className="w-3.5 h-3.5" />
+                              </>
+                            ) : (
+                              <>
+                                <span>Read Whole Resolution Inline</span>
+                                <ChevronDown className="w-3.5 h-3.5" />
+                              </>
+                            )}
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>
+
+                  <div className="pt-3 border-t border-amber-200/60 flex flex-wrap items-center justify-between text-xs gap-2">
+                    <div className="text-[11px] text-stone-500 truncate max-w-[150px]">
+                      {doc.fileName || 'Resolution Document'} • {doc.fileSize || 'PDF'}
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setPreviewDoc(doc)}
+                        className="bg-amber-100 hover:bg-amber-200 text-amber-950 px-3.5 py-1.5 rounded-xl border border-amber-300 font-bold flex items-center gap-1.5 text-xs transition-colors cursor-pointer shadow-2xs"
+                        title="Open full reader and inspect official document"
+                      >
+                        <BookOpen className="w-3.5 h-3.5 text-amber-800" />
+                        <span>Read Full Resolution</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={(e) => handleDownload(doc, e)}
+                        className="bg-sky-600 hover:bg-sky-700 text-white px-3 py-1.5 rounded-xl font-bold flex items-center gap-1 text-xs transition-colors shadow-2xs cursor-pointer"
+                        title="Download Document"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        <span>Download</span>
+                      </button>
+
+                      {canManage && (
+                        <div className="flex items-center gap-1 border-l border-stone-200 pl-1.5 ml-1">
+                          <button
+                            type="button"
+                            title="Unpin document"
+                            onClick={(e) => handleTogglePin(doc, e)}
+                            className="p-1.5 text-amber-600 hover:bg-amber-100 rounded-lg transition-colors cursor-pointer"
+                          >
+                            <Pin className="w-3.5 h-3.5 fill-amber-600" />
+                          </button>
+                          <button
+                            type="button"
+                            title="Delete document"
+                            onClick={(e) => handleDelete(doc.id, e)}
+                            className="p-1.5 text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
@@ -857,115 +904,194 @@ Generated via CSRG Citizen Assembly Digital Portal`;
         )}
       </AnimatePresence>
 
-      {/* 4. DOCUMENT PREVIEW MODAL */}
+      {/* 4. DOCUMENT PREVIEW & FULL RESOLUTION READER MODAL */}
       <AnimatePresence>
         {previewDoc && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setPreviewDoc(null)}
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              className="absolute inset-0 bg-black/70 backdrop-blur-sm"
             />
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden z-10 max-h-[85vh] flex flex-col"
+              className="relative bg-white rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden z-10 max-h-[92vh] flex flex-col border border-stone-200"
             >
-              <div className="bg-gradient-to-r from-sky-950 via-sky-900 to-sky-800 text-white p-6 relative shrink-0">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-[10px] bg-sky-500/30 text-sky-200 px-2.5 py-0.5 rounded-full uppercase font-bold border border-sky-400/30">
+              {/* Reader Header */}
+              <div className="bg-gradient-to-r from-stone-950 via-sky-950 to-stone-900 text-white p-6 sm:p-7 relative shrink-0 border-b border-amber-500/30">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-[10px] bg-sky-500/30 text-sky-200 px-3 py-1 rounded-full uppercase font-black border border-sky-400/30">
                         {previewDoc.category}
                       </span>
                       {previewDoc.isPinned && (
-                        <span className="text-[10px] bg-amber-500 text-white px-2 py-0.5 rounded-full uppercase font-bold flex items-center gap-1">
-                          <Pin className="w-2.5 h-2.5 fill-white" /> Pinned
+                        <span className="text-[10px] bg-amber-400 text-stone-950 px-2.5 py-1 rounded-full uppercase font-black flex items-center gap-1 shadow-xs">
+                          <Pin className="w-2.5 h-2.5 fill-stone-950" /> Pinned Landmark Resolution
                         </span>
                       )}
+                      <span className="text-xs text-amber-300 font-bold">
+                        {wardName} Ward • {previewDoc.county || wardCounty}
+                      </span>
                     </div>
-                    <h3 className="text-xl font-extrabold text-white mt-1">
+                    <h3 className="text-xl sm:text-2xl font-black text-white leading-snug">
                       {previewDoc.title}
                     </h3>
-                    <p className="text-xs text-stone-300 mt-1 flex items-center gap-2">
-                      <span>{wardName} Ward</span>
+                    <p className="text-xs text-stone-300 flex items-center gap-2 flex-wrap">
+                      <span>Ratification Date: <strong>{formatDateDisplay(previewDoc.documentDate)}</strong></span>
                       <span>•</span>
-                      <span>Assembly Date: {formatDateDisplay(previewDoc.documentDate)}</span>
+                      <span>Certified by: <strong>{previewDoc.uploadedBy || 'Ward Secretariat'}</strong></span>
                     </p>
                   </div>
                   <button
                     onClick={() => setPreviewDoc(null)}
-                    className="p-2 text-stone-400 hover:text-white rounded-full transition-colors cursor-pointer"
+                    className="p-2 text-stone-400 hover:text-white hover:bg-white/10 rounded-full transition-colors cursor-pointer shrink-0"
+                    title="Close Reader"
                   >
                     <X className="w-5 h-5" />
                   </button>
                 </div>
               </div>
 
-              <div className="p-6 sm:p-8 overflow-y-auto space-y-6 flex-1 text-sm text-stone-700">
-                <div className="bg-stone-50 border border-stone-200 rounded-2xl p-4 space-y-2">
-                  <h4 className="text-xs font-extrabold text-sky-950 uppercase tracking-wider">
-                    Official Document Metadata
-                  </h4>
-                  <div className="grid grid-cols-2 gap-3 text-xs">
-                    <div>
-                      <span className="text-stone-400 block">File Name:</span>
-                      <span className="font-semibold text-stone-800">{previewDoc.fileName}</span>
+              {/* Reader Body */}
+              <div className="p-6 sm:p-8 overflow-y-auto space-y-6 flex-1 text-sm text-stone-700 bg-stone-50/40">
+                {/* 1. In-Browser Document / PDF Preview (if fileUrl present) */}
+                {previewDoc.fileUrl && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-xs font-bold text-stone-800">
+                      <span className="flex items-center gap-1.5 text-sky-900">
+                        <FileText className="w-4 h-4 text-sky-600" />
+                        <span>Attached Document Viewer ({previewDoc.fileName || 'Official Record'})</span>
+                      </span>
+                      <a
+                        href={previewDoc.fileUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sky-700 hover:text-sky-900 font-extrabold flex items-center gap-1 hover:underline"
+                      >
+                        <span>Open Full Screen in New Tab</span>
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </a>
                     </div>
-                    <div>
-                      <span className="text-stone-400 block">File Size:</span>
-                      <span className="font-semibold text-stone-800">{previewDoc.fileSize || 'Standard PDF'}</span>
-                    </div>
-                    <div>
-                      <span className="text-stone-400 block">Date Certified:</span>
-                      <span className="font-semibold text-stone-800">{formatDateDisplay(previewDoc.documentDate)}</span>
-                    </div>
-                    <div>
-                      <span className="text-stone-400 block">Archived By:</span>
-                      <span className="font-semibold text-stone-800">{previewDoc.uploadedBy || 'Ward Secretariat'}</span>
+
+                    <div className="rounded-2xl border-2 border-stone-300 overflow-hidden bg-stone-900 shadow-sm">
+                      {previewDoc.fileUrl.startsWith('data:image') || previewDoc.fileType?.includes('image') ? (
+                        <div className="p-3 bg-stone-100 text-center">
+                          <img
+                            src={previewDoc.fileUrl}
+                            alt={previewDoc.title}
+                            className="max-h-[500px] w-auto mx-auto rounded-xl object-contain shadow-xs"
+                          />
+                        </div>
+                      ) : (
+                        <iframe
+                          src={previewDoc.fileUrl}
+                          className="w-full h-[450px] bg-white border-0"
+                          title={previewDoc.title}
+                        />
+                      )}
                     </div>
                   </div>
-                </div>
+                )}
 
-                <div>
-                  <h4 className="text-xs font-extrabold text-sky-950 uppercase tracking-wider mb-2">
-                    Resolutions & Deliberations Summary
-                  </h4>
-                  <div className="p-4 bg-sky-50/50 rounded-2xl border border-sky-100 text-stone-800 leading-relaxed whitespace-pre-wrap">
+                {/* 2. Whole Resolution Mandate & Deliberations Text */}
+                <div className="bg-white border-2 border-amber-200/80 rounded-3xl p-6 sm:p-8 shadow-sm space-y-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3 border-b border-amber-100 pb-3">
+                    <h4 className="text-xs font-black text-stone-900 uppercase tracking-wider flex items-center gap-2">
+                      <BookOpen className="w-4 h-4 text-amber-600" />
+                      <span>Whole Resolution Mandate & Deliberations Text</span>
+                    </h4>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const copyContent = `${previewDoc.title}\nDate: ${formatDateDisplay(previewDoc.documentDate)}\nWard: ${wardName} Ward\nCertified By: ${previewDoc.uploadedBy || 'Ward Secretariat'}\n\n${previewDoc.summary || ''}`;
+                        navigator.clipboard.writeText(copyContent);
+                        alert('Full resolution text copied to clipboard!');
+                      }}
+                      className="inline-flex items-center gap-1.5 text-xs text-sky-700 hover:text-sky-900 font-bold bg-sky-50 hover:bg-sky-100 px-3 py-1.5 rounded-xl border border-sky-200 transition-colors cursor-pointer"
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                      <span>Copy Full Text</span>
+                    </button>
+                  </div>
+
+                  <div className="text-stone-800 text-sm sm:text-base leading-relaxed whitespace-pre-wrap font-sans">
                     {previewDoc.summary || 'Official deliberations signed and confirmed by community representatives.'}
                   </div>
                 </div>
 
-                <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-start gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
-                  <div className="text-xs text-emerald-900">
-                    <p className="font-bold">Official Public Record</p>
-                    <p className="mt-0.5 text-emerald-700">
-                      This document forms part of the permanent citizen assembly archive under the Civil Society Reference Group (CSRG) Kenya.
-                    </p>
+                {/* 3. Archival Metadata & Certification Seal */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-stone-50 border border-stone-200 rounded-2xl p-4 space-y-2">
+                    <h5 className="text-xs font-extrabold text-sky-950 uppercase tracking-wider">
+                      Archival & Certification Details
+                    </h5>
+                    <div className="grid grid-cols-2 gap-2.5 text-xs">
+                      <div>
+                        <span className="text-stone-400 block">File Record:</span>
+                        <span className="font-semibold text-stone-800 truncate block">{previewDoc.fileName}</span>
+                      </div>
+                      <div>
+                        <span className="text-stone-400 block">File Size:</span>
+                        <span className="font-semibold text-stone-800">{previewDoc.fileSize || 'Standard Document'}</span>
+                      </div>
+                      <div>
+                        <span className="text-stone-400 block">Ratified Date:</span>
+                        <span className="font-semibold text-stone-800">{formatDateDisplay(previewDoc.documentDate)}</span>
+                      </div>
+                      <div>
+                        <span className="text-stone-400 block">Signatory / Clerk:</span>
+                        <span className="font-semibold text-stone-800">{previewDoc.uploadedBy || 'Ward Secretariat'}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex items-start gap-3">
+                    <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                    <div className="text-xs text-emerald-900 space-y-1">
+                      <p className="font-black text-emerald-950">Certified Wananchi Public Record</p>
+                      <p className="text-emerald-800 leading-relaxed">
+                        This resolution was deliberated and ratified through community consensus in {wardName} Ward under the Civil Society Reference Group (CSRG) Kenya.
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <div className="p-4 sm:p-6 border-t border-stone-100 bg-stone-50 flex items-center justify-between shrink-0">
+              {/* Reader Footer Actions */}
+              <div className="p-4 sm:p-6 border-t border-stone-200 bg-white flex flex-wrap items-center justify-between gap-3 shrink-0">
                 <button
                   type="button"
                   onClick={() => setPreviewDoc(null)}
-                  className="px-5 py-2.5 rounded-xl border border-stone-200 text-xs font-bold text-stone-600 hover:bg-stone-100 cursor-pointer"
+                  className="px-5 py-2.5 rounded-xl border border-stone-300 text-xs font-bold text-stone-700 hover:bg-stone-100 cursor-pointer transition-colors"
                 >
-                  Close
+                  Close Reader
                 </button>
-                <button
-                  type="button"
-                  onClick={() => handleDownload(previewDoc)}
-                  className="bg-sky-600 hover:bg-sky-700 text-white font-bold px-6 py-2.5 rounded-xl text-xs sm:text-sm shadow-md transition-colors flex items-center gap-2 cursor-pointer"
-                >
-                  <Download className="w-4 h-4" />
-                  <span>Download Document</span>
-                </button>
+                <div className="flex items-center gap-2">
+                  {previewDoc.fileUrl && (
+                    <a
+                      href={previewDoc.fileUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="bg-stone-100 hover:bg-stone-200 text-stone-800 font-bold px-4 py-2.5 rounded-xl text-xs sm:text-sm border border-stone-300 transition-colors flex items-center gap-1.5"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                      <span>Open File in Tab</span>
+                    </a>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => handleDownload(previewDoc)}
+                    className="bg-sky-600 hover:bg-sky-700 text-white font-black px-6 py-2.5 rounded-xl text-xs sm:text-sm shadow transition-colors flex items-center gap-2 cursor-pointer"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>Download Official Document</span>
+                  </button>
+                </div>
               </div>
             </motion.div>
           </div>

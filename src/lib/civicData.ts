@@ -425,6 +425,7 @@ export interface GroupWallResolution {
   supportCount: number;
   fileUrl?: string;
   fileName?: string;
+  isPinned?: boolean;
   createdAt: string;
 }
 
@@ -682,6 +683,48 @@ export async function supportGroupWallResolution(id: string, groupId: string): P
     // ignore
   }
   return count;
+}
+
+export async function togglePinGroupWallResolution(id: string, groupId: string): Promise<boolean> {
+  let isPinned = false;
+  try {
+    const raw = localStorage.getItem(`csrg_grp_resolutions_${groupId}`);
+    if (raw) {
+      const list: GroupWallResolution[] = JSON.parse(raw);
+      const item = list.find(it => it.id === id);
+      if (item) {
+        item.isPinned = !item.isPinned;
+        isPinned = item.isPinned;
+        localStorage.setItem(`csrg_grp_resolutions_${groupId}`, JSON.stringify(list));
+      }
+    }
+  } catch {
+    // ignore
+  }
+
+  // Also update in AssemblyDocument if mirrored
+  try {
+    const dbRaw = localStorage.getItem('csrg_mock_db_v1');
+    if (dbRaw) {
+      const db = JSON.parse(dbRaw);
+      if (Array.isArray(db.AssemblyDocument)) {
+        const doc = db.AssemblyDocument.find((d: any) => d.id === `doc-${id}` || d.id === id);
+        if (doc) {
+          doc.isPinned = isPinned;
+        }
+        localStorage.setItem('csrg_mock_db_v1', JSON.stringify(db));
+      }
+    }
+  } catch {
+    // ignore
+  }
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('csrg_resolutions_updated'));
+    window.dispatchEvent(new Event('storage'));
+  }
+
+  return isPinned;
 }
 
 export async function deleteGroupWallResolution(id: string, groupId: string): Promise<boolean> {

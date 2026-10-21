@@ -26,7 +26,15 @@ import {
   FolderPlus,
   AlertCircle,
   Radio,
-  Trash2
+  Trash2,
+  BookOpen,
+  Copy,
+  ExternalLink,
+  ChevronDown,
+  ChevronUp,
+  Printer,
+  Pin,
+  Eye
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { 
@@ -39,6 +47,7 @@ import {
   saveGroupWallResolution, 
   supportGroupWallResolution,
   deleteGroupWallResolution,
+  togglePinGroupWallResolution,
   getGroupActivities,
   saveGroupActivity,
   cheerGroupActivity,
@@ -124,6 +133,11 @@ export default function GroupWallExpanded({
   const [resRole, setResRole] = useState(user?.role === 'CLERK' ? 'Ward Clerk' : user?.role === 'ADMIN' ? 'Platform Administrator' : (groupLeaderRole || 'Group Convener'));
   const [resFile, setResFile] = useState<File | null>(null);
   const [resFileUrl, setResFileUrl] = useState<string>('');
+  const [resIsPinned, setResIsPinned] = useState(false);
+
+  // Resolution Reader State
+  const [readingResolution, setReadingResolution] = useState<GroupWallResolution | null>(null);
+  const [expandedResIds, setExpandedResIds] = useState<Set<string>>(new Set());
 
   // Activity Form State
   const [actTitle, setActTitle] = useState('');
@@ -262,6 +276,78 @@ export default function GroupWallExpanded({
     }
   };
 
+  // Toggle inline expand resolution
+  const toggleExpandRes = (id: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setExpandedResIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  // Toggle pin resolution
+  const handleTogglePinRes = async (res: GroupWallResolution, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    const updatedPinned = await togglePinGroupWallResolution(res.id, group.id);
+    setResolutions(prev => prev.map(r => r.id === res.id ? { ...r, isPinned: updatedPinned } : r));
+  };
+
+  // Download resolution document or generate signed certificate text
+  const handleDownloadResolutionDoc = (res: GroupWallResolution, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    if (res.fileUrl) {
+      const a = document.createElement('a');
+      a.href = res.fileUrl;
+      a.download = res.fileName || `${res.title.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      return;
+    }
+
+    const content = `=====================================================
+KENYA CITIZEN STEERING RESOURCE GROUP (CSRG)
+COUNTY & WARD PEOPLE'S ASSEMBLY RESOLUTION RECORD
+=====================================================
+RESOLUTION NO: ${res.resolutionNumber || 'RES-CAUCUS-2026'}
+TITLE: ${res.title}
+WARD: ${wardName} Ward, ${wardCounty}
+GROUP / MINI-CAUCUS: ${group.name}
+DATE OF RATIFICATION: ${res.adoptedDate}
+CERTIFIED BY: ${res.certifiedBy} (${res.certifiedRole})
+CITIZEN RATIFICATIONS: ${res.supportCount} Wananchi Signatories
+STATUS: BINDING WANANCHI MANDATE FOR DEC 10 NATIONAL CITIZEN ASSEMBLY
+
+-----------------------------------------------------
+OFFICIAL RESOLUTION & MANDATE STATEMENT:
+-----------------------------------------------------
+${res.summary}
+
+-----------------------------------------------------
+MANDATORY ACTION POINTS FOR THE ASSEMBLY:
+-----------------------------------------------------
+${(res.actionPoints || []).map((pt, i) => `${i + 1}. ${pt}`).join('\n') || 'None recorded.'}
+
+-----------------------------------------------------
+VERIFICATION & CERTIFICATION SEAL:
+This document is a certified grassroots public resolution ratified under Article 1 of the Constitution of Kenya (All sovereign power belongs to the people of Kenya).
+Secretariat Archive ID: ${res.id}
+Generated on: ${new Date().toLocaleString()}
+=====================================================`;
+
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${res.title.replace(/[^a-zA-Z0-9]/g, '_')}_Official_Resolution.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   // Submit Resolution
   const handleSubmitResolution = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -284,7 +370,8 @@ export default function GroupWallExpanded({
       certifiedBy: resCertifier.trim() || group.leaderName || 'Leader',
       certifiedRole: resRole.trim() || 'Group Leader',
       fileUrl: resFileUrl || undefined,
-      fileName: resFile?.name || undefined
+      fileName: resFile?.name || undefined,
+      isPinned: resIsPinned
     });
 
     setResolutions(prev => [newRes, ...prev]);
@@ -294,6 +381,7 @@ export default function GroupWallExpanded({
     setResActionPoints('');
     setResFile(null);
     setResFileUrl('');
+    setResIsPinned(false);
   };
 
   // Submit Activity
@@ -948,86 +1036,149 @@ export default function GroupWallExpanded({
               </div>
             ) : (
               <div className="space-y-4">
-                {resolutions.map(res => (
-                  <div key={res.id} className="bg-stone-50/80 p-6 rounded-2xl border-2 border-stone-200 space-y-4 relative overflow-hidden">
-                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="bg-emerald-600 text-white text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-                            Certified Resolution
-                          </span>
-                          {res.resolutionNumber && (
-                            <span className="bg-stone-200 text-stone-800 text-[10px] font-mono font-bold px-2 py-0.5 rounded-md">
-                              {res.resolutionNumber}
-                            </span>
-                          )}
-                          <span className="text-xs text-stone-500">
-                            Adopted on {res.adoptedDate}
+                {[...resolutions].sort((a, b) => {
+                  if (a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1;
+                  return new Date(b.createdAt || b.adoptedDate).getTime() - new Date(a.createdAt || a.adoptedDate).getTime();
+                }).map(res => {
+                  const isExpanded = expandedResIds.has(res.id);
+                  return (
+                    <div 
+                      key={res.id} 
+                      className={`p-6 rounded-2xl border-2 space-y-4 relative overflow-hidden transition-all shadow-xs hover:shadow-md ${
+                        res.isPinned 
+                          ? 'bg-gradient-to-br from-amber-500/10 via-amber-400/5 to-white border-amber-400 ring-2 ring-amber-300/40' 
+                          : 'bg-stone-50/80 border-stone-200 hover:border-sky-300'
+                      }`}
+                    >
+                      {res.isPinned && (
+                        <div className="absolute top-0 right-0">
+                          <span className="bg-amber-500 text-stone-950 text-[10px] font-black px-3 py-1 rounded-bl-xl uppercase tracking-wider flex items-center gap-1 shadow-xs">
+                            <Pin className="w-2.5 h-2.5 fill-stone-950" /> Pinned Priority
                           </span>
                         </div>
-                        <h5 className="text-xl font-black text-stone-900">{res.title}</h5>
+                      )}
+
+                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 pr-14">
+                        <div>
+                          <div className="flex items-center gap-2 mb-1 flex-wrap">
+                            <span className="bg-emerald-600 text-white text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                              Certified Resolution
+                            </span>
+                            {res.resolutionNumber && (
+                              <span className="bg-stone-200 text-stone-800 text-[10px] font-mono font-bold px-2 py-0.5 rounded-md">
+                                {res.resolutionNumber}
+                              </span>
+                            )}
+                            <span className="text-xs text-stone-500">
+                              Adopted on {res.adoptedDate}
+                            </span>
+                          </div>
+                          <h5 
+                            onClick={() => setReadingResolution(res)}
+                            className="text-xl font-black text-stone-900 hover:text-amber-700 cursor-pointer transition-colors leading-snug"
+                            title="Click to view and read full resolution"
+                          >
+                            {res.title}
+                          </h5>
+                        </div>
+
+                        <button
+                          onClick={() => handleSupportResolution(res.id)}
+                          className="inline-flex items-center gap-1.5 bg-amber-400 hover:bg-amber-300 text-stone-950 px-3.5 py-1.5 rounded-xl text-xs font-black shadow-sm transition-all cursor-pointer shrink-0"
+                        >
+                          <ShieldCheck className="w-4 h-4" />
+                          <span>{res.supportCount} Wananchi Ratified</span>
+                        </button>
                       </div>
 
-                      <button
-                        onClick={() => handleSupportResolution(res.id)}
-                        className="inline-flex items-center gap-1.5 bg-amber-400 hover:bg-amber-300 text-stone-950 px-3.5 py-1.5 rounded-xl text-xs font-black shadow-sm transition-all cursor-pointer shrink-0"
-                      >
-                        <ShieldCheck className="w-4 h-4" />
-                        <span>{res.supportCount} Wananchi Ratified</span>
-                      </button>
-                    </div>
-
-                    <p className="text-sm text-stone-800 leading-relaxed bg-white p-4 rounded-xl border border-stone-200">
-                      {res.summary}
-                    </p>
-
-                    {res.actionPoints && res.actionPoints.length > 0 && (
-                      <div className="space-y-1.5">
-                        <p className="text-xs font-bold text-stone-700 uppercase tracking-wider">Mandatory Action Points for Assembly:</p>
-                        <ul className="list-disc pl-5 text-xs sm:text-sm text-stone-700 space-y-1">
-                          {res.actionPoints.map((pt, i) => (
-                            <li key={i}>{pt}</li>
-                          ))}
-                        </ul>
+                      <div className="bg-white p-4 rounded-xl border border-stone-200/80 space-y-2">
+                        <p className={`text-xs sm:text-sm text-stone-800 leading-relaxed whitespace-pre-line ${isExpanded ? '' : 'line-clamp-3'}`}>
+                          {res.summary}
+                        </p>
+                        {res.summary.length > 140 && (
+                          <button
+                            type="button"
+                            onClick={(e) => toggleExpandRes(res.id, e)}
+                            className="text-xs font-black text-amber-800 hover:text-amber-900 inline-flex items-center gap-1 cursor-pointer bg-amber-50 hover:bg-amber-100 px-2.5 py-1 rounded-lg border border-amber-300 transition-colors"
+                          >
+                            {isExpanded ? (
+                              <>
+                                <span>Collapse Text</span>
+                                <ChevronUp className="w-3.5 h-3.5" />
+                              </>
+                            ) : (
+                              <>
+                                <span>Read Whole Resolution Inline</span>
+                                <ChevronDown className="w-3.5 h-3.5" />
+                              </>
+                            )}
+                          </button>
+                        )}
                       </div>
-                    )}
 
-                    <div className="pt-3 border-t border-stone-200 flex flex-wrap items-center justify-between text-xs text-stone-500 gap-2">
-                      <span>Officiated by: <strong>{res.certifiedBy}</strong> ({res.certifiedRole})</span>
-                      <div className="flex items-center gap-2">
-                        {res.fileUrl ? (
-                          <a
-                            href={res.fileUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            download={res.fileName || 'Resolution_Document.pdf'}
-                            className="bg-emerald-50 text-emerald-800 border border-emerald-300 hover:bg-emerald-100 font-bold px-2.5 py-1 rounded-lg flex items-center gap-1 transition-colors"
+                      {res.actionPoints && res.actionPoints.length > 0 && (
+                        <div className="space-y-1.5 bg-stone-100/60 p-3 rounded-xl border border-stone-200">
+                          <p className="text-xs font-bold text-stone-700 uppercase tracking-wider">Mandatory Action Points for Assembly:</p>
+                          <ul className="list-disc pl-5 text-xs sm:text-sm text-stone-700 space-y-1">
+                            {res.actionPoints.map((pt, i) => (
+                              <li key={i}>{pt}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      <div className="pt-3 border-t border-stone-200 flex flex-wrap items-center justify-between text-xs text-stone-500 gap-2">
+                        <span>Officiated by: <strong>{res.certifiedBy}</strong> ({res.certifiedRole})</span>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setReadingResolution(res)}
+                            className="bg-amber-100 hover:bg-amber-200 text-amber-950 px-3.5 py-1.5 rounded-xl border border-amber-300 font-bold flex items-center gap-1.5 text-xs transition-colors cursor-pointer shadow-2xs"
+                            title="Read full resolution document and action points"
+                          >
+                            <BookOpen className="w-3.5 h-3.5 text-amber-800" />
+                            <span>Read Full Resolution</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={(e) => handleDownloadResolutionDoc(res, e)}
+                            className="bg-emerald-50 text-emerald-800 border border-emerald-300 hover:bg-emerald-100 font-bold px-3 py-1.5 rounded-xl flex items-center gap-1 transition-colors cursor-pointer text-xs"
+                            title="Download official resolution file"
                           >
                             <Download className="w-3.5 h-3.5 text-emerald-700" />
                             <span>Download {res.fileName ? res.fileName : 'Document'}</span>
-                          </a>
-                        ) : (
-                          <button
-                            onClick={() => alert(`Official Resolution ${res.resolutionNumber || ''} is certified for submission to the National Assembly Secretariat on Dec 10.`)}
-                            className="text-sky-700 hover:text-sky-900 font-bold flex items-center gap-1 cursor-pointer"
-                          >
-                            <Download className="w-3.5 h-3.5" />
-                            <span>Download Certified Document</span>
                           </button>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteResolution(res.id)}
-                          className="text-red-600 hover:text-red-700 font-bold flex items-center gap-1 px-2.5 py-1 hover:bg-red-50 rounded-lg transition-colors cursor-pointer border border-red-200"
-                          title="Delete this resolution"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                          <span>Delete</span>
-                        </button>
+
+                          {canPostAsLeader && (
+                            <button
+                              type="button"
+                              onClick={(e) => handleTogglePinRes(res, e)}
+                              className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
+                                res.isPinned 
+                                  ? 'bg-amber-400 text-stone-950 border-amber-500' 
+                                  : 'bg-white text-stone-500 hover:bg-amber-50 border-stone-300'
+                              }`}
+                              title={res.isPinned ? 'Unpin from top' : 'Pin to top of resolutions'}
+                            >
+                              <Pin className={`w-3.5 h-3.5 ${res.isPinned ? 'fill-stone-950' : ''}`} />
+                            </button>
+                          )}
+
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteResolution(res.id)}
+                            className="text-red-600 hover:text-red-700 font-bold flex items-center gap-1 px-2.5 py-1.5 hover:bg-red-50 rounded-xl transition-colors cursor-pointer border border-red-200 text-xs"
+                            title="Delete this resolution"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            <span>Delete</span>
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -1553,6 +1704,20 @@ export default function GroupWallExpanded({
                       />
                     </div>
                   </div>
+
+                  <div className="flex items-center gap-2 pt-1 bg-amber-50/50 p-3 rounded-xl border border-amber-200">
+                    <input
+                      type="checkbox"
+                      id="grp-pin-res"
+                      checked={resIsPinned}
+                      onChange={(e) => setResIsPinned(e.target.checked)}
+                      className="w-4 h-4 text-amber-600 rounded cursor-pointer"
+                    />
+                    <label htmlFor="grp-pin-res" className="text-xs text-stone-800 font-bold cursor-pointer flex items-center gap-1.5">
+                      <Pin className="w-3.5 h-3.5 text-amber-700" />
+                      <span>Pin as Landmark Priority (features at top of Group Wall, Ward Wall & Homepage)</span>
+                    </label>
+                  </div>
                 </div>
 
                 {/* Fixed Sticky Footer with Submit Button - Always Visible */}
@@ -1883,6 +2048,212 @@ export default function GroupWallExpanded({
                   <ShieldCheck className="w-4 h-4" />
                   <span>Activate Leader Rights</span>
                 </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL 6: READ FULL RESOLUTION DOCUMENT & MANDATE */}
+      <AnimatePresence>
+        {readingResolution && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setReadingResolution(null)}
+              className="absolute inset-0 bg-black/75 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative bg-white rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden z-10 max-h-[92vh] flex flex-col border border-stone-200"
+            >
+              {/* Reader Header */}
+              <div className="bg-gradient-to-r from-stone-950 via-sky-950 to-stone-900 text-white p-6 sm:p-7 relative shrink-0 border-b border-amber-500/30">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-[10px] bg-emerald-500/30 text-emerald-200 px-3 py-1 rounded-full uppercase font-black border border-emerald-400/30 flex items-center gap-1">
+                        <ShieldCheck className="w-3 h-3 text-emerald-400" />
+                        <span>Certified Resolution</span>
+                      </span>
+                      {readingResolution.resolutionNumber && (
+                        <span className="text-[10px] bg-stone-800 text-stone-200 font-mono font-bold px-2.5 py-1 rounded-full border border-stone-700">
+                          {readingResolution.resolutionNumber}
+                        </span>
+                      )}
+                      {readingResolution.isPinned && (
+                        <span className="text-[10px] bg-amber-400 text-stone-950 px-2.5 py-1 rounded-full uppercase font-black flex items-center gap-1 shadow-xs">
+                          <Pin className="w-2.5 h-2.5 fill-stone-950" /> Pinned Landmark Priority
+                        </span>
+                      )}
+                      <span className="text-xs text-amber-300 font-bold">
+                        {group.name} • {wardName} Ward ({wardCounty})
+                      </span>
+                    </div>
+
+                    <h3 className="text-xl sm:text-2xl font-black text-white leading-snug">
+                      {readingResolution.title}
+                    </h3>
+
+                    <div className="flex flex-wrap items-center gap-3 text-xs text-stone-300">
+                      <span>Adopted on: <strong>{readingResolution.adoptedDate}</strong></span>
+                      <span>•</span>
+                      <span>Certified by: <strong>{readingResolution.certifiedBy}</strong> ({readingResolution.certifiedRole})</span>
+                      <span>•</span>
+                      <span className="text-amber-300 font-bold">{readingResolution.supportCount} Wananchi Ratifications</span>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => setReadingResolution(null)}
+                    className="p-2 text-stone-400 hover:text-white hover:bg-white/10 rounded-full transition-colors cursor-pointer shrink-0"
+                    title="Close Reader"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Reader Body */}
+              <div className="p-6 sm:p-8 overflow-y-auto space-y-6 flex-1 text-sm text-stone-700 bg-stone-50/40">
+                {/* 1. In-Browser Document / PDF Preview (if fileUrl present) */}
+                {readingResolution.fileUrl && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-xs font-bold text-stone-800">
+                      <span className="flex items-center gap-1.5 text-sky-900">
+                        <FileText className="w-4 h-4 text-sky-600" />
+                        <span>Attached Document Viewer ({readingResolution.fileName || 'Resolution Document'})</span>
+                      </span>
+                      <a
+                        href={readingResolution.fileUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sky-700 hover:text-sky-900 font-extrabold flex items-center gap-1 hover:underline"
+                      >
+                        <span>Open Full Screen in New Tab</span>
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </a>
+                    </div>
+
+                    <div className="rounded-2xl border-2 border-stone-300 overflow-hidden bg-stone-900 shadow-sm">
+                      {readingResolution.fileUrl.startsWith('data:image') ? (
+                        <div className="p-3 bg-stone-100 text-center">
+                          <img
+                            src={readingResolution.fileUrl}
+                            alt={readingResolution.title}
+                            className="max-h-[500px] w-auto mx-auto rounded-xl object-contain shadow-xs"
+                          />
+                        </div>
+                      ) : (
+                        <iframe
+                          src={readingResolution.fileUrl}
+                          className="w-full h-[450px] bg-white border-0"
+                          title={readingResolution.title}
+                        />
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* 2. Whole Resolution Mandate & Deliberations Text */}
+                <div className="bg-white border-2 border-amber-200/80 rounded-3xl p-6 sm:p-8 shadow-sm space-y-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3 border-b border-amber-100 pb-3">
+                    <h4 className="text-xs font-black text-stone-900 uppercase tracking-wider flex items-center gap-2">
+                      <BookOpen className="w-4 h-4 text-amber-600" />
+                      <span>Whole Resolution Mandate & Deliberations Text</span>
+                    </h4>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const copyContent = `${readingResolution.title}\nResolution No: ${readingResolution.resolutionNumber || 'RES-CAUCUS-2026'}\nAdopted: ${readingResolution.adoptedDate}\nWard: ${wardName} Ward\nGroup: ${group.name}\nCertified By: ${readingResolution.certifiedBy} (${readingResolution.certifiedRole})\n\nMandate Statement:\n${readingResolution.summary}\n\nAction Points:\n${(readingResolution.actionPoints || []).map((pt, i) => `${i + 1}. ${pt}`).join('\n')}`;
+                        navigator.clipboard.writeText(copyContent);
+                        alert('Full resolution text copied to clipboard!');
+                      }}
+                      className="inline-flex items-center gap-1.5 text-xs text-sky-700 hover:text-sky-900 font-bold bg-sky-50 hover:bg-sky-100 px-3 py-1.5 rounded-xl border border-sky-200 transition-colors cursor-pointer"
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                      <span>Copy Full Text</span>
+                    </button>
+                  </div>
+
+                  <div className="text-stone-800 text-sm sm:text-base leading-relaxed whitespace-pre-wrap font-sans">
+                    {readingResolution.summary}
+                  </div>
+                </div>
+
+                {/* 3. Mandatory Action Points */}
+                {readingResolution.actionPoints && readingResolution.actionPoints.length > 0 && (
+                  <div className="bg-white border border-stone-200 rounded-3xl p-6 space-y-3 shadow-xs">
+                    <h4 className="text-xs font-black text-sky-950 uppercase tracking-wider flex items-center gap-2">
+                      <Award className="w-4 h-4 text-emerald-600" />
+                      <span>Mandatory Action Points for December 10 National Assembly</span>
+                    </h4>
+                    <div className="space-y-2 pt-1">
+                      {readingResolution.actionPoints.map((pt, idx) => (
+                        <div key={idx} className="flex items-start gap-2.5 text-xs sm:text-sm text-stone-800 bg-stone-50 p-3 rounded-xl border border-stone-200/80">
+                          <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-800 font-bold flex items-center justify-center shrink-0 text-xs">
+                            {idx + 1}
+                          </span>
+                          <span className="leading-relaxed">{pt}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 4. Archival Metadata & Certification Seal */}
+                <div className="bg-gradient-to-r from-amber-500/10 via-stone-50 to-emerald-500/10 border border-stone-200 rounded-2xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0">
+                      <ShieldCheck className="w-7 h-7" />
+                    </div>
+                    <div>
+                      <h5 className="text-sm font-extrabold text-stone-900">Certified Grassroots Wananchi Mandate</h5>
+                      <p className="text-xs text-stone-600">
+                        Ratified under Article 1 of the Constitution of Kenya for submission to the National Assembly Secretariat.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right text-xs text-stone-500 shrink-0">
+                    <p className="font-bold text-stone-800">Archive ID: {readingResolution.id}</p>
+                    <p>Status: Ratified by Consensus</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Reader Sticky Footer */}
+              <div className="p-4 sm:p-5 bg-white border-t border-stone-200 shrink-0 flex flex-wrap items-center justify-between gap-3">
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border border-stone-300 text-stone-700 hover:bg-stone-100 font-bold text-xs cursor-pointer transition-colors"
+                >
+                  <Printer className="w-3.5 h-3.5" />
+                  <span>Print Resolution</span>
+                </button>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={(e) => handleDownloadResolutionDoc(readingResolution, e)}
+                    className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black px-5 py-2.5 rounded-xl text-xs transition-colors shadow-xs cursor-pointer"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Download Official Document</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setReadingResolution(null)}
+                    className="px-5 py-2.5 bg-stone-200 hover:bg-stone-300 text-stone-800 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                  >
+                    Close
+                  </button>
+                </div>
               </div>
             </motion.div>
           </div>
