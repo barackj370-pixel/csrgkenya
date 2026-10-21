@@ -35,19 +35,29 @@ export default function WardPage() {
 
   useEffect(() => {
     const groupParam = searchParams.get('group');
-    if (groupParam && ward?.groups && ward.groups.length > 0) {
-      const match = ward.groups.find((g: any) => 
-        g.id === groupParam || 
-        g.name.toLowerCase().includes(groupParam.toLowerCase())
-      );
-      if (match) {
-        setExpandedGroup(match.id);
+    if (groupParam) {
+      if (groupParam === 'grp-sikhendu-sibembe' || groupParam.toLowerCase().includes('sibembe')) {
+        setExpandedGroup('grp-sikhendu-sibembe');
         setTimeout(() => {
           const el = document.getElementById('ward-groups-section');
           if (el) {
             el.scrollIntoView({ behavior: 'smooth', block: 'start' });
           }
         }, 150);
+      } else if (ward?.groups && ward.groups.length > 0) {
+        const match = ward.groups.find((g: any) => 
+          g.id === groupParam || 
+          g.name.toLowerCase().includes(groupParam.toLowerCase())
+        );
+        if (match) {
+          setExpandedGroup(match.id);
+          setTimeout(() => {
+            const el = document.getElementById('ward-groups-section');
+            if (el) {
+              el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+          }, 150);
+        }
       }
     }
   }, [searchParams, ward]);
@@ -105,16 +115,39 @@ export default function WardPage() {
   const [newIssue, setNewIssue] = useState({ title: '', description: '' });
   const brainstormIssues = ward?.issues || [];
   
-  // Filter legitimate ward groups: exclude any accidental "Sikhendu Agroecology & Farmers Cooperative"
-  // In Sikhendu Ward, only Sibembe Food Coop is legitimate for now
-  const wardGroups = (ward?.groups || []).filter((group: any) => {
+  // Filter legitimate ward groups: in Sikhendu Ward, Sibembe Food Coop is the legitimate group
+  const isSikhendu = ward?.slug === 'sikhendu' || ward?.name?.toLowerCase() === 'sikhendu' || ward?.id === 'ward-7' || ward?.slug === 'shikendu';
+
+  let rawWardGroups = ward?.groups || [];
+  // Ensure Sibembe Food Coop is ALWAYS present under Sikhendu Ward (1 group, not 0)
+  if (isSikhendu && !rawWardGroups.some((g: any) => g.id === 'grp-sikhendu-sibembe' || g.id === 'grp-shikendu-sibembe' || (g.name && g.name.toLowerCase().includes('sibembe')))) {
+    rawWardGroups = [
+      {
+        id: 'grp-sikhendu-sibembe',
+        name: 'Sibembe Food Coop',
+        wardId: ward?.id || 'ward-7',
+        category: 'Agroecology & Food Sovereignty Cooperative',
+        description: 'Grassroots food cooperative and peasant community caucus in Sibembe, Sikhendu Ward (Trans Nzoia County). Held 2-hour citizen mini-caucus on Tuesday, October 20, 2026 (10:00 AM – 12:00 PM) consolidating wananchi issues and resolutions for the December 10 National Assembly.',
+        leaderName: 'Irene Nyongesa',
+        leaderRole: 'Group Leader & Convener',
+        leaderPhone: '',
+        meetingDay: 'Tuesday Oct 20, 2026 at 10:00 AM – 12:00 PM (2-Hour Citizen Deliberation)',
+        meetingFrequency: 'Weekly Food Coop Caucus',
+        memberCount: '1',
+        members: 'Irene Nyongesa (Group Leader)',
+        subTeams: []
+      },
+      ...rawWardGroups
+    ];
+  }
+
+  const wardGroups = rawWardGroups.filter((group: any) => {
     if (!group) return false;
     const gName = (group.name || '').toLowerCase();
     const gDesc = (group.description || '').toLowerCase();
     if (gName.includes('sikhendu agroecology') || gName.includes('farmers cooperative') || gDesc.includes('farmers cooperative')) {
       return false;
     }
-    const isSikhendu = ward?.slug === 'sikhendu' || ward?.name?.toLowerCase() === 'sikhendu';
     if (isSikhendu) {
       return group.id === 'grp-sikhendu-sibembe' || group.id === 'grp-shikendu-sibembe' || gName.includes('sibembe');
     }
@@ -217,18 +250,48 @@ export default function WardPage() {
         }
           
         if (data) {
+          const isSikhenduWard = data.slug === 'sikhendu' || data.name?.toLowerCase() === 'sikhendu' || data.id === 'ward-7' || data.slug === 'shikendu';
+
           // Fetch related data separately to avoid join errors if relations aren't perfectly set up
           const [issuesRes, discussionsRes, groupsRes] = await Promise.all([
             supabase.from('Issue').select('*').eq('wardId', data.id),
             supabase.from('Discussion').select('*').eq('wardId', data.id),
             supabase.from('Group').select('*').eq('wardId', data.id)
           ]);
+
+          let finalGroups = groupsRes.data || [];
+          if (isSikhenduWard && !finalGroups.some((g: any) => g.id === 'grp-sikhendu-sibembe' || g.id === 'grp-shikendu-sibembe' || (g.name && g.name.toLowerCase().includes('sibembe')))) {
+            const allGroupsRes = await supabase.from('Group').select('*');
+            const sibembe = (allGroupsRes.data || []).find((g: any) => g.id === 'grp-sikhendu-sibembe' || g.id === 'grp-shikendu-sibembe' || (g.name && g.name.toLowerCase().includes('sibembe')));
+            if (sibembe) {
+              finalGroups = [sibembe, ...finalGroups];
+            } else {
+              finalGroups = [
+                {
+                  id: 'grp-sikhendu-sibembe',
+                  name: 'Sibembe Food Coop',
+                  wardId: data.id || 'ward-7',
+                  category: 'Agroecology & Food Sovereignty Cooperative',
+                  description: 'Grassroots food cooperative and peasant community caucus in Sibembe, Sikhendu Ward (Trans Nzoia County). Held 2-hour citizen mini-caucus on Tuesday, October 20, 2026 (10:00 AM – 12:00 PM) consolidating wananchi issues and resolutions for the December 10 National Assembly.',
+                  leaderName: 'Irene Nyongesa',
+                  leaderRole: 'Group Leader & Convener',
+                  leaderPhone: '',
+                  meetingDay: 'Tuesday Oct 20, 2026 at 10:00 AM – 12:00 PM (2-Hour Citizen Deliberation)',
+                  meetingFrequency: 'Weekly Food Coop Caucus',
+                  memberCount: '1',
+                  members: 'Irene Nyongesa (Group Leader)',
+                  subTeams: []
+                },
+                ...finalGroups
+              ];
+            }
+          }
           
           setWard({
             ...data,
             issues: issuesRes.data || [],
             discussions: discussionsRes.data || [],
-            groups: groupsRes.data || []
+            groups: finalGroups
           });
         }
       } catch (error) {

@@ -272,10 +272,20 @@ function loadDB(): MockDB {
         });
 
         // Ensure Sikhendu Ward has Sibembe Food Coop
-        const sikhendu = parsed.Ward.find(
+        let sikhendu = parsed.Ward.find(
           (w: any) => (w.slug && (w.slug.toLowerCase() === 'sikhendu' || w.slug.toLowerCase() === 'shikendu')) || 
                       (w.name && (w.name.toLowerCase().trim() === 'sikhendu' || w.name.toLowerCase().trim() === 'shikendu'))
         );
+        if (!sikhendu) {
+          sikhendu = {
+            id: 'ward-7',
+            name: 'Sikhendu',
+            slug: 'sikhendu',
+            county: 'Trans Nzoia',
+            description: 'Trans Nzoia County - Sikhendu Ward'
+          };
+          parsed.Ward.push(sikhendu);
+        }
 
         let sibembeFound = false;
         for (const g of parsed.Group) {
@@ -284,11 +294,11 @@ function loadDB(): MockDB {
             g.id = 'grp-sikhendu-sibembe';
             g.name = 'Sibembe Food Coop';
             g.category = 'Agroecology & Food Sovereignty Cooperative';
-            if (sikhendu) g.wardId = sikhendu.id;
+            g.wardId = sikhendu.id || 'ward-7';
             g.leaderName = 'Irene Nyongesa';
-            g.leaderRole = 'Coop Leader & Convener';
+            g.leaderRole = 'Group Leader & Convener';
             g.meetingFrequency = 'Weekly Food Coop Caucus';
-            g.members = 'Irene Nyongesa (Coop Leader)';
+            g.members = 'Irene Nyongesa (Group Leader)';
             g.memberCount = '1';
           }
         }
@@ -301,12 +311,12 @@ function loadDB(): MockDB {
             category: 'Agroecology & Food Sovereignty Cooperative',
             description: 'Grassroots food cooperative and peasant community caucus in Sibembe, Sikhendu Ward (Trans Nzoia County). Held 2-hour citizen mini-caucus on Tuesday, October 20, 2026 (10:00 AM – 12:00 PM) consolidating wananchi issues and resolutions for the December 10 National Assembly.',
             leaderName: 'Irene Nyongesa',
-            leaderRole: 'Coop Leader & Convener',
+            leaderRole: 'Group Leader & Convener',
             leaderPhone: '',
             meetingDay: 'Tuesday Oct 20, 2026 at 10:00 AM – 12:00 PM (2-Hour Citizen Deliberation)',
             meetingFrequency: 'Weekly Food Coop Caucus',
             memberCount: '1',
-            members: 'Irene Nyongesa (Coop Leader)',
+            members: 'Irene Nyongesa (Group Leader)',
             subTeams: []
           });
         }
@@ -421,7 +431,14 @@ function expandRelations(tableName: string, row: any, db: MockDB) {
   if (tableName === 'Ward') {
     item.issues = db.Issue.filter((i) => i.wardId === item.id);
     item.discussions = db.Discussion.filter((d) => d.wardId === item.id);
-    item.groups = db.Group.filter((g) => g.wardId === item.id);
+    const isSikhendu = item.slug === 'sikhendu' || item.name?.toLowerCase() === 'sikhendu' || item.id === 'ward-7' || item.slug === 'shikendu';
+    item.groups = db.Group.filter((g) => {
+      if (g.wardId === item.id) return true;
+      if (isSikhendu && (g.id === 'grp-sikhendu-sibembe' || g.id === 'grp-shikendu-sibembe' || g.name?.toLowerCase().includes('sibembe'))) {
+        return true;
+      }
+      return false;
+    });
     item._count = {
       issues: item.issues.length,
       discussions: item.discussions.length,
@@ -623,7 +640,17 @@ class MockQueryBuilder implements PromiseLike<{ data: any; error: any }> {
     // Default: 'select'
     let results = table.filter((row) => {
       for (const f of this.filters) {
-        if (f.op === 'eq' && row[f.col] !== f.val) return false;
+        if (f.op === 'eq') {
+          // Special handling for Sikhendu Ward groups: Sibembe Food Coop is ALWAYS part of Sikhendu
+          if (this.tableName === 'Group' && f.col === 'wardId') {
+            const isSikhenduQuery = f.val === 'ward-7' || f.val === 'sikhendu' || f.val === 'shikendu';
+            const isSibembeRow = row.id === 'grp-sikhendu-sibembe' || row.id === 'grp-shikendu-sibembe' || (row.name && row.name.toLowerCase().includes('sibembe'));
+            if (isSikhenduQuery && isSibembeRow) {
+              continue;
+            }
+          }
+          if (row[f.col] !== f.val) return false;
+        }
         if (f.op === 'neq' && row[f.col] === f.val) return false;
       }
       return true;
