@@ -452,7 +452,8 @@ Generated via CSRG Citizen Assembly Digital Portal`;
               </div>
 
               {/* Form Content */}
-              <form onSubmit={handlePostSubmit} className="p-6 space-y-4 overflow-y-auto flex-1">
+              <form onSubmit={handlePostSubmit} className="flex flex-col flex-1 overflow-hidden min-h-0">
+                <div className="p-6 space-y-4 overflow-y-auto flex-1">
                 {formError && (
                   <div className="bg-red-50 text-red-700 p-3 rounded-xl text-xs border border-red-200">
                     {formError}
@@ -613,20 +614,24 @@ Generated via CSRG Citizen Assembly Digital Portal`;
                   </label>
                 </div>
 
-                <div className="pt-4 flex items-center justify-end gap-3 border-t border-stone-100">
+                </div>
+
+                {/* Fixed Sticky Footer with Submit Button - Always Visible */}
+                <div className="p-4 sm:p-5 bg-stone-50 border-t border-stone-200 shrink-0 flex items-center justify-between gap-3">
                   <button
                     type="button"
                     onClick={() => setIsPostModalOpen(false)}
-                    className="px-5 py-2.5 rounded-xl border border-stone-200 text-stone-600 hover:bg-stone-50 font-bold text-xs"
+                    className="px-5 py-2.5 rounded-xl border border-stone-300 text-stone-600 hover:bg-stone-100 font-bold text-xs cursor-pointer transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="bg-sky-600 hover:bg-sky-700 text-white font-bold px-6 py-2.5 rounded-xl text-xs transition-colors shadow-md disabled:opacity-50"
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold px-6 py-3 rounded-xl text-xs sm:text-sm shadow-md transition-all cursor-pointer disabled:opacity-50 flex items-center gap-2"
                   >
-                    {submitting ? 'Publishing...' : 'Publish Ward Resolution'}
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>{submitting ? 'Submitting & Publishing...' : 'Submit & Publish Resolution'}</span>
                   </button>
                 </div>
               </form>

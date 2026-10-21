@@ -1439,88 +1439,91 @@ export default function GroupWallExpanded({
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl border border-stone-200 space-y-5"
+              className="bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-stone-200 max-h-[92vh] flex flex-col overflow-hidden"
             >
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between p-6 sm:p-8 pb-4 border-b border-stone-100 shrink-0">
                 <div>
                   <h4 className="text-xl font-bold text-stone-900">Post Mini-Caucus Resolution</h4>
                   <p className="text-xs text-stone-500">For December 10 National Citizen Assembly</p>
                 </div>
-                <button onClick={() => setIsResolutionModalOpen(false)} className="text-stone-400 hover:text-stone-600">
+                <button onClick={() => setIsResolutionModalOpen(false)} className="text-stone-400 hover:text-stone-600 cursor-pointer p-1">
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              <form onSubmit={handleSubmitResolution} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-bold text-stone-700 mb-1">Resolution Title *</label>
-                  <input
-                    type="text"
-                    required
-                    value={resTitle}
-                    onChange={(e) => setResTitle(e.target.value)}
-                    placeholder="e.g., Resolution on Establishing Community Seed Bank & Zero Synthetic Inputs"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-sm focus:ring-2 focus:ring-amber-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-stone-700 mb-1">Resolution Summary & Mandate *</label>
-                  <textarea
-                    required
-                    rows={3}
-                    value={resSummary}
-                    onChange={(e) => setResSummary(e.target.value)}
-                    placeholder="Provide the official agreed resolution statement..."
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-sm focus:ring-2 focus:ring-amber-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-stone-700 mb-1">Action Points (1 per line)</label>
-                  <textarea
-                    rows={3}
-                    value={resActionPoints}
-                    onChange={(e) => setResActionPoints(e.target.value)}
-                    placeholder="1. Audit agrochemical subsidies&#10;2. Provide indigenous seeds to 200 peasant households&#10;3. Present to Dec 10 National Assembly Secretariat"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-sm focus:ring-2 focus:ring-amber-500"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
+              <form onSubmit={handleSubmitResolution} className="flex flex-col flex-1 overflow-hidden min-h-0">
+                <div className="p-6 sm:p-8 py-4 space-y-4 overflow-y-auto flex-1">
                   <div>
-                    <label className="block text-xs font-bold text-stone-700 mb-1">Certified By (Name)</label>
+                    <label className="block text-xs font-bold text-stone-700 mb-1">Resolution Title *</label>
                     <input
                       type="text"
-                      value={resCertifier}
-                      onChange={(e) => setResCertifier(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl border border-stone-200 text-xs focus:ring-2 focus:ring-amber-500"
+                      required
+                      value={resTitle}
+                      onChange={(e) => setResTitle(e.target.value)}
+                      placeholder="e.g., Resolution on Establishing Community Seed Bank & Zero Synthetic Inputs"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-sm focus:ring-2 focus:ring-amber-500"
                     />
                   </div>
+
                   <div>
-                    <label className="block text-xs font-bold text-stone-700 mb-1">Designation / Role</label>
-                    <input
-                      type="text"
-                      value={resRole}
-                      onChange={(e) => setResRole(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl border border-stone-200 text-xs focus:ring-2 focus:ring-amber-500"
+                    <label className="block text-xs font-bold text-stone-700 mb-1">Resolution Summary & Mandate *</label>
+                    <textarea
+                      required
+                      rows={3}
+                      value={resSummary}
+                      onChange={(e) => setResSummary(e.target.value)}
+                      placeholder="Provide the official agreed resolution statement..."
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-sm focus:ring-2 focus:ring-amber-500"
                     />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-stone-700 mb-1">Action Points (1 per line)</label>
+                    <textarea
+                      rows={3}
+                      value={resActionPoints}
+                      onChange={(e) => setResActionPoints(e.target.value)}
+                      placeholder="1. Audit agrochemical subsidies&#10;2. Provide indigenous seeds to 200 peasant households&#10;3. Present to Dec 10 National Assembly Secretariat"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-sm focus:ring-2 focus:ring-amber-500"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-stone-700 mb-1">Certified By (Name)</label>
+                      <input
+                        type="text"
+                        value={resCertifier}
+                        onChange={(e) => setResCertifier(e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl border border-stone-200 text-xs focus:ring-2 focus:ring-amber-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-stone-700 mb-1">Designation / Role</label>
+                      <input
+                        type="text"
+                        value={resRole}
+                        onChange={(e) => setResRole(e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl border border-stone-200 text-xs focus:ring-2 focus:ring-amber-500"
+                      />
+                    </div>
                   </div>
                 </div>
 
-                <div className="pt-2 flex justify-end gap-3">
+                {/* Fixed Sticky Footer with Submit Button - Always Visible */}
+                <div className="p-4 sm:p-5 bg-stone-50 border-t border-stone-200 shrink-0 flex items-center justify-between gap-3">
                   <button
                     type="button"
                     onClick={() => setIsResolutionModalOpen(false)}
-                    className="px-4 py-2 text-stone-600 text-xs font-bold hover:bg-stone-100 rounded-xl"
+                    className="px-4 py-2 text-stone-600 text-xs font-bold hover:bg-stone-200 rounded-xl cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="bg-amber-400 hover:bg-amber-300 text-stone-950 font-black px-5 py-2 rounded-xl text-xs shadow cursor-pointer"
+                    className="bg-amber-400 hover:bg-amber-300 text-stone-950 font-black px-6 py-2.5 rounded-xl text-xs sm:text-sm shadow flex items-center gap-2 cursor-pointer transition-colors"
                   >
-                    Adopt Resolution
+                    <span>Submit & Adopt Resolution</span>
                   </button>
                 </div>
               </form>

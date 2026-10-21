@@ -636,10 +636,10 @@ Generated via CSRG Citizen Assembly Digital Portal`;
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative bg-white rounded-3xl shadow-2xl w-full max-w-xl overflow-hidden z-10"
+              className="relative bg-white rounded-3xl shadow-2xl w-full max-w-xl overflow-hidden z-10 max-h-[92vh] flex flex-col"
             >
               {/* Modal Header */}
-              <div className="bg-gradient-to-r from-sky-950 via-sky-900 to-sky-800 text-white p-6 relative">
+              <div className="bg-gradient-to-r from-sky-950 via-sky-900 to-sky-800 text-white p-6 relative shrink-0">
                 <div className="flex items-center justify-between">
                   <div>
                     <span className="text-[10px] bg-sky-500/30 text-sky-200 px-2.5 py-0.5 rounded-full uppercase font-bold border border-sky-400/30">
@@ -662,160 +662,163 @@ Generated via CSRG Citizen Assembly Digital Portal`;
               </div>
 
               {/* Form Content */}
-              <form onSubmit={handleUploadSubmit} className="p-6 space-y-4">
-                {uploadError && (
-                  <div className="bg-red-50 text-red-700 p-3 rounded-xl text-xs border border-red-200 flex items-center gap-2">
-                    <ShieldAlert className="w-4 h-4 shrink-0" />
-                    <span>{uploadError}</span>
-                  </div>
-                )}
-
-                <div>
-                  <label className="block text-xs font-bold text-stone-700 mb-1">
-                    Document Title <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={uploadTitle}
-                    onChange={(e) => setUploadTitle(e.target.value)}
-                    placeholder="e.g. Ward Assembly Resolutions Matrix & Signed Charter - Q4 2026"
-                    className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3 text-xs sm:text-sm focus:ring-2 focus:ring-sky-600 outline-none text-stone-900 font-medium"
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-stone-700 mb-1">
-                      Document Category <span className="text-red-500">*</span>
-                    </label>
-                    <select
-                      value={uploadCategory}
-                      onChange={(e) => setUploadCategory(e.target.value)}
-                      className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3 text-xs sm:text-sm focus:ring-2 focus:ring-sky-600 outline-none text-stone-900 font-medium"
-                    >
-                      <option value="Assembly Resolutions">Assembly Resolutions</option>
-                      <option value="Official Minutes">Official Minutes</option>
-                      <option value="Community Petition">Community Petition</option>
-                      <option value="Implementation Report">Implementation Report</option>
-                      <option value="Citizen Charter">Citizen Charter</option>
-                    </select>
-                  </div>
+              <form onSubmit={handleUploadSubmit} className="flex flex-col flex-1 overflow-hidden min-h-0">
+                <div className="p-6 space-y-4 overflow-y-auto flex-1">
+                  {uploadError && (
+                    <div className="bg-red-50 text-red-700 p-3 rounded-xl text-xs border border-red-200 flex items-center gap-2">
+                      <ShieldAlert className="w-4 h-4 shrink-0" />
+                      <span>{uploadError}</span>
+                    </div>
+                  )}
 
                   <div>
                     <label className="block text-xs font-bold text-stone-700 mb-1">
-                      Assembly / Document Date <span className="text-red-500">*</span>
+                      Document Title <span className="text-red-500">*</span>
                     </label>
                     <input
-                      type="date"
+                      type="text"
                       required
-                      value={uploadDate}
-                      onChange={(e) => setUploadDate(e.target.value)}
+                      value={uploadTitle}
+                      onChange={(e) => setUploadTitle(e.target.value)}
+                      placeholder="e.g. Ward Assembly Resolutions Matrix & Signed Charter - Q4 2026"
+                      className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3 text-xs sm:text-sm focus:ring-2 focus:ring-sky-600 outline-none text-stone-900 font-medium"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-stone-700 mb-1">
+                        Document Category <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        value={uploadCategory}
+                        onChange={(e) => setUploadCategory(e.target.value)}
+                        className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3 text-xs sm:text-sm focus:ring-2 focus:ring-sky-600 outline-none text-stone-900 font-medium"
+                      >
+                        <option value="Assembly Resolutions">Assembly Resolutions</option>
+                        <option value="Official Minutes">Official Minutes</option>
+                        <option value="Community Petition">Community Petition</option>
+                        <option value="Implementation Report">Implementation Report</option>
+                        <option value="Citizen Charter">Citizen Charter</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-stone-700 mb-1">
+                        Assembly / Document Date <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="date"
+                        required
+                        value={uploadDate}
+                        onChange={(e) => setUploadDate(e.target.value)}
+                        className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3 text-xs sm:text-sm focus:ring-2 focus:ring-sky-600 outline-none text-stone-900"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-stone-700 mb-1">
+                      Summary of Resolutions & Deliberations
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={uploadSummary}
+                      onChange={(e) => setUploadSummary(e.target.value)}
+                      placeholder="Briefly outline key decisions, agreed action points, and committee assignments..."
                       className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3 text-xs sm:text-sm focus:ring-2 focus:ring-sky-600 outline-none text-stone-900"
                     />
                   </div>
-                </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-stone-700 mb-1">
-                    Summary of Resolutions & Deliberations
-                  </label>
-                  <textarea
-                    rows={3}
-                    value={uploadSummary}
-                    onChange={(e) => setUploadSummary(e.target.value)}
-                    placeholder="Briefly outline key decisions, agreed action points, and committee assignments..."
-                    className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3 text-xs sm:text-sm focus:ring-2 focus:ring-sky-600 outline-none text-stone-900"
-                  />
-                </div>
+                  <div>
+                    <label className="block text-xs font-bold text-stone-700 mb-1">
+                      Officiating Clerk / Admin Name
+                    </label>
+                    <input
+                      type="text"
+                      value={clerkOfficerName}
+                      onChange={(e) => setClerkOfficerName(e.target.value)}
+                      placeholder={user?.name ? `${user.name} (${user.role})` : 'e.g. Ward Clerk / Certifying Official'}
+                      className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3 text-xs sm:text-sm focus:ring-2 focus:ring-sky-600 outline-none text-stone-900"
+                    />
+                    <p className="text-[11px] text-stone-400 mt-1">
+                      Certified by Ward Clerk or Administrator. This resolution will immediately reflect on the Homepage Resolutions section under Ward.
+                    </p>
+                  </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-stone-700 mb-1">
-                    Officiating Clerk / Admin Name
-                  </label>
-                  <input
-                    type="text"
-                    value={clerkOfficerName}
-                    onChange={(e) => setClerkOfficerName(e.target.value)}
-                    placeholder={user?.name ? `${user.name} (${user.role})` : 'e.g. Ward Clerk / Certifying Official'}
-                    className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3 text-xs sm:text-sm focus:ring-2 focus:ring-sky-600 outline-none text-stone-900"
-                  />
-                  <p className="text-[11px] text-stone-400 mt-1">
-                    Certified by Ward Clerk or Administrator. This resolution will immediately reflect on the Homepage Resolutions section under Ward.
-                  </p>
-                </div>
-
-                {/* File Attachment */}
-                <div>
-                  <label className="block text-xs font-bold text-stone-700 mb-1">
-                    Attach File (PDF, DOCX, TXT, or Scan)
-                  </label>
-                  <div className="border-2 border-dashed border-stone-200 hover:border-sky-400 rounded-2xl p-4 text-center bg-stone-50/60 transition-colors">
-                    {selectedFile ? (
-                      <div className="flex items-center justify-between p-2 bg-white rounded-xl border border-sky-200">
-                        <div className="flex items-center gap-2 truncate">
-                          <FileCheck className="w-5 h-5 text-emerald-600 shrink-0" />
-                          <div className="text-left truncate">
-                            <p className="text-xs font-bold text-stone-900 truncate">{selectedFile.name}</p>
-                            <p className="text-[10px] text-stone-400">{selectedFile.size}</p>
+                  {/* File Attachment */}
+                  <div>
+                    <label className="block text-xs font-bold text-stone-700 mb-1">
+                      Attach File (PDF, DOCX, TXT, or Scan)
+                    </label>
+                    <div className="border-2 border-dashed border-stone-200 hover:border-sky-400 rounded-2xl p-4 text-center bg-stone-50/60 transition-colors">
+                      {selectedFile ? (
+                        <div className="flex items-center justify-between p-2.5 bg-white rounded-xl border border-sky-200 shadow-2xs">
+                          <div className="flex items-center gap-2 truncate">
+                            <FileCheck className="w-5 h-5 text-emerald-600 shrink-0" />
+                            <div className="text-left truncate">
+                              <p className="text-xs font-bold text-stone-900 truncate">{selectedFile.name}</p>
+                              <p className="text-[10px] text-stone-400">{selectedFile.size}</p>
+                            </div>
                           </div>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedFile(null)}
+                            className="text-stone-400 hover:text-red-600 text-xs font-bold p-1 cursor-pointer"
+                          >
+                            ✕ Remove
+                          </button>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => setSelectedFile(null)}
-                          className="text-stone-400 hover:text-red-600 text-xs font-bold p-1 cursor-pointer"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    ) : (
-                      <label className="cursor-pointer block py-2">
-                        <Upload className="w-6 h-6 text-stone-400 mx-auto mb-1.5" />
-                        <span className="text-xs font-bold text-sky-700 block">Click to select document from device</span>
-                        <span className="text-[10px] text-stone-400 block mt-0.5">Supports PDF, Word documents, text minutes, or scans</span>
-                        <input
-                          type="file"
-                          accept=".pdf,.doc,.docx,.txt,.rtf,.png,.jpg,.jpeg"
-                          onChange={handleFileChange}
-                          className="hidden"
-                        />
-                      </label>
-                    )}
+                      ) : (
+                        <label className="cursor-pointer block py-2">
+                          <Upload className="w-6 h-6 text-stone-400 mx-auto mb-1.5" />
+                          <span className="text-xs font-bold text-sky-700 block">Click to select document from device</span>
+                          <span className="text-[10px] text-stone-400 block mt-0.5">Supports PDF, Word documents, text minutes, or scans</span>
+                          <input
+                            type="file"
+                            accept=".pdf,.doc,.docx,.txt,.rtf,.png,.jpg,.jpeg"
+                            onChange={handleFileChange}
+                            className="hidden"
+                          />
+                        </label>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Pin toggle */}
+                  <div className="bg-amber-50 border border-amber-200/80 rounded-2xl p-3.5 flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      id="pinToggle"
+                      checked={uploadIsPinned}
+                      onChange={(e) => setUploadIsPinned(e.target.checked)}
+                      className="w-4 h-4 text-amber-600 rounded border-amber-300 focus:ring-amber-500 cursor-pointer"
+                    />
+                    <label htmlFor="pinToggle" className="text-xs font-bold text-amber-950 cursor-pointer flex-1">
+                      Pin this document to the top of {wardName} Ward archive
+                      <span className="block text-[11px] font-normal text-amber-700 mt-0.5">
+                        Pinned documents appear prominently with a gold badge for wananchi to consult quickly.
+                      </span>
+                    </label>
                   </div>
                 </div>
 
-                {/* Pin toggle */}
-                <div className="bg-amber-50 border border-amber-200/80 rounded-2xl p-3.5 flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    id="pinToggle"
-                    checked={uploadIsPinned}
-                    onChange={(e) => setUploadIsPinned(e.target.checked)}
-                    className="w-4 h-4 text-amber-600 rounded border-amber-300 focus:ring-amber-500 cursor-pointer"
-                  />
-                  <label htmlFor="pinToggle" className="text-xs font-bold text-amber-950 cursor-pointer flex-1">
-                    Pin this document to the top of {wardName} Ward archive
-                    <span className="block text-[11px] font-normal text-amber-700 mt-0.5">
-                      Pinned documents appear prominently with a gold badge for wananchi to consult quickly.
-                    </span>
-                  </label>
-                </div>
-
-                {/* Actions */}
-                <div className="pt-2 flex items-center justify-end gap-3">
+                {/* Fixed Sticky Footer with Submit Button - Always Visible */}
+                <div className="p-4 sm:p-5 bg-stone-50 border-t border-stone-200 shrink-0 flex items-center justify-between gap-3">
                   <button
                     type="button"
                     onClick={() => setIsUploadModalOpen(false)}
-                    className="px-5 py-2.5 rounded-xl border border-stone-200 text-xs font-bold text-stone-600 hover:bg-stone-50 cursor-pointer"
+                    className="px-5 py-2.5 rounded-xl border border-stone-300 text-xs font-bold text-stone-600 hover:bg-stone-100 cursor-pointer transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={uploading}
-                    className="bg-sky-600 hover:bg-sky-700 text-white font-bold px-6 py-2.5 rounded-xl text-xs sm:text-sm shadow-md transition-all cursor-pointer disabled:opacity-50"
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold px-6 py-3 rounded-xl text-xs sm:text-sm shadow-md transition-all cursor-pointer disabled:opacity-50 flex items-center gap-2"
                   >
-                    {uploading ? 'Archiving Document...' : 'Publish to Ward Archive'}
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>{uploading ? 'Archiving & Publishing...' : 'Submit & Publish Resolution'}</span>
                   </button>
                 </div>
               </form>

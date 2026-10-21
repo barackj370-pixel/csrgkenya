@@ -307,22 +307,23 @@ export default function PastAssembliesSection() {
       {/* Upload Modal */}
       <AnimatePresence>
         {isUploadModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/70 backdrop-blur-sm overflow-y-auto">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/70 backdrop-blur-sm">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-3xl max-w-xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-stone-200 p-6 sm:p-8"
+              className="bg-white rounded-3xl max-w-xl w-full max-h-[92vh] flex flex-col overflow-hidden shadow-2xl border border-stone-200"
             >
-              <div className="flex items-center justify-between mb-4 pb-3 border-b border-stone-100">
+              <div className="flex items-center justify-between p-6 pb-4 border-b border-stone-100 shrink-0">
                 <div>
                   <h3 className="text-xl font-bold text-stone-900">Upload Past Assembly Record</h3>
                   <p className="text-xs text-stone-500">Enable wananchi to follow up on previous resolutions</p>
                 </div>
-                <button onClick={() => setIsUploadModalOpen(false)} className="text-stone-400 hover:text-stone-700">✕</button>
+                <button onClick={() => setIsUploadModalOpen(false)} className="text-stone-400 hover:text-stone-700 cursor-pointer p-1">✕</button>
               </div>
 
-              <form onSubmit={handleUploadSubmit} className="space-y-4">
+              <form onSubmit={handleUploadSubmit} className="flex flex-col flex-1 overflow-hidden min-h-0">
+                <div className="p-6 space-y-4 overflow-y-auto flex-1">
                 <div>
                   <label className="block text-xs font-bold text-stone-700 mb-1">Assembly Session Title *</label>
                   <input
@@ -429,20 +430,23 @@ export default function PastAssembliesSection() {
                   />
                 </div>
 
-                <div className="flex justify-end gap-2 pt-3 border-t border-stone-100">
+                </div>
+
+                {/* Fixed Sticky Footer with Submit Button - Always Visible */}
+                <div className="p-4 sm:p-5 bg-stone-50 border-t border-stone-200 shrink-0 flex items-center justify-between gap-3">
                   <button
                     type="button"
                     onClick={() => setIsUploadModalOpen(false)}
-                    className="px-4 py-2 text-xs font-bold text-stone-600 hover:bg-stone-100 rounded-xl"
+                    className="px-4 py-2.5 text-xs font-bold text-stone-600 hover:bg-stone-200 rounded-xl cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="px-5 py-2 text-xs font-bold bg-sky-600 hover:bg-sky-700 text-white rounded-xl disabled:opacity-50"
+                    className="px-6 py-2.5 text-xs sm:text-sm font-bold bg-sky-600 hover:bg-sky-700 text-white rounded-xl shadow-md disabled:opacity-50 cursor-pointer"
                   >
-                    {submitting ? 'Uploading...' : 'Publish Session Record'}
+                    {submitting ? 'Uploading...' : 'Submit & Publish Session Record'}
                   </button>
                 </div>
               </form>
