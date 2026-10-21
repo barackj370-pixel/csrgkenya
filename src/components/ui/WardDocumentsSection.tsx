@@ -19,32 +19,17 @@ import {
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import { filterMockItems } from '../../lib/civicData';
+import { filterMockItems, getWardResolutions, saveWardResolution, WardResolutionDoc } from '../../lib/civicData';
 
-export interface AssemblyDocument {
-  id: string;
-  wardId: string;
-  wardName?: string;
-  county?: string;
-  title: string;
-  category: string;
-  documentDate: string;
-  summary?: string;
-  fileUrl?: string;
-  fileName: string;
-  fileSize?: string;
-  fileType?: string;
-  isPinned: boolean;
-  uploadedBy?: string;
-  createdAt?: string;
-}
+export type AssemblyDocument = WardResolutionDoc;
 
 interface WardDocumentsSectionProps {
   wardId: string;
   wardName: string;
+  wardCounty?: string;
 }
 
-export default function WardDocumentsSection({ wardId, wardName }: WardDocumentsSectionProps) {
+export default function WardDocumentsSection({ wardId, wardName, wardCounty = 'Kenya' }: WardDocumentsSectionProps) {
   const { user } = useAuth();
   const [documents, setDocuments] = useState<AssemblyDocument[]>([]);
   const [clerkOfficerName, setClerkOfficerName] = useState(user?.name || '');
@@ -82,35 +67,38 @@ export default function WardDocumentsSection({ wardId, wardName }: WardDocuments
 
   useEffect(() => {
     fetchDocuments();
-  }, [wardId]);
+
+    const handleSync = () => {
+      fetchDocuments();
+    };
+
+    window.addEventListener('csrg_resolutions_updated', handleSync);
+    window.addEventListener('storage', handleSync);
+
+    return () => {
+      window.removeEventListener('csrg_resolutions_updated', handleSync);
+      window.removeEventListener('storage', handleSync);
+    };
+  }, [wardId, wardName]);
 
   async function fetchDocuments() {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('AssemblyDocument')
-        .select('*')
-        .eq('wardId', wardId)
-        .order('isPinned', { ascending: false })
-        .order('documentDate', { ascending: false });
+      const resDocs = await getWardResolutions(wardId);
 
-      if (!error && data && data.length > 0) {
-        setDocuments(filterMockItems(data));
-      } else {
-        // Fallback to local storage cache if table does not exist yet in Supabase
-        try {
-          const raw = localStorage.getItem('csrg_mock_db_v1');
-          if (raw) {
-            const parsed = JSON.parse(raw);
-            const localDocs = parsed.AssemblyDocument || [];
-            const cleanDocs = filterMockItems(localDocs);
-            const wardDocs = cleanDocs.filter((d: any) => d.wardId === wardId);
-            setDocuments(wardDocs);
-          }
-        } catch {
-          // ignore
+      // In case wardId in database is slug or id, also verify matching by wardName
+      const matched = resDocs.filter(d => {
+        if (!d) return false;
+        if (d.wardId === wardId) return true;
+        if (d.wardName && wardName && d.wardName.toLowerCase().trim() === wardName.toLowerCase().trim()) return true;
+        if ((wardId === 'ward-7' || wardId === 'sikhendu' || wardName?.toLowerCase() === 'sikhendu') && 
+            (d.wardId === 'ward-7' || d.wardId === 'sikhendu' || d.wardName?.toLowerCase() === 'sikhendu' || d.title?.toLowerCase().includes('sibembe'))) {
+          return true;
         }
-      }
+        return false;
+      });
+
+      setDocuments(matched);
     } catch (err) {
       console.warn('AssemblyDocument fetch completed with fallback:', err);
     } finally {
@@ -226,9 +214,10 @@ Generated via CSRG Citizen Assembly Digital Portal`;
           ? `${clerkOfficerName.trim()} (Ward Clerk)`
           : 'Ward Clerk';
 
-      const newDocItem: Omit<AssemblyDocument, 'id'> = {
+      const savedDoc = await saveWardResolution({
         wardId,
         wardName,
+        county: wardCounty,
         title: uploadTitle.trim(),
         category: uploadCategory,
         documentDate: uploadDate,
@@ -238,44 +227,10 @@ Generated via CSRG Citizen Assembly Digital Portal`;
         fileType: selectedFile?.type || 'application/pdf',
         fileUrl: selectedFile?.dataUrl || undefined,
         isPinned: uploadIsPinned,
-        uploadedBy: authorText,
-        createdAt: new Date().toISOString()
-      };
+        uploadedBy: authorText
+      });
 
-      const { data, error } = await supabase
-        .from('AssemblyDocument')
-        .insert([newDocItem])
-        .select()
-        .single();
-
-      if (error) {
-        console.warn('AssemblyDocument insert returned error, saving to local cache:', error);
-        const fallbackDoc: AssemblyDocument = {
-          ...newDocItem,
-          id: `doc-local-${Date.now()}`
-        };
-        setDocuments(prev => [fallbackDoc, ...prev]);
-        try {
-          const raw = localStorage.getItem('csrg_mock_db_v1');
-          const parsed = raw ? JSON.parse(raw) : {};
-          parsed.AssemblyDocument = [fallbackDoc, ...(parsed.AssemblyDocument || [])];
-          localStorage.setItem('csrg_mock_db_v1', JSON.stringify(parsed));
-          window.dispatchEvent(new Event('storage'));
-        } catch {
-          // ignore
-        }
-      } else if (data) {
-        setDocuments(prev => [data, ...prev]);
-        try {
-          const raw = localStorage.getItem('csrg_mock_db_v1');
-          const parsed = raw ? JSON.parse(raw) : {};
-          parsed.AssemblyDocument = [data, ...(parsed.AssemblyDocument || [])];
-          localStorage.setItem('csrg_mock_db_v1', JSON.stringify(parsed));
-          window.dispatchEvent(new Event('storage'));
-        } catch {
-          // ignore
-        }
-      }
+      setDocuments(prev => [savedDoc, ...prev.filter(d => d.id !== savedDoc.id)]);
 
       // Reset form
       setUploadTitle('');

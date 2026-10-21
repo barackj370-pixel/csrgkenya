@@ -25,7 +25,8 @@ import {
   Tag,
   FolderPlus,
   AlertCircle,
-  Radio
+  Radio,
+  Trash2
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { 
@@ -33,12 +34,15 @@ import {
   saveGroupWallIssue, 
   voteGroupWallIssue, 
   updateGroupWallIssueStatus,
+  deleteGroupWallIssue,
   getGroupWallResolutions, 
   saveGroupWallResolution, 
   supportGroupWallResolution,
+  deleteGroupWallResolution,
   getGroupActivities,
   saveGroupActivity,
   cheerGroupActivity,
+  deleteGroupActivity,
   updateGroupRoster,
   GroupWallIssue,
   GroupWallResolution,
@@ -118,6 +122,8 @@ export default function GroupWallExpanded({
   const [resActionPoints, setResActionPoints] = useState('');
   const [resCertifier, setResCertifier] = useState(user?.name || groupLeaderName || 'Group Leader');
   const [resRole, setResRole] = useState(user?.role === 'CLERK' ? 'Ward Clerk' : user?.role === 'ADMIN' ? 'Platform Administrator' : (groupLeaderRole || 'Group Convener'));
+  const [resFile, setResFile] = useState<File | null>(null);
+  const [resFileUrl, setResFileUrl] = useState<string>('');
 
   // Activity Form State
   const [actTitle, setActTitle] = useState('');
@@ -151,80 +157,9 @@ export default function GroupWallExpanded({
       getGroupActivities(group.wardId, group.id)
     ]);
 
-    // If empty, generate inspiring initial items for this group
-    let finalIssues = fetchedIssues;
-    if (finalIssues.length === 0) {
-      finalIssues = [
-        {
-          id: `gissue-${group.id}-1`,
-          groupId: group.id,
-          wardId: group.wardId,
-          groupName: group.name,
-          wardName,
-          title: `Mini-Caucus Priority: Protecting Community Natural Resources & Local Livelihoods`,
-          description: `Wananchi in ${group.name} resolved to demand structured accountability on ward allocations, access to public water points, and direct peasant inputs before the National Citizen Assembly on December 10, 2026.`,
-          proposedSolution: `Mandate community ground verification committees and establish localized seed banks and water distribution hubs.`,
-          votes: 14,
-          submittedBy: group.leaderName || 'Caucus Convener',
-          status: 'DELIBERATING',
-          createdAt: new Date().toISOString()
-        }
-      ];
-    }
-
-    let finalRes = fetchedRes;
-    if (finalRes.length === 0) {
-      finalRes = [
-        {
-          id: `gres-${group.id}-1`,
-          groupId: group.id,
-          wardId: group.wardId,
-          groupName: group.name,
-          wardName,
-          title: `Resolution 01/2026: Mandate for the December 10 National Citizen Assembly`,
-          summary: `Adopted by unanimous consensus during the ${wardName} mini-caucus. We resolve that peasant farming autonomy, transparent bursary disbursement, and youth civic oversight must be ratified at the national assembly.`,
-          actionPoints: [
-            'Immediate audit of public water borehole maintenance funds',
-            'Subsidize indigenous organic bio-inputs instead of toxic external chemicals',
-            'Elect 3 grassroots delegates from this group to present this resolution on Dec 10'
-          ],
-          adoptedDate: '2026-11-20',
-          certifiedBy: group.leaderName || 'Group Convener',
-          certifiedRole: group.leaderRole || 'Group Leader',
-          resolutionNumber: `RES-${wardName.toUpperCase().slice(0, 3)}-01`,
-          supportCount: 28,
-          createdAt: new Date().toISOString()
-        }
-      ];
-    }
-
-    let finalActs = fetchedActs;
-    if (finalActs.length === 0) {
-      finalActs = [
-        {
-          id: `act-${group.id}-1`,
-          groupId: group.id,
-          wardId: group.wardId,
-          wardName,
-          groupName: group.name,
-          title: `Pre-Assembly Grassroots Mobilization & Deliberation Sitting`,
-          category: 'Citizen Caucus Meeting',
-          activityDate: new Date().toISOString().split('T')[0],
-          venue: `${wardName} Community Resource Grounds`,
-          description: `Convened all members of ${group.name} to consolidate community issues and resolutions ahead of the upcoming National Citizen Assembly on December 10, 2026.`,
-          keyOutcomes: `Drafted 3 petition points, audited feeder roads repair, and enrolled 6 new smallholder farmers.`,
-          participantCount: Number(group.memberCount) || 24,
-          imageUrl: 'https://images.unsplash.com/photo-1541872703-74c5e44368f9?auto=format&fit=crop&w=1200&q=80',
-          cheersCount: 19,
-          postedBy: group.leaderName ? `${group.leaderName} (Leader)` : 'Group Representative',
-          createdAt: new Date().toISOString()
-        }
-      ];
-    }
-
-    setIssues(finalIssues);
-    setResolutions(finalRes);
-    setActivities(finalActs);
+    setIssues(fetchedIssues);
+    setResolutions(fetchedRes);
+    setActivities(fetchedActs);
     setLoading(false);
   }
 
@@ -291,6 +226,42 @@ export default function GroupWallExpanded({
     }
   };
 
+  const handleResolutionFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setResFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setResFileUrl(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Delete Resolution Handler
+  const handleDeleteResolution = async (id: string) => {
+    if (window.confirm('Are you sure you want to delete this resolution? It will be removed from this group wall, the ward page, and homepage resolutions.')) {
+      await deleteGroupWallResolution(id, group.id);
+      setResolutions(prev => prev.filter(r => r.id !== id));
+    }
+  };
+
+  // Delete Issue Handler
+  const handleDeleteIssue = async (id: string) => {
+    if (window.confirm('Are you sure you want to delete this issue?')) {
+      await deleteGroupWallIssue(id, group.id);
+      setIssues(prev => prev.filter(it => it.id !== id));
+    }
+  };
+
+  // Delete Activity Handler
+  const handleDeleteActivity = async (id: string) => {
+    if (window.confirm('Are you sure you want to delete this activity?')) {
+      await deleteGroupActivity(id, group.id);
+      setActivities(prev => prev.filter(a => a.id !== id));
+    }
+  };
+
   // Submit Resolution
   const handleSubmitResolution = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -311,7 +282,9 @@ export default function GroupWallExpanded({
       actionPoints: actions.length > 0 ? actions : undefined,
       adoptedDate: new Date().toISOString().split('T')[0],
       certifiedBy: resCertifier.trim() || group.leaderName || 'Leader',
-      certifiedRole: resRole.trim() || 'Group Leader'
+      certifiedRole: resRole.trim() || 'Group Leader',
+      fileUrl: resFileUrl || undefined,
+      fileName: resFile?.name || undefined
     });
 
     setResolutions(prev => [newRes, ...prev]);
@@ -319,6 +292,8 @@ export default function GroupWallExpanded({
     setResTitle('');
     setResSummary('');
     setResActionPoints('');
+    setResFile(null);
+    setResFileUrl('');
   };
 
   // Submit Activity
@@ -920,11 +895,22 @@ export default function GroupWallExpanded({
                         </button>
                       </div>
 
-                      {issue.certifiedBy && (
-                        <span className="text-[11px] text-stone-500 italic">
-                          Certified by: {issue.certifiedBy}
-                        </span>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {issue.certifiedBy && (
+                          <span className="text-[11px] text-stone-500 italic">
+                            Certified by: {issue.certifiedBy}
+                          </span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteIssue(issue.id)}
+                          className="text-red-600 hover:text-red-700 font-bold flex items-center gap-1 px-2.5 py-1 hover:bg-red-50 rounded-lg transition-colors cursor-pointer border border-red-200 text-xs"
+                          title="Delete this issue"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>Delete</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -1006,15 +992,39 @@ export default function GroupWallExpanded({
                       </div>
                     )}
 
-                    <div className="pt-3 border-t border-stone-200 flex flex-wrap items-center justify-between text-xs text-stone-500">
+                    <div className="pt-3 border-t border-stone-200 flex flex-wrap items-center justify-between text-xs text-stone-500 gap-2">
                       <span>Officiated by: <strong>{res.certifiedBy}</strong> ({res.certifiedRole})</span>
-                      <button
-                        onClick={() => alert(`Official Resolution ${res.resolutionNumber || ''} is certified for submission to the National Assembly Secretariat on Dec 10.`)}
-                        className="text-sky-700 hover:text-sky-900 font-bold flex items-center gap-1"
-                      >
-                        <Download className="w-3.5 h-3.5" />
-                        <span>Download Certified Document</span>
-                      </button>
+                      <div className="flex items-center gap-2">
+                        {res.fileUrl ? (
+                          <a
+                            href={res.fileUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            download={res.fileName || 'Resolution_Document.pdf'}
+                            className="bg-emerald-50 text-emerald-800 border border-emerald-300 hover:bg-emerald-100 font-bold px-2.5 py-1 rounded-lg flex items-center gap-1 transition-colors"
+                          >
+                            <Download className="w-3.5 h-3.5 text-emerald-700" />
+                            <span>Download {res.fileName ? res.fileName : 'Document'}</span>
+                          </a>
+                        ) : (
+                          <button
+                            onClick={() => alert(`Official Resolution ${res.resolutionNumber || ''} is certified for submission to the National Assembly Secretariat on Dec 10.`)}
+                            className="text-sky-700 hover:text-sky-900 font-bold flex items-center gap-1 cursor-pointer"
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                            <span>Download Certified Document</span>
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteResolution(res.id)}
+                          className="text-red-600 hover:text-red-700 font-bold flex items-center gap-1 px-2.5 py-1 hover:bg-red-50 rounded-lg transition-colors cursor-pointer border border-red-200"
+                          title="Delete this resolution"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>Delete</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -1121,13 +1131,24 @@ export default function GroupWallExpanded({
                           <span className="text-stone-400">
                             By {act.postedBy} • {act.participantCount} Wananchi
                           </span>
-                          <button
-                            onClick={() => handleCheerActivity(act.id)}
-                            className="flex items-center gap-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer"
-                          >
-                            <span>❤️</span>
-                            <span>{act.cheersCount} Cheers</span>
-                          </button>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => handleCheerActivity(act.id)}
+                              className="flex items-center gap-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer"
+                            >
+                              <span>❤️</span>
+                              <span>{act.cheersCount} Cheers</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteActivity(act.id)}
+                              className="text-red-600 hover:text-red-700 font-bold flex items-center gap-1 px-2.5 py-1 hover:bg-red-50 rounded-xl transition-colors cursor-pointer border border-red-200 text-xs"
+                              title="Delete this activity"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              <span>Delete</span>
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -1486,6 +1507,30 @@ export default function GroupWallExpanded({
                       placeholder="1. Audit agrochemical subsidies&#10;2. Provide indigenous seeds to 200 peasant households&#10;3. Present to Dec 10 National Assembly Secretariat"
                       className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-sm focus:ring-2 focus:ring-amber-500"
                     />
+                  </div>
+
+                  {/* Document / PDF Upload Field */}
+                  <div className="bg-amber-50/60 p-3.5 rounded-2xl border border-amber-200/80 space-y-1.5">
+                    <label className="block text-xs font-bold text-stone-700 flex items-center justify-between">
+                      <span className="flex items-center gap-1.5">
+                        <Upload className="w-3.5 h-3.5 text-amber-700" />
+                        <span>Attach Resolution File / Signed Minutes (Optional)</span>
+                      </span>
+                      {resFile && (
+                        <span className="text-emerald-700 font-bold text-[11px] truncate max-w-[180px]">
+                          ✓ {resFile.name}
+                        </span>
+                      )}
+                    </label>
+                    <input
+                      type="file"
+                      accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.txt"
+                      onChange={handleResolutionFileChange}
+                      className="w-full text-xs text-stone-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-amber-300 file:text-stone-900 hover:file:bg-amber-400 cursor-pointer"
+                    />
+                    <p className="text-[10px] text-stone-500">
+                      Upload signed minutes or stamped resolutions to make them downloadable by wananchi on this wall and ward page.
+                    </p>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">

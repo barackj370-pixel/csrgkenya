@@ -105,6 +105,22 @@ export default function WardPage() {
   const [newIssue, setNewIssue] = useState({ title: '', description: '' });
   const brainstormIssues = ward?.issues || [];
   
+  // Filter legitimate ward groups: exclude any accidental "Sikhendu Agroecology & Farmers Cooperative"
+  // In Sikhendu Ward, only Sibembe Food Coop is legitimate for now
+  const wardGroups = (ward?.groups || []).filter((group: any) => {
+    if (!group) return false;
+    const gName = (group.name || '').toLowerCase();
+    const gDesc = (group.description || '').toLowerCase();
+    if (gName.includes('sikhendu agroecology') || gName.includes('farmers cooperative') || gDesc.includes('farmers cooperative')) {
+      return false;
+    }
+    const isSikhendu = ward?.slug === 'sikhendu' || ward?.name?.toLowerCase() === 'sikhendu';
+    if (isSikhendu) {
+      return group.id === 'grp-sikhendu-sibembe' || group.id === 'grp-shikendu-sibembe' || gName.includes('sibembe');
+    }
+    return true;
+  });
+
   // Get top 2 issues
   const topIssues = [...brainstormIssues].sort((a: any, b: any) => b.votes - a.votes).slice(0, 2);
   
@@ -374,7 +390,7 @@ export default function WardPage() {
           <div className="flex items-center gap-6 mt-8">
             <div className="flex items-center gap-2 bg-white/10 px-4 py-2 rounded-full">
               <Users className="w-5 h-5 text-sky-400" />
-              <span className="font-semibold">{ward.groups?.length || 0} Groups</span>
+              <span className="font-semibold">{wardGroups.length} Groups</span>
             </div>
             <div className="flex items-center gap-2 bg-white/10 px-4 py-2 rounded-full">
               <Calendar className="w-5 h-5 text-green-400" />
@@ -384,85 +400,26 @@ export default function WardPage() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-          
-          {/* Left Column: Brainstorming */}
-          <div className="lg:col-span-2 space-y-8">
-            <div>
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-12 h-12 bg-yellow-100 text-yellow-600 rounded-2xl flex items-center justify-center">
-                  <Lightbulb className="w-6 h-6" />
-                </div>
-                <div>
-                  <h2 className="text-3xl font-bold text-sky-800">Brainstorming & Discussion</h2>
-                  <p className="text-stone-500">Propose up to 3 key issues. Vote to select the top 2 for the upcoming assembly.</p>
-                </div>
-              </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-12">
+        {/* ========================================================================= */}
+        {/* 1. DEDICATED OFFICIAL DOCUMENTS, MINUTES & RESOLUTIONS (FIRST) */}
+        {/* ========================================================================= */}
+        <section id="ward-documents" className="scroll-mt-24">
+          <WardDocumentsSection 
+            wardId={ward.id} 
+            wardName={ward.name} 
+            wardCounty={ward.county} 
+          />
+        </section>
 
-              {/* Add New Issue Form */}
-              <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-sm mb-8">
-                <h3 className="text-lg font-bold text-sky-800 mb-4">Propose a Key Issue</h3>
-                <form onSubmit={handleAddIssue} className="space-y-4">
-                  <div>
-                    <input 
-                      type="text" 
-                      required
-                      placeholder="Issue Title (e.g., Water Scarcity)"
-                      value={newIssue.title}
-                      onChange={e => setNewIssue({...newIssue, title: e.target.value})}
-                      className="w-full bg-stone-50 border border-stone-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-sky-600 focus:border-transparent outline-none"
-                    />
-                  </div>
-                  <div>
-                    <textarea 
-                      required
-                      placeholder="Describe the issue and why it needs to be discussed..."
-                      value={newIssue.description}
-                      onChange={e => setNewIssue({...newIssue, description: e.target.value})}
-                      rows={3}
-                      className="w-full bg-stone-50 border border-stone-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-sky-600 focus:border-transparent outline-none resize-none"
-                    ></textarea>
-                  </div>
-                  <button 
-                    type="submit"
-                    className="bg-sky-600 text-white px-6 py-2.5 rounded-xl font-medium hover:bg-sky-700 transition-colors"
-                  >
-                    Submit Issue
-                  </button>
-                </form>
-              </div>
-
-              {/* Issues List */}
-              <div className="space-y-4">
-                {brainstormIssues.map((issue, index) => (
-                  <div key={issue.id} className="bg-white p-6 rounded-2xl border border-stone-200 shadow-sm flex gap-6 items-start relative overflow-hidden group">
-                    {index < 2 && (
-                      <div className="absolute top-0 right-0 bg-sky-500 text-white text-xs font-bold px-3 py-1 rounded-bl-xl">
-                        Top Issue
-                      </div>
-                    )}
-                    <div className="flex flex-col items-center gap-2">
-                      <button 
-                        onClick={() => handleVote(issue.id)}
-                        className="w-12 h-12 rounded-full bg-stone-50 border border-stone-200 flex items-center justify-center text-stone-500 hover:bg-stone-100 hover:text-sky-800 transition-colors"
-                      >
-                        <ThumbsUp className="w-5 h-5" />
-                      </button>
-                      <span className="font-bold text-sky-800 text-lg">{issue.votes}</span>
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="text-xl font-bold text-sky-800 mb-2">{issue.title}</h4>
-                      <p className="text-stone-600 leading-relaxed">{issue.description}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Registered Groups & Mini-Caucuses Section */}
-            <div className="mt-12 scroll-mt-24" id="ward-groups-section">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        {/* ========================================================================= */}
+        {/* 2. KEY WARD ISSUES, TOP AGENDAS & REGISTERED COMMUNITY GROUPS */}
+        {/* ========================================================================= */}
+        <section className="pt-8 border-t border-stone-200">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+            {/* Left 2 Cols: Registered Groups & Mini-Caucuses */}
+            <div className="lg:col-span-2 space-y-6" id="ward-groups-section">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 bg-sky-100 text-sky-800 rounded-2xl flex items-center justify-center shrink-0">
                     <Users className="w-6 h-6" />
@@ -509,8 +466,8 @@ export default function WardPage() {
               {/* Groups Grid */}
               <div className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {ward.groups && ward.groups.length > 0 ? (
-                    ward.groups.map((group: any) => {
+                  {wardGroups && wardGroups.length > 0 ? (
+                    wardGroups.map((group: any) => {
                       const isExpanded = expandedGroup === group.id;
                       return (
                         <div 
@@ -593,7 +550,7 @@ export default function WardPage() {
                 {expandedGroup && (
                   <div className="pt-2">
                     {(() => {
-                      const activeGrp = ward.groups?.find((g: any) => g.id === expandedGroup);
+                      const activeGrp = wardGroups.find((g: any) => g.id === expandedGroup);
                       if (!activeGrp) return null;
                       return (
                         <GroupWallExpanded
@@ -614,53 +571,140 @@ export default function WardPage() {
                 )}
               </div>
             </div>
-          </div>
 
-          {/* Right Column: Top 2 Voted Agendas */}
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold text-sky-800 mb-6 flex items-center gap-2">
-              <CheckCircle className="w-6 h-6 text-sky-600" />
-              Top 2 Voted Agendas
-            </h2>
+            {/* Right Col: Top 2 Voted Agendas */}
             <div className="space-y-4">
-              {topIssues.length > 0 ? (
-                topIssues.map((issue: any, index: number) => (
-                  <div key={issue.id} className="bg-white p-6 rounded-2xl border border-stone-200 shadow-sm relative overflow-hidden">
-                    <div className="absolute top-0 right-0 bg-sky-600 text-white text-xs font-bold px-3 py-1 rounded-bl-xl">
-                      #{index + 1}
+              <h2 className="text-2xl font-bold text-sky-800 flex items-center gap-2">
+                <CheckCircle className="w-6 h-6 text-sky-600" />
+                Top Voted Agendas & Priorities
+              </h2>
+              <div className="space-y-4">
+                {topIssues.length > 0 ? (
+                  topIssues.map((issue: any, index: number) => (
+                    <div key={issue.id} className="bg-white p-6 rounded-2xl border border-stone-200 shadow-sm relative overflow-hidden">
+                      <div className="absolute top-0 right-0 bg-sky-600 text-white text-xs font-bold px-3 py-1 rounded-bl-xl">
+                        #{index + 1}
+                      </div>
+                      <h4 className="text-lg font-bold text-sky-800 mb-2 pr-8">{issue.title}</h4>
+                      <p className="text-sm text-stone-600 mb-4 line-clamp-3">{issue.description}</p>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-bold text-stone-500">{issue.votes} Votes</span>
+                        {user?.role === 'CLERK' && (
+                          <button className="text-sm bg-sky-100 text-sky-700 px-3 py-1.5 rounded-lg font-medium hover:bg-green-200 transition-colors flex items-center gap-1">
+                            <Plus className="w-4 h-4" /> Add to Assembly
+                          </button>
+                        )}
+                      </div>
                     </div>
-                    <h4 className="text-lg font-bold text-sky-800 mb-2 pr-8">{issue.title}</h4>
-                    <p className="text-sm text-stone-600 mb-4 line-clamp-3">{issue.description}</p>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-bold text-stone-500">{issue.votes} Votes</span>
-                      {user?.role === 'CLERK' && (
-                        <button className="text-sm bg-sky-100 text-sky-700 px-3 py-1.5 rounded-lg font-medium hover:bg-green-200 transition-colors flex items-center gap-1">
-                          <Plus className="w-4 h-4" /> Add to Assembly
-                        </button>
-                      )}
+                  ))
+                ) : (
+                  <div className="bg-white p-8 rounded-2xl border border-stone-200 text-center text-stone-500">
+                    No agendas proposed yet.
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Ward Mini-Caucuses & Groups Activities Wall */}
+        <section id="ward-group-activities" className="pt-8 border-t border-stone-200 scroll-mt-20">
+          <WardGroupActivitiesSection 
+            wardId={ward.id} 
+            wardName={ward.name} 
+            groups={wardGroups}
+          />
+        </section>
+
+        {/* ========================================================================= */}
+        {/* 3. BRAINSTORMING & CITIZEN DISCUSSION (BELOW SO USERS DON'T SCROLL A LOT) */}
+        {/* ========================================================================= */}
+        <section id="ward-brainstorming" className="pt-8 border-t border-stone-200 scroll-mt-20">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+            {/* Left Column: Brainstorming & Discussion */}
+            <div className="lg:col-span-2 space-y-6">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-yellow-100 text-yellow-600 rounded-2xl flex items-center justify-center shrink-0">
+                  <Lightbulb className="w-6 h-6" />
+                </div>
+                <div>
+                  <h2 className="text-2xl sm:text-3xl font-bold text-sky-800">Brainstorming & Citizen Discussion</h2>
+                  <p className="text-stone-500 text-xs sm:text-sm">Propose up to 3 key issues. Vote to select the top 2 for the upcoming assembly.</p>
+                </div>
+              </div>
+
+              {/* Add New Issue Form */}
+              <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-sm">
+                <h3 className="text-lg font-bold text-sky-800 mb-4">Propose a Key Issue</h3>
+                <form onSubmit={handleAddIssue} className="space-y-4">
+                  <div>
+                    <input 
+                      type="text" 
+                      required
+                      placeholder="Issue Title (e.g., Water Scarcity)"
+                      value={newIssue.title}
+                      onChange={e => setNewIssue({...newIssue, title: e.target.value})}
+                      className="w-full bg-stone-50 border border-stone-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-sky-600 focus:border-transparent outline-none"
+                    />
+                  </div>
+                  <div>
+                    <textarea 
+                      required
+                      placeholder="Describe the issue and why it needs to be discussed..."
+                      value={newIssue.description}
+                      onChange={e => setNewIssue({...newIssue, description: e.target.value})}
+                      rows={3}
+                      className="w-full bg-stone-50 border border-stone-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-sky-600 focus:border-transparent outline-none resize-none"
+                    ></textarea>
+                  </div>
+                  <button 
+                    type="submit"
+                    className="bg-sky-600 text-white px-6 py-2.5 rounded-xl font-medium hover:bg-sky-700 transition-colors"
+                  >
+                    Submit Issue
+                  </button>
+                </form>
+              </div>
+
+              {/* Issues List */}
+              <div className="space-y-4">
+                {brainstormIssues.map((issue, index) => (
+                  <div key={issue.id} className="bg-white p-6 rounded-2xl border border-stone-200 shadow-sm flex gap-6 items-start relative overflow-hidden group">
+                    {index < 2 && (
+                      <div className="absolute top-0 right-0 bg-sky-500 text-white text-xs font-bold px-3 py-1 rounded-bl-xl">
+                        Top Issue
+                      </div>
+                    )}
+                    <div className="flex flex-col items-center gap-2">
+                      <button 
+                        onClick={() => handleVote(issue.id)}
+                        className="w-12 h-12 rounded-full bg-stone-50 border border-stone-200 flex items-center justify-center text-stone-500 hover:bg-stone-100 hover:text-sky-800 transition-colors"
+                      >
+                        <ThumbsUp className="w-5 h-5" />
+                      </button>
+                      <span className="font-bold text-sky-800 text-lg">{issue.votes}</span>
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="text-xl font-bold text-sky-800 mb-2">{issue.title}</h4>
+                      <p className="text-stone-600 leading-relaxed">{issue.description}</p>
                     </div>
                   </div>
-                ))
-              ) : (
-                <div className="bg-white p-8 rounded-2xl border border-stone-200 text-center text-stone-500">
-                  No agendas proposed yet.
-                </div>
-              )}
+                ))}
+              </div>
             </div>
-            
-            {/* Past Assemblies & Resolutions */}
-            {/* Past Assemblies & Resolutions Teaser */}
-            <div className="pt-8">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold text-sky-800 flex items-center gap-2">
+
+            {/* Right Column: Past Assemblies */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-xl font-bold text-sky-800 flex items-center gap-2">
                   <FileText className="w-5 h-5 text-stone-600" />
                   Past Assemblies
-                </h2>
+                </h3>
                 <a 
                   href="#ward-documents"
                   className="text-xs font-bold text-sky-600 hover:text-sky-700 underline"
                 >
-                  View Archive ↓
+                  View Archive ↑
                 </a>
               </div>
               <div className="space-y-4">
@@ -679,21 +723,6 @@ export default function WardPage() {
               </div>
             </div>
           </div>
-
-        </div>
-
-        {/* Ward Mini-Caucuses & Groups Activities Wall */}
-        <section id="ward-group-activities" className="pt-10 border-t border-stone-200 scroll-mt-20">
-          <WardGroupActivitiesSection 
-            wardId={ward.id} 
-            wardName={ward.name} 
-            groups={ward.groups || []}
-          />
-        </section>
-
-        {/* Dedicated Official Documents, Minutes & Resolutions Repository */}
-        <section id="ward-documents" className="pt-10 border-t border-stone-200 scroll-mt-20">
-          <WardDocumentsSection wardId={ward.id} wardName={ward.name} />
         </section>
       </div>
 

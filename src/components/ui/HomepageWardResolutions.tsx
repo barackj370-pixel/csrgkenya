@@ -66,12 +66,16 @@ export default function HomepageWardResolutions() {
   useEffect(() => {
     loadData();
 
-    // Listen to storage events so resolutions uploaded from Ward page immediately sync here
+    // Listen to storage and custom events so resolutions uploaded from Ward page immediately sync here
     const handleStorageChange = () => {
       loadData();
     };
     window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    window.addEventListener('csrg_resolutions_updated', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('csrg_resolutions_updated', handleStorageChange);
+    };
   }, []);
 
   async function loadData() {
@@ -207,9 +211,14 @@ Generated via CSRG Citizen Assembly Digital Portal`;
       (item.wardName && item.wardName.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (item.county && item.county.toLowerCase().includes(searchQuery.toLowerCase()));
 
+    const selectedWardObj = availableWards.find(w => w.id === selectedWardFilter);
     const matchesWard = 
       selectedWardFilter === 'All' || 
       item.wardId === selectedWardFilter || 
+      (selectedWardObj && (
+        (item.wardName && item.wardName.toLowerCase().trim() === selectedWardObj.name.toLowerCase().trim()) ||
+        (item.wardId && item.wardId.toLowerCase().trim() === selectedWardObj.slug?.toLowerCase().trim())
+      )) ||
       (item.wardName && item.wardName.toLowerCase() === selectedWardFilter.toLowerCase());
 
     const matchesCategory = selectedCategory === 'All' || item.category === selectedCategory;

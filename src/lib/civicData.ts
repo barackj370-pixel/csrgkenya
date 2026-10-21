@@ -11,12 +11,33 @@ const MOCK_IDS = new Set([
   'res-track-1', 'res-track-2', 'res-track-3',
   'cand-1', 'cand-2', 'cand-3',
   'nat-1', 'nat-2', 'nat-3',
-  'arch-1', 'arch-2', 'arch-3'
+  'arch-1', 'arch-2', 'arch-3',
+  'gres-sibembe-1', 'gres-sibembe-2',
+  'gissue-sibembe-1', 'gissue-sibembe-2', 'gissue-sibembe-3'
 ]);
 
-export function filterMockItems<T extends { id: string }>(items: T[]): T[] {
+export function filterMockItems<T extends { id: string; title?: string }>(items: T[]): T[] {
   if (!Array.isArray(items)) return [];
-  return items.filter(item => !MOCK_IDS.has(item.id));
+  return items.filter(item => {
+    if (MOCK_IDS.has(item.id)) return false;
+    if (typeof item.id === 'string' && (item.id.startsWith('gres-') && item.id.endsWith('-1'))) return false;
+    if (typeof item.id === 'string' && (item.id.startsWith('gissue-') && item.id.endsWith('-1'))) return false;
+    if (typeof item.id === 'string' && (item.id.startsWith('act-') && item.id.endsWith('-1'))) return false;
+    if (item.title && typeof item.title === 'string') {
+      const lower = item.title.toLowerCase();
+      if (
+        lower.includes('mandate for the december 10 national citizen assembly') ||
+        lower.includes('resolution 01/sik/2026') ||
+        lower.includes('resolution 01/2026') ||
+        lower.includes('resolution 01/shi/2026') ||
+        lower.includes('mini-caucus priority: protecting community natural resources') ||
+        lower.includes('pre-assembly grassroots mobilization & deliberation sitting')
+      ) {
+        return false;
+      }
+    }
+    return true;
+  });
 }
 
 export function generateCleanId(prefix: string): string {
@@ -402,6 +423,8 @@ export interface GroupWallResolution {
   certifiedRole: string;
   resolutionNumber?: string;
   supportCount: number;
+  fileUrl?: string;
+  fileName?: string;
   createdAt: string;
 }
 
@@ -422,65 +445,6 @@ export async function getGroupWallIssues(groupId: string): Promise<GroupWallIssu
     }
   } catch {
     // ignore
-  }
-
-  // Initial passed motions & deliberated issues for Sibembe Citizen Assembly (Oct 20, 10am-12pm)
-  if (groupId === 'grp-sikhendu-sibembe' || groupId.includes('sibembe')) {
-    const initialSibembeIssues: GroupWallIssue[] = [
-      {
-        id: `gissue-sibembe-1`,
-        groupId,
-        wardId: 'ward-7',
-        groupName: 'Sibembe Food Coop',
-        wardName: 'Sikhendu',
-        title: 'Passed Motion: Immediate Community Audit of Feeder Roads Grading & Culverts',
-        description: 'Deliberated in the 2-hour mini-caucus on Tuesday Oct 20 (10:00 AM – 12:00 PM). Wananchi resolved to conduct on-site murram inspections and stop substandard contractor payouts.',
-        proposedSolution: 'Form a 5-member citizen verification team from Sibembe to inspect culvert depth before county works sign-off.',
-        votes: 42,
-        submittedBy: 'Irene Nyongesa (Coop Leader)',
-        status: 'PASSED_MOTION',
-        certifiedBy: 'Irene Nyongesa (Coop Leader)',
-        passedAt: '2026-10-20T11:30:00Z',
-        createdAt: '2026-10-20T10:15:00Z'
-      },
-      {
-        id: `gissue-sibembe-2`,
-        groupId,
-        wardId: 'ward-7',
-        groupName: 'Sibembe Food Coop',
-        wardName: 'Sikhendu',
-        title: 'Passed Motion: Solar Pump Installation & Fair Water Rationing at Sibembe Center',
-        description: 'Passed unanimously by 38 attending wananchi. The diesel generator borehole is too expensive for smallholders; solar conversion is mandated.',
-        proposedSolution: 'Petition the Trans Nzoia County Water Directorate to allocate Ward Climate Resilience funds for a 5kW solar submersible pump.',
-        votes: 38,
-        submittedBy: 'Francis Wafula (Borehole Committee)',
-        status: 'PASSED_MOTION',
-        certifiedBy: 'Irene Nyongesa (Coop Leader)',
-        passedAt: '2026-10-20T11:45:00Z',
-        createdAt: '2026-10-20T10:30:00Z'
-      },
-      {
-        id: `gissue-sibembe-3`,
-        groupId,
-        wardId: 'ward-7',
-        groupName: 'Sibembe Food Coop',
-        wardName: 'Sikhendu',
-        title: 'Adopted Resolution: Smallholder Indigenous Bio-Inputs & Local Seed Bank Hub',
-        description: 'Adopted by full consensus for presentation at the December 10, 2026 National Citizen Assembly summit.',
-        proposedSolution: 'Establish a community-managed indigenous seed repository at Sibembe grounds to protect traditional maize, bean, and vegetable varieties.',
-        votes: 55,
-        submittedBy: 'Irene Nyongesa (Coop Leader)',
-        status: 'ADOPTED_RESOLUTION',
-        certifiedBy: 'Irene Nyongesa (Coop Leader)',
-        passedAt: '2026-10-20T11:55:00Z',
-        createdAt: '2026-10-20T10:45:00Z'
-      }
-    ];
-
-    try {
-      localStorage.setItem(`csrg_grp_issues_${groupId}`, JSON.stringify(initialSibembeIssues));
-    } catch {}
-    return initialSibembeIssues;
   }
 
   return [];
@@ -614,57 +578,6 @@ export async function getGroupWallResolutions(groupId: string): Promise<GroupWal
     // ignore
   }
 
-  // Initial adopted resolutions for Sibembe Citizen Assembly (October 20 session)
-  if (groupId === 'grp-sikhendu-sibembe' || groupId.includes('sibembe')) {
-    const initialSibembeResolutions: GroupWallResolution[] = [
-      {
-        id: `gres-sibembe-1`,
-        groupId,
-        wardId: 'ward-7',
-        groupName: 'Sibembe Food Coop',
-        wardName: 'Sikhendu',
-        title: 'Resolution 01/SIK/2026: Mandate for the December 10 National Citizen Assembly',
-        summary: 'Adopted unanimously by consensus at the 2-hour Sibembe Food Coop Citizen Assembly (10:00 AM – 12:00 PM, Oct 20, 2026). We resolve that smallholder agroecological bio-inputs and public feeder road audits be codified into county law.',
-        actionPoints: [
-          'Immediate audit of public water borehole maintenance funds in Sibembe and Sikhendu Ward',
-          'Establish a community seed multiplication bank for drought-tolerant indigenous crops',
-          'Deploy 3 grassroots delegates led by Irene Nyongesa to present this resolution on Dec 10, 2026'
-        ],
-        adoptedDate: '2026-10-20',
-        certifiedBy: 'Irene Nyongesa',
-        certifiedRole: 'Coop Leader & Convener',
-        resolutionNumber: 'RES-SIK-01/2026',
-        supportCount: 48,
-        createdAt: '2026-10-20T11:55:00Z'
-      },
-      {
-        id: `gres-sibembe-2`,
-        groupId,
-        wardId: 'ward-7',
-        groupName: 'Sibembe Food Coop',
-        wardName: 'Sikhendu',
-        title: 'Resolution 02/SIK/2026: Grassroots Bunge Oversight on Ward Bursary Allocations',
-        summary: 'Adopted by consensus on Oct 20, 2026. Resolves that all Ward Education Bursary committees must publish transparent recipient lists at community bunge kiosks.',
-        actionPoints: [
-          'Mandate quarterly village bunge validation of vulnerable student lists before disbursement',
-          'Allocate 15% minimum quota for children of smallholder peasant farming households',
-          'Elect citizen ombudsman to monitor dispensary medicine availability in Sikhendu Ward'
-        ],
-        adoptedDate: '2026-10-20',
-        certifiedBy: 'Irene Nyongesa',
-        certifiedRole: 'Coop Leader & Convener',
-        resolutionNumber: 'RES-SIK-02/2026',
-        supportCount: 39,
-        createdAt: '2026-10-20T12:00:00Z'
-      }
-    ];
-
-    try {
-      localStorage.setItem(`csrg_grp_resolutions_${groupId}`, JSON.stringify(initialSibembeResolutions));
-    } catch {}
-    return initialSibembeResolutions;
-  }
-
   return [];
 }
 
@@ -691,7 +604,7 @@ export async function saveGroupWallResolution(res: Omit<GroupWallResolution, 'id
     // ignore
   }
 
-  // Mirror across site into csrg_mock_db_v1.Resolution so it shows on WardPage resolutions, Homepage resolutions, and National Assembly
+  // Mirror across site into csrg_mock_db_v1.Resolution and AssemblyDocument so it shows on WardPage resolutions, Homepage resolutions, and National Assembly
   try {
     const dbRaw = localStorage.getItem('csrg_mock_db_v1');
     if (dbRaw) {
@@ -711,6 +624,33 @@ export async function saveGroupWallResolution(res: Omit<GroupWallResolution, 'id
         votesAgainst: 0,
         createdAt: newRes.createdAt
       });
+
+      if (!Array.isArray(db.AssemblyDocument)) db.AssemblyDocument = [];
+      const alreadyHasDoc = db.AssemblyDocument.some((d: any) => d.id === `doc-${newRes.id}` || d.title === newRes.title);
+      if (!alreadyHasDoc) {
+        const docItem = {
+          id: `doc-${newRes.id}`,
+          wardId: newRes.wardId,
+          wardName: newRes.wardName || 'Ward',
+          county: 'Trans Nzoia',
+          title: newRes.title,
+          category: 'Assembly Resolutions',
+          documentDate: newRes.createdAt ? newRes.createdAt.split('T')[0] : new Date().toISOString().split('T')[0],
+          summary: `${newRes.summary || ''}\n\nAction Points:\n${(newRes.actionPoints || []).map(p => `• ${p}`).join('\n')}`,
+          fileName: `${newRes.title.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`,
+          fileSize: '1.4 MB',
+          fileType: 'PDF Document (Adopted Resolution)',
+          fileUrl: newRes.fileUrl,
+          isPinned: true,
+          uploadedBy: `${newRes.certifiedBy} (${newRes.certifiedRole || 'Convener'})`,
+          createdAt: newRes.createdAt
+        };
+        db.AssemblyDocument.unshift(docItem);
+        try {
+          supabase.from('AssemblyDocument').insert([docItem]);
+        } catch {}
+      }
+
       localStorage.setItem('csrg_mock_db_v1', JSON.stringify(db));
     }
   } catch (e) {
@@ -719,6 +659,7 @@ export async function saveGroupWallResolution(res: Omit<GroupWallResolution, 'id
 
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('csrg_resolutions_updated', { detail: newRes }));
+    window.dispatchEvent(new Event('storage'));
   }
 
   return newRes;
@@ -741,6 +682,114 @@ export async function supportGroupWallResolution(id: string, groupId: string): P
     // ignore
   }
   return count;
+}
+
+export async function deleteGroupWallResolution(id: string, groupId: string): Promise<boolean> {
+  try {
+    await supabase.from('GroupResolution').delete().eq('id', id);
+  } catch {
+    // ignore
+  }
+
+  try {
+    const raw = localStorage.getItem(`csrg_grp_resolutions_${groupId}`);
+    if (raw) {
+      const list: GroupWallResolution[] = JSON.parse(raw);
+      const filtered = list.filter(r => r.id !== id);
+      localStorage.setItem(`csrg_grp_resolutions_${groupId}`, JSON.stringify(filtered));
+    }
+  } catch {
+    // ignore
+  }
+
+  // Also remove from csrg_mock_db_v1 (Resolution and AssemblyDocument) so mirrored copies disappear across the site
+  try {
+    const dbRaw = localStorage.getItem('csrg_mock_db_v1');
+    if (dbRaw) {
+      const db = JSON.parse(dbRaw);
+      if (Array.isArray(db.Resolution)) {
+        db.Resolution = db.Resolution.filter((r: any) => r.id !== id && r.id !== `res-${id}`);
+      }
+      if (Array.isArray(db.AssemblyDocument)) {
+        db.AssemblyDocument = db.AssemblyDocument.filter((d: any) => d.id !== id && d.id !== `doc-${id}`);
+      }
+      localStorage.setItem('csrg_mock_db_v1', JSON.stringify(db));
+    }
+  } catch {
+    // ignore
+  }
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('csrg_resolutions_updated', { detail: { id, deleted: true } }));
+    window.dispatchEvent(new Event('storage'));
+  }
+
+  return true;
+}
+
+export async function deleteGroupWallIssue(id: string, groupId: string): Promise<boolean> {
+  try {
+    await supabase.from('GroupIssue').delete().eq('id', id);
+  } catch {
+    // ignore
+  }
+
+  try {
+    const raw = localStorage.getItem(`csrg_grp_issues_${groupId}`);
+    if (raw) {
+      const list: GroupWallIssue[] = JSON.parse(raw);
+      const filtered = list.filter(i => i.id !== id);
+      localStorage.setItem(`csrg_grp_issues_${groupId}`, JSON.stringify(filtered));
+    }
+  } catch {
+    // ignore
+  }
+
+  // Also remove any mirrored resolution if this issue was elevated
+  try {
+    const dbRaw = localStorage.getItem('csrg_mock_db_v1');
+    if (dbRaw) {
+      const db = JSON.parse(dbRaw);
+      if (Array.isArray(db.Resolution)) {
+        db.Resolution = db.Resolution.filter((r: any) => r.id !== `res-${id}`);
+      }
+      localStorage.setItem('csrg_mock_db_v1', JSON.stringify(db));
+    }
+  } catch {
+    // ignore
+  }
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('csrg_issues_updated', { detail: { id, deleted: true } }));
+    window.dispatchEvent(new Event('storage'));
+  }
+
+  return true;
+}
+
+export async function deleteGroupActivity(id: string, groupId?: string): Promise<boolean> {
+  try {
+    await supabase.from('GroupActivity').delete().eq('id', id);
+  } catch {
+    // ignore
+  }
+
+  try {
+    const raw = localStorage.getItem('csrg_group_activities_v1');
+    if (raw) {
+      const list: GroupActivity[] = JSON.parse(raw);
+      const filtered = list.filter(a => a.id !== id);
+      localStorage.setItem('csrg_group_activities_v1', JSON.stringify(filtered));
+    }
+  } catch {
+    // ignore
+  }
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('storage'));
+  }
+
+  return true;
 }
 
 export async function updateGroupRoster(groupId: string, members: string, memberCount: string, subTeams?: any[]): Promise<any> {
@@ -1257,48 +1306,111 @@ export interface WardResolutionDoc {
 }
 
 export async function getWardResolutions(wardId?: string): Promise<WardResolutionDoc[]> {
+  let allDocs: WardResolutionDoc[] = [];
+
   try {
-    let query = supabase
+    const { data, error } = await supabase
       .from('AssemblyDocument')
       .select('*')
       .order('isPinned', { ascending: false })
       .order('documentDate', { ascending: false });
       
-    if (wardId) {
-      query = query.eq('wardId', wardId);
-    }
-    const { data, error } = await query;
     if (!error && data && data.length > 0) {
-      return filterMockItems(data);
+      allDocs = filterMockItems<WardResolutionDoc>(data);
     }
   } catch (err) {
     console.warn('Failed to fetch AssemblyDocument from Supabase:', err);
   }
 
-  // Fallback to localStorage
+  // Fallback / merge with localStorage
   try {
     const raw = localStorage.getItem('csrg_mock_db_v1');
     if (raw) {
       const parsed = JSON.parse(raw);
-      const list = parsed.AssemblyDocument || [];
-      const cleanList = filterMockItems<WardResolutionDoc>(list);
-      if (wardId) {
-        return cleanList.filter((d) => d.wardId === wardId);
+      const localDocs = filterMockItems<WardResolutionDoc>(parsed.AssemblyDocument || []);
+      
+      // Combine and deduplicate by id/title
+      const existingIds = new Set(allDocs.map(d => d.id));
+      for (const doc of localDocs) {
+        if (!existingIds.has(doc.id)) {
+          allDocs.push(doc);
+          existingIds.add(doc.id);
+        }
       }
-      return cleanList;
+
+      // Also incorporate any ratified Resolution items that are not yet in AssemblyDocument
+      if (Array.isArray(parsed.Resolution)) {
+        for (const res of parsed.Resolution) {
+          const docEquivalentId = `doc-${res.id}`;
+          const alreadyIncluded = allDocs.some(d => d.id === res.id || d.id === docEquivalentId || d.title === res.title);
+          if (!alreadyIncluded) {
+            allDocs.push({
+              id: docEquivalentId,
+              wardId: res.wardId || 'ward-7',
+              wardName: res.wardName || 'Sikhendu',
+              county: 'Trans Nzoia',
+              title: res.title,
+              category: 'Assembly Resolutions',
+              documentDate: res.createdAt ? res.createdAt.split('T')[0] : '2026-10-20',
+              summary: res.description || 'Adopted unanimous resolution by consensus.',
+              fileName: `${res.title.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`,
+              fileSize: '1.4 MB',
+              fileType: 'PDF Document (Certified)',
+              isPinned: true,
+              uploadedBy: res.certifiedBy ? `${res.certifiedBy} (${res.certifiedRole || 'Convener'})` : 'Ward Secretariat',
+              createdAt: res.createdAt || new Date().toISOString()
+            });
+          }
+        }
+      }
     }
   } catch {
     // ignore
   }
 
-  return [];
+  // Normalize author / uploadedBy fields
+  for (const d of allDocs) {
+    if (!d.uploadedBy && (d as any).officerName) {
+      d.uploadedBy = (d as any).officerName;
+    }
+  }
+
+  // Filter by ward if requested
+  if (wardId) {
+    const cleanFilter = wardId.trim().toLowerCase();
+    allDocs = allDocs.filter(doc => {
+      const dWardId = (doc.wardId || '').toLowerCase();
+      const dWardName = (doc.wardName || '').toLowerCase();
+      const dTitle = (doc.title || '').toLowerCase();
+
+      if (dWardId === cleanFilter) return true;
+      if (dWardName === cleanFilter) return true;
+
+      // Sikhendu alias matching
+      if (cleanFilter === 'ward-7' || cleanFilter === 'sikhendu' || cleanFilter === 'shikendu') {
+        return dWardId === 'ward-7' || dWardId === 'sikhendu' || dWardName.includes('sikhendu') || dTitle.includes('sibembe');
+      }
+
+      return false;
+    });
+  }
+
+  // Sort pinned first, then by documentDate descending
+  return allDocs.sort((a, b) => {
+    if (a.isPinned !== b.isPinned) {
+      return a.isPinned ? -1 : 1;
+    }
+    const dateA = a.documentDate || a.createdAt || '';
+    const dateB = b.documentDate || b.createdAt || '';
+    return dateB.localeCompare(dateA);
+  });
 }
 
 export async function saveWardResolution(doc: Omit<WardResolutionDoc, 'id' | 'createdAt'>): Promise<WardResolutionDoc> {
   let resolvedWardName = doc.wardName;
   let resolvedCounty = doc.county;
 
-  if (!resolvedWardName && doc.wardId) {
+  if ((!resolvedWardName || resolvedWardName === 'Ward') && doc.wardId) {
     try {
       const raw = localStorage.getItem('csrg_mock_db_v1');
       if (raw) {
@@ -1331,9 +1443,27 @@ export async function saveWardResolution(doc: Omit<WardResolutionDoc, 'id' | 'cr
   try {
     const raw = localStorage.getItem('csrg_mock_db_v1');
     const parsed = raw ? JSON.parse(raw) : {};
-    parsed.AssemblyDocument = [newDoc, ...(parsed.AssemblyDocument || [])];
+    if (!Array.isArray(parsed.AssemblyDocument)) parsed.AssemblyDocument = [];
+    parsed.AssemblyDocument = [newDoc, ...parsed.AssemblyDocument.filter((d: any) => d.id !== newDoc.id)];
+
+    // Also mirror to Resolution table so National Assembly and Discussion feeds can see it
+    if (!Array.isArray(parsed.Resolution)) parsed.Resolution = [];
+    parsed.Resolution.unshift({
+      id: `res-${newDoc.id}`,
+      title: newDoc.title,
+      description: newDoc.summary || 'Adopted official ward assembly resolution.',
+      wardId: newDoc.wardId,
+      wardName: newDoc.wardName,
+      status: 'PASSED',
+      certifiedBy: newDoc.uploadedBy || 'Ward Clerk',
+      votesFor: 38,
+      votesAgainst: 0,
+      createdAt: newDoc.createdAt
+    });
+
     localStorage.setItem('csrg_mock_db_v1', JSON.stringify(parsed));
     if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('csrg_resolutions_updated', { detail: newDoc }));
       window.dispatchEvent(new Event('storage'));
     }
   } catch {

@@ -244,14 +244,29 @@ function loadDB(): MockDB {
         // Clean out fake groups and template placeholders
         parsed.Group = parsed.Group.filter((g: any) => {
           if (!g) return false;
+          const gName = (g.name || '').toLowerCase();
+          const gDesc = (g.description || '').toLowerCase();
+          
+          // Remove any group named or referencing "Sikhendu Agroecology" or "Farmers Cooperative"
+          if (gName.includes('sikhendu agroecology') || gName.includes('farmers cooperative') || gDesc.includes('farmers cooperative')) {
+            return false;
+          }
+
+          // In Sikhendu Ward, Sibembe Food Coop is the ONLY legitimate group for now
+          const isSikhenduWard = g.wardId === 'ward-7' || g.wardName?.toLowerCase() === 'sikhendu' || g.id?.includes('sikhendu');
+          if (isSikhenduWard) {
+            const isSibembe = g.id === 'grp-sikhendu-sibembe' || g.id === 'grp-shikendu-sibembe' || gName.includes('sibembe');
+            if (!isSibembe) return false;
+          }
+
           // Keep Sibembe Food Coop in Sikhendu
-          if (g.id === 'grp-sikhendu-sibembe' || g.id === 'grp-shikendu-sibembe' || (g.name && g.name.toLowerCase().includes('sibembe'))) {
+          if (g.id === 'grp-sikhendu-sibembe' || g.id === 'grp-shikendu-sibembe' || gName.includes('sibembe')) {
             return true;
           }
           // Remove fake groups that do not exist
           if (fakeGroupIds.has(g.id)) return false;
           if (/^grp-ward-\d+-\d+$/i.test(g.id)) return false;
-          if (g.name && /community action group/i.test(g.name)) return false;
+          if (/community action group/i.test(gName)) return false;
           // Keep any group legitimately registered by a clerk or admin
           return true;
         });
@@ -296,39 +311,37 @@ function loadDB(): MockDB {
           });
         }
 
-        // Ensure Sibembe Official Resolutions & Assembly Documents exist across site
+        // Clean up and purge mock resolutions from parsed.Resolution
         if (!Array.isArray(parsed.Resolution)) parsed.Resolution = [];
-        const hasSibembeRes = parsed.Resolution.some((r: any) => 
-          r.id === 'gres-sibembe-1' || (r.title && r.title.includes('Resolution 01/SIK/2026')) || (r.title && r.title.includes('Resolution 01/SHI/2026'))
-        );
-        if (!hasSibembeRes) {
-          parsed.Resolution.unshift({
-            id: 'gres-sibembe-1',
-            title: 'Resolution 01/SIK/2026: Mandate for the December 10 National Citizen Assembly',
-            description: 'Adopted unanimously by consensus at the 2-hour Sibembe Food Coop Citizen Assembly (10:00 AM – 12:00 PM, Oct 20, 2026). We resolve that smallholder agroecological bio-inputs and public feeder road audits be codified into county law.',
-            wardId: sikhendu ? sikhendu.id : 'ward-7',
-            wardName: 'Sikhendu',
-            groupName: 'Sibembe Food Coop',
-            status: 'PASSED',
-            certifiedBy: 'Irene Nyongesa',
-            certifiedRole: 'Coop Leader & Convener',
-            votesFor: 48,
-            votesAgainst: 0,
-            createdAt: '2026-10-20T11:55:00Z'
-          });
-        } else {
-          for (const r of parsed.Resolution) {
-            if (r.id === 'gres-sibembe-1' || r.title?.includes('Sibembe') || r.groupName?.includes('Sibembe')) {
-              r.wardName = 'Sikhendu';
-              r.groupName = 'Sibembe Food Coop';
-              r.wardId = sikhendu ? sikhendu.id : 'ward-7';
-              r.certifiedRole = 'Coop Leader & Convener';
-              if (r.title?.includes('01/SHI/2026')) {
-                r.title = r.title.replace('01/SHI/2026', '01/SIK/2026');
-              }
+        parsed.Resolution = parsed.Resolution.filter((r: any) => {
+          if (r.id === 'gres-sibembe-1' || r.id === 'gres-sibembe-2') return false;
+          if (r.title && (
+            r.title.includes('Mandate for the December 10 National Citizen Assembly') ||
+            r.title.includes('Resolution 01/SIK/2026') ||
+            r.title.includes('Resolution 01/2026') ||
+            r.title.includes('Resolution 01/SHI/2026')
+          )) return false;
+          return true;
+        });
+
+        // Purge mock resolution from cached local storage key for Sibembe
+        try {
+          const sibembeResKey = 'csrg_grp_resolutions_grp-sikhendu-sibembe';
+          const cachedRaw = localStorage.getItem(sibembeResKey);
+          if (cachedRaw) {
+            const cachedList = JSON.parse(cachedRaw);
+            if (Array.isArray(cachedList)) {
+              const cleaned = cachedList.filter((r: any) => 
+                r.id !== 'gres-sibembe-1' &&
+                r.id !== 'gres-sibembe-2' &&
+                !r.title?.includes('Mandate for the December 10 National Citizen Assembly') &&
+                !r.title?.includes('Resolution 01/SIK/2026') &&
+                !r.title?.includes('Resolution 01/2026')
+              );
+              localStorage.setItem(sibembeResKey, JSON.stringify(cleaned));
             }
           }
-        }
+        } catch {}
 
         if (!Array.isArray(parsed.AssemblyDocument)) parsed.AssemblyDocument = [];
         const hasSibembeDoc = parsed.AssemblyDocument.some((d: any) => 
@@ -345,6 +358,7 @@ function loadDB(): MockDB {
             documentDate: '2026-10-20',
             fileSize: '1.8 MB',
             fileType: 'PDF Document (Certified)',
+            uploadedBy: 'Irene Nyongesa (Sibembe Food Coop Leader)',
             officerName: 'Irene Nyongesa (Sibembe Food Coop Leader)',
             isPinned: true,
             downloadCount: 42,
@@ -356,6 +370,7 @@ function loadDB(): MockDB {
             if (d.id === 'doc-sibembe-official-1' || d.title?.includes('Sibembe')) {
               d.wardName = 'Sikhendu';
               d.title = 'Official Sibembe Food Coop Citizen Mini-Caucus Assembly Resolutions & Minutes';
+              d.uploadedBy = d.uploadedBy || 'Irene Nyongesa (Sibembe Food Coop Leader)';
               d.officerName = 'Irene Nyongesa (Sibembe Food Coop Leader)';
               d.wardId = sikhendu ? sikhendu.id : 'ward-7';
             }
