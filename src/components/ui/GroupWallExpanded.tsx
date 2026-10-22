@@ -1500,6 +1500,34 @@ Generated on: ${new Date().toLocaleString()}
           </div>
         )}
 
+        {/* 6. LIVE STREAM & PROCEEDINGS TAB */}
+        {activeTab === 'livestream' && (
+          <div className="space-y-4">
+            <div className="bg-gradient-to-r from-red-950/80 via-stone-900 to-red-950/80 border border-red-500/30 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3 text-xs text-red-200">
+              <div className="flex items-center gap-2.5">
+                <span className="w-3 h-3 rounded-full bg-red-500 animate-ping shrink-0" />
+                <span className="font-black uppercase tracking-wider text-white text-sm">
+                  Live Caucus Proceedings Floor
+                </span>
+                <span className="text-stone-300">• {group.name} ({wardName} Ward)</span>
+              </div>
+              <span className="text-amber-300 font-medium">
+                Official Deliberation Stream for December 10 National Assembly
+              </span>
+            </div>
+
+            <div className="w-full rounded-3xl overflow-hidden shadow-2xl border border-stone-800">
+              <CitizenLiveStream
+                groupId={group.id}
+                groupName={group.name}
+                wardName={wardName}
+                leaderName={groupLeaderName || `${group.name} Convener`}
+                isLeader={canPostAsLeader}
+              />
+            </div>
+          </div>
+        )}
+
       </div>
 
       {/* MODAL 1: POST GROUP ISSUE */}

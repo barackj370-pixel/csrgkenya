@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MapPin, Users, Calendar, ArrowLeft, Lightbulb, ThumbsUp, Plus, FileText, CheckCircle, Upload, ChevronDown, ChevronUp, X, ShieldCheck, Sparkles } from 'lucide-react';
+import { MapPin, Users, Calendar, ArrowLeft, Lightbulb, ThumbsUp, Plus, FileText, CheckCircle, Upload, ChevronDown, ChevronUp, X, ShieldCheck, Sparkles, Radio } from 'lucide-react';
 import DiscussionCard from '../components/ui/DiscussionCard';
 import JoinWardModal from '../components/ui/JoinWardModal';
 import WardDocumentsSection from '../components/ui/WardDocumentsSection';
 import WardGroupActivitiesSection from '../components/ui/WardGroupActivitiesSection';
 import GroupWallExpanded from '../components/ui/GroupWallExpanded';
+import CitizenLiveStream from '../components/ui/CitizenLiveStream';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { KENYA_COUNTIES } from '../data/kenyaCountiesAndWards';
@@ -20,6 +21,8 @@ export default function WardPage() {
   const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
   const [hasJoined, setHasJoined] = useState(false);
   const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
+  const [isLiveStreamOpen, setIsLiveStreamOpen] = useState(false);
+  const [liveStreamTarget, setLiveStreamTarget] = useState<any>(null);
 
   // Add Group Modal State for Clerk and Admin
   const [isAddGroupModalOpen, setIsAddGroupModalOpen] = useState(false);
@@ -429,6 +432,22 @@ export default function WardPage() {
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setLiveStreamTarget({
+                    groupId: `grp-${ward.id || 'ward'}-assembly`,
+                    groupName: `${ward.name} Ward Citizen Assembly`,
+                    wardName: `${ward.name} Ward (${ward.county || 'Kenya'})`,
+                    leaderName: `${ward.name} Assembly Convener`
+                  });
+                  setIsLiveStreamOpen(true);
+                }}
+                className="bg-red-600 hover:bg-red-500 text-white px-5 py-3 rounded-full font-bold transition-all shadow-md flex items-center gap-2 text-xs sm:text-sm cursor-pointer"
+              >
+                <Radio className="w-4 h-4 animate-pulse" />
+                <span>🔴 Live Stream Assembly</span>
+              </button>
               <a 
                 href="#ward-documents"
                 className="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-3 rounded-full font-bold transition-all shadow-md flex items-center gap-2 text-xs sm:text-sm cursor-pointer"
@@ -580,13 +599,28 @@ export default function WardPage() {
                             </p>
                           </div>
 
-                          <div className="pt-3 border-t border-stone-100 flex items-center justify-between text-xs font-bold text-sky-700">
-                            <span>
-                              {isExpanded ? 'Hide Group Wall ▲' : 'Open Group Wall & Mini-Caucus Space ▼'}
+                          <div className="pt-3 border-t border-stone-100 flex items-center justify-between gap-2">
+                            <span className="text-xs font-bold text-sky-700">
+                              {isExpanded ? 'Hide Group Wall ▲' : 'Open Group Wall & Caucus ▼'}
                             </span>
-                            <span className="text-stone-400 text-[10px] font-normal">
-                              Issues • Resolutions • 🔴 Live Stream
-                            </span>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setLiveStreamTarget({
+                                  groupId: group.id,
+                                  groupName: group.name,
+                                  wardName: `${ward.name} Ward`,
+                                  leaderName: group.leaderName || 'Group Convener'
+                                });
+                                setIsLiveStreamOpen(true);
+                              }}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-500 text-white rounded-xl text-xs font-bold shadow-xs transition-transform hover:scale-105 cursor-pointer shrink-0"
+                              title="Watch live deliberation stream for this caucus"
+                            >
+                              <Radio className="w-3.5 h-3.5 animate-pulse" />
+                              <span>🔴 Live Stream</span>
+                            </button>
                           </div>
                         </div>
                       );
@@ -958,6 +992,21 @@ export default function WardPage() {
         wardId={ward.id}
         onSuccess={handleJoinSuccess}
       />
+
+      {/* Citizen Live Stream Modal for Ward Assembly / Caucus */}
+      {isLiveStreamOpen && (
+        <CitizenLiveStream
+          groupId={liveStreamTarget?.groupId || `grp-${ward.id}-assembly`}
+          groupName={liveStreamTarget?.groupName || `${ward.name} Ward Citizen Assembly`}
+          wardName={liveStreamTarget?.wardName || `${ward.name} Ward`}
+          leaderName={liveStreamTarget?.leaderName || `${ward.name} Assembly Convener`}
+          isLeader={user?.name?.toLowerCase().includes('irene') || user?.role === 'CLERK' || user?.role === 'ADMIN'}
+          onClose={() => {
+            setIsLiveStreamOpen(false);
+            setLiveStreamTarget(null);
+          }}
+        />
+      )}
     </motion.div>
   );
 }

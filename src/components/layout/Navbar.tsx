@@ -11,7 +11,8 @@ import {
   FileText, 
   Search, 
   Radio, 
-  ShieldCheck 
+  ShieldCheck,
+  Calendar
 } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import AuthModal from '../ui/AuthModal';
@@ -246,6 +247,11 @@ export default function Navbar() {
                 <span>Independent Candidates</span>
               </Link>
 
+              <a href="/#mini-caucus-schedule" className="text-yellow-200 hover:text-white hover:bg-sky-700 px-2.5 py-2 rounded-md text-sm font-bold flex items-center gap-1">
+                <Calendar className="w-3.5 h-3.5 text-yellow-300" />
+                <span>Mini-Caucuses</span>
+              </a>
+
               <a href="/#ward-resolutions" className="text-sky-50 hover:text-white hover:bg-sky-700 px-2.5 py-2 rounded-md text-sm font-medium">
                 Resolutions
               </a>
@@ -422,6 +428,15 @@ export default function Navbar() {
             >
               Independent Candidates Portal
             </Link>
+
+            <a 
+              href="/#mini-caucus-schedule" 
+              onClick={closeMobileMenu}
+              className="block px-3 py-2.5 rounded-md text-base font-bold text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-200"
+            >
+              <Calendar className="w-4 h-4 inline mr-2 text-amber-600" />
+              National Mini-Caucus Schedule (10 Dates)
+            </a>
 
             <a 
               href="/#ward-resolutions" 

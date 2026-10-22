@@ -9,6 +9,10 @@ import {
   AlertCircle, 
   Clock, 
   ChevronDown, 
+  ChevronLeft,
+  ChevronRight,
+  CalendarDays,
+  FileSpreadsheet,
   X, 
   ShieldCheck, 
   Building2, 
@@ -29,7 +33,6 @@ import NationalAssemblyBanner from '../components/ui/NationalAssemblyBanner';
 import PastAssembliesSection from '../components/ui/PastAssembliesSection';
 import NationalActivitiesSection from '../components/ui/NationalActivitiesSection';
 import HomepageWardResolutions from '../components/ui/HomepageWardResolutions';
-import CitizenLiveStream from '../components/ui/CitizenLiveStream';
 import { supabase } from '../lib/supabase';
 import { 
   searchKenyaWards, 
@@ -70,7 +73,8 @@ export default function Home() {
   const [miniCaucuses, setMiniCaucuses] = useState<MiniCaucusEvent[]>([]);
   const [activeCaucusIndex, setActiveCaucusIndex] = useState(0);
   const [isMiniCaucusModalOpen, setIsMiniCaucusModalOpen] = useState(false);
-  const [isLiveStreamOpen, setIsLiveStreamOpen] = useState(false);
+  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
+  const [scheduleFilter, setScheduleFilter] = useState<'ALL' | 'UPCOMING' | 'CONCLUDED'>('ALL');
   const [carouselAds, setCarouselAds] = useState<CarouselAd[]>([]);
   const [recentBlogs, setRecentBlogs] = useState<BlogPost[]>([]);
   const [featuredCandidates, setFeaturedCandidates] = useState<IndependentCandidate[]>([]);
@@ -82,18 +86,20 @@ export default function Home() {
   const allAssemblies = getAllQuarterlyAssemblies(2025, 2027);
 
   // Total slides in header carousel:
-  // Slide 0: Mini-Caucus Spotlight (Carousel 1 - e.g. Sikhendu Ward Sibembe Caucus happening tomorrow)
+  // Slide 0: National Citizens Assembly Mini-Caucus Schedule (Carousel 1)
   // Slide 1: Next National Citizen Assembly (Dec 10, 2026)
   // Slide 2: CSRG & Ward Assemblies (1,450 Wards)
   // Slide 3+: Any active carousel ads
   const totalSlides = 3 + carouselAds.length;
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % (totalSlides || 3));
-    }, 8500);
-    return () => clearInterval(timer);
-  }, [totalSlides]);
+  // Manual Slide Navigation (Auto-rotation disabled as requested so readers have full control)
+  const handlePrevSlide = () => {
+    setCurrentSlide((prev) => (prev - 1 + totalSlides) % totalSlides);
+  };
+
+  const handleNextSlide = () => {
+    setCurrentSlide((prev) => (prev + 1) % totalSlides);
+  };
 
   // Reactive listener for live mini-caucus updates
   useEffect(() => {
@@ -164,24 +170,29 @@ export default function Home() {
         
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
           <AnimatePresence mode="wait">
-            {/* Carousel Slide 0: CITIZEN MINI-CAUCUS SPOTLIGHT (Carousel 1) */}
+            {/* Carousel Slide 0: NATIONAL CITIZENS ASSEMBLY MINI-CAUCUS SCHEDULE (Carousel 1) */}
             {currentSlide === 0 ? (
               (() => {
-                const activeCaucus = miniCaucuses[activeCaucusIndex] || miniCaucuses[0];
-                if (!activeCaucus) return null;
-                const isSibembe = activeCaucus.groupName?.toLowerCase().includes('sibembe') || 
-                                  activeCaucus.title?.toLowerCase().includes('sibembe') || 
-                                  activeCaucus.id.includes('sibembe');
-                const isConcluded = activeCaucus.status === 'CONCLUDED' || isSibembe || activeCaucus.dateLabel.toLowerCase().includes('concluded');
-                const isTomorrow = !isConcluded && (activeCaucus.status === 'UPCOMING_TOMORROW' || activeCaucus.dateLabel.toLowerCase().includes('tomorrow'));
-                const isToday = !isConcluded && (activeCaucus.status === 'ACTIVE_TODAY' || activeCaucus.dateLabel.toLowerCase().includes('today'));
+                // Filter out Sibembe from header carousel #1 as requested since it already concluded on Oct 20
+                const headerCaucuses = miniCaucuses.filter(c => 
+                  !c.id.includes('sibembe') && 
+                  !c.groupName?.toLowerCase().includes('sibembe') && 
+                  !c.title?.toLowerCase().includes('sibembe')
+                );
+                const safeCaucus = headerCaucuses[activeCaucusIndex] || headerCaucuses[0];
+                if (!safeCaucus) return null;
 
-                const targetWardSlug = activeCaucus.wardName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-                const targetGroupParam = activeCaucus.groupId || 'grp-sikhendu-sibembe';
+                const isConcluded = safeCaucus.status === 'CONCLUDED' || safeCaucus.dateLabel.toLowerCase().includes('concluded');
+                const isThisWeekend = safeCaucus.id === 'caucus-kangemi';
+                const targetWardSlug = safeCaucus.wardName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+                const targetGroupParam = safeCaucus.groupId || '';
+
+                const upcomingList = headerCaucuses.filter(c => c.status === 'UPCOMING' && !c.dateLabel.toLowerCase().includes('concluded'));
+                const concludedList = headerCaucuses.filter(c => c.status === 'CONCLUDED' || c.dateLabel.toLowerCase().includes('concluded'));
 
                 return (
                   <motion.div 
-                    key={`caucus-slide-${activeCaucus.id}`}
+                    key={`caucus-slide-${safeCaucus.id}`}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: 20 }}
@@ -191,155 +202,152 @@ export default function Home() {
                     <div className="lg:col-span-7 text-left">
                       {/* Top Badges */}
                       <div className="flex flex-wrap items-center gap-2 mb-3">
-                        <span className={`text-[11px] font-black px-3.5 py-1 rounded-full uppercase tracking-wider flex items-center gap-1.5 shadow-sm ${
+                        <span className="text-[11px] font-black bg-yellow-400 text-stone-950 px-3.5 py-1 rounded-full uppercase tracking-wider flex items-center gap-1.5 shadow-sm">
+                          <Calendar className="w-3.5 h-3.5 text-stone-950" />
+                          <span>NATIONAL CITIZENS ASSEMBLY MINI-CAUCUS SCHEDULE</span>
+                        </span>
+
+                        <span className={`text-[11px] font-black px-3 py-1 rounded-full uppercase tracking-wider flex items-center gap-1.5 shadow-sm ${
                           isConcluded
-                            ? 'bg-emerald-400 text-stone-950 font-black ring-2 ring-emerald-300 shadow-md'
-                            : isToday 
+                            ? 'bg-emerald-400 text-stone-950'
+                            : isThisWeekend 
                             ? 'bg-red-500 text-white animate-pulse'
-                            : isTomorrow
-                            ? 'bg-amber-400 text-stone-950 font-black ring-2 ring-amber-300 shadow-md'
-                            : 'bg-amber-400 text-stone-950 font-black'
+                            : 'bg-emerald-400 text-stone-950'
                         }`}>
-                          <span className={`w-2 h-2 rounded-full ${isToday ? 'bg-white animate-ping' : isConcluded ? 'bg-emerald-950' : 'bg-amber-950'}`} />
+                          <span className={`w-2 h-2 rounded-full ${isThisWeekend ? 'bg-white animate-ping' : isConcluded ? 'bg-emerald-950' : 'bg-emerald-950'}`} />
                           {isConcluded
-                            ? '✅ CONCLUDED • 2-HOUR MINI-CAUCUS (10:00 AM – 12:00 PM) • RESOLUTIONS ADOPTED'
-                            : isToday 
-                            ? '🔴 HAPPENING TODAY • CITIZEN MINI-CAUCUS'
-                            : isTomorrow
-                            ? '🟢 UPCOMING CITIZEN MINI-CAUCUS'
-                            : '🗓️ CITIZEN MINI-CAUCUS SESSION'
+                            ? '✅ CONCLUDED • RESOLUTIONS ADOPTED'
+                            : isThisWeekend 
+                            ? '🔴 NEXT UP • 24TH OCTOBER 2026'
+                            : '🟢 UPCOMING GRASSROOTS CAUCUS'
                           }
                         </span>
 
                         <span className="text-xs text-sky-200 font-semibold bg-sky-950/80 px-3 py-1 rounded-full border border-sky-700/60 flex items-center gap-1.5">
                           <MapPin className="w-3.5 h-3.5 text-emerald-400" />
-                          {activeCaucus.wardName} Ward • {activeCaucus.county}
+                          {safeCaucus.wardName} Ward • {safeCaucus.county}
                         </span>
                       </div>
 
-                      <h1 className="text-3xl md:text-5xl font-black tracking-tight mb-3 leading-tight text-white">
-                        {activeCaucus.title}
+                      <h1 className="text-2xl sm:text-3xl md:text-5xl font-black tracking-tight mb-3 leading-tight text-white">
+                        {safeCaucus.title}
                       </h1>
 
-                      <p className="mt-1 text-sm md:text-base text-stone-200 max-w-xl mb-4 leading-relaxed font-normal">
-                        {activeCaucus.agenda}
-                      </p>
-
-                      {/* Schedule Summary Glass Card */}
-                      <div className="bg-sky-950/70 border border-sky-700/60 rounded-2xl p-4 mb-6 max-w-xl grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                        <div className="flex items-start gap-2.5">
-                          <Clock className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-                          <div>
-                            <p className="font-bold text-stone-300 uppercase text-[10px] tracking-wider">Date & Duration</p>
-                            <p className="text-white font-semibold text-xs sm:text-sm">{activeCaucus.dateLabel}</p>
-                          </div>
-                        </div>
-                        <div className="flex items-start gap-2.5">
-                          <Building2 className="w-4 h-4 text-sky-400 shrink-0 mt-0.5" />
-                          <div>
-                            <p className="font-bold text-stone-300 uppercase text-[10px] tracking-wider">Meeting Point / Venue</p>
-                            <p className="text-white font-semibold text-xs sm:text-sm truncate">{activeCaucus.venue}</p>
-                          </div>
+                      {/* Clean Date Display (Without Specific Times) */}
+                      <div className="flex items-center gap-3 bg-sky-950/80 border border-sky-700/60 rounded-2xl px-4 py-3 my-4 max-w-md shadow-sm">
+                        <Calendar className="w-5 h-5 text-amber-400 shrink-0" />
+                        <div>
+                          <p className="text-[10px] text-stone-300 uppercase tracking-wider font-bold">Caucus Date</p>
+                          <p className="text-white text-sm sm:text-base font-bold">
+                            {safeCaucus.dateLabel.split('(')[0].replace(/concluded: /i, '').trim()}
+                          </p>
                         </div>
                       </div>
 
                       {/* Main Call to Actions */}
-                      <div className="flex flex-wrap gap-3 items-center">
-                        <Link
-                          to={`/ward/${targetWardSlug}?group=${targetGroupParam}`}
-                          className="inline-flex items-center justify-center gap-2 bg-amber-400 hover:bg-amber-300 text-stone-950 px-6 py-3.5 rounded-2xl font-black text-sm md:text-base transition-all shadow-lg hover:shadow-xl cursor-pointer"
-                        >
-                          <Users className="w-4 h-4" />
-                          <span>View {activeCaucus.wardName} Ward & Group Wall</span>
-                          <ArrowRight className="w-4 h-4" />
-                        </Link>
-
+                      <div className="flex flex-wrap gap-2.5 items-center mt-6">
                         <button
                           type="button"
-                          onClick={() => setIsLiveStreamOpen(true)}
-                          className="inline-flex items-center justify-center gap-2 bg-red-600 hover:bg-red-500 text-white px-5 py-3.5 rounded-2xl font-black text-xs sm:text-sm transition-all shadow-lg hover:shadow-xl cursor-pointer"
+                          onClick={() => setIsScheduleModalOpen(true)}
+                          className="inline-flex items-center justify-center gap-2 bg-amber-400 hover:bg-amber-300 text-stone-950 px-5 py-3 rounded-2xl font-black text-xs md:text-sm transition-all shadow-lg hover:shadow-xl cursor-pointer"
                         >
-                          <Radio className="w-4 h-4 animate-pulse" />
-                          <span>🔴 Watch Live Stream & Proceedings</span>
+                          <FileSpreadsheet className="w-4 h-4" />
+                          <span>View Full 10-Caucus Schedule</span>
+                          <ArrowRight className="w-4 h-4" />
                         </button>
 
                         <button
                           type="button"
                           onClick={() => setIsMiniCaucusModalOpen(true)}
-                          className="inline-flex items-center justify-center gap-2 bg-sky-850 hover:bg-sky-750 text-white px-4 py-3.5 rounded-2xl font-bold text-xs sm:text-sm transition-all border border-sky-600/70 cursor-pointer shadow-md"
+                          className="inline-flex items-center justify-center gap-2 bg-sky-850 hover:bg-sky-750 text-white px-4 py-3 rounded-2xl font-bold text-xs md:text-sm transition-all border border-sky-600/70 cursor-pointer shadow-md"
                         >
                           <Calendar className="w-4 h-4 text-emerald-400" />
-                          <span>+ Update / Schedule Mini-Caucus</span>
+                          <span>+ Update Schedule</span>
                         </button>
                       </div>
-
-                      {/* Multi-Caucus Switcher Pills */}
-                      {miniCaucuses.length > 1 && (
-                        <div className="mt-4 flex flex-wrap items-center gap-2 pt-3 border-t border-sky-800/60">
-                          <span className="text-[10px] uppercase font-bold text-sky-300">Active Caucuses:</span>
-                          {miniCaucuses.map((c, idx) => (
-                            <button
-                              key={c.id}
-                              type="button"
-                              onClick={() => setActiveCaucusIndex(idx)}
-                              className={`text-[11px] px-3 py-1 rounded-full font-bold transition-all cursor-pointer ${
-                                activeCaucusIndex === idx
-                                  ? 'bg-amber-400 text-stone-950 ring-1 ring-white'
-                                  : 'bg-sky-950/80 text-stone-300 hover:text-white border border-sky-700/50'
-                              }`}
-                            >
-                              {c.wardName} • {c.groupName.slice(0, 15)}
-                            </button>
-                          ))}
-                        </div>
-                      )}
                     </div>
 
-                    {/* Right Side Visual Hero Card */}
+                    {/* Right Side Visual Hero Card: Comprehensive Schedule Quick View */}
                     <div className="lg:col-span-5 hidden lg:block">
-                      <div className="relative rounded-3xl p-6 bg-gradient-to-b from-sky-850/95 to-sky-950/95 border-2 border-emerald-400/40 shadow-2xl backdrop-blur-md">
-                        <div className="flex items-center justify-between pb-3 border-b border-sky-800/70">
-                          <span className="text-xs font-black uppercase tracking-wider text-emerald-300 flex items-center gap-1.5">
-                            <Sparkles className="w-3.5 h-3.5 text-amber-300" /> Pre-Assembly Caucus
+                      <div className="relative rounded-3xl p-5 bg-gradient-to-b from-sky-850/95 to-sky-950/95 border-2 border-emerald-400/40 shadow-2xl backdrop-blur-md">
+                        <div className="flex items-center justify-between pb-2.5 border-b border-sky-800/70">
+                          <div>
+                            <span className="text-xs font-black uppercase tracking-wider text-emerald-300 flex items-center gap-1.5">
+                              <Sparkles className="w-3.5 h-3.5 text-amber-300" /> Mini-Caucus Schedule
+                            </span>
+                            <p className="text-[10px] text-stone-300">National Citizens Assembly Deliberations</p>
+                          </div>
+                          <span className="text-[10px] font-bold text-amber-300 bg-amber-950/80 px-2 py-0.5 rounded-full border border-amber-600/40">
+                            10 Dates
                           </span>
-                          <span className="text-[11px] text-sky-200 bg-sky-900/90 px-2.5 py-0.5 rounded-full border border-sky-700/60 font-semibold">
-                            {activeCaucus.county}
-                          </span>
                         </div>
 
-                        <div className="my-5 text-center p-4 bg-sky-900/50 rounded-2xl border border-sky-700/50 shadow-inner">
-                          <p className="text-[11px] text-emerald-300 uppercase tracking-widest font-extrabold">Next Session Timing</p>
-                          <h3 className="text-2xl font-black text-amber-300 mt-1">
-                            {activeCaucus.dateLabel}
-                          </h3>
-                          <p className="text-xs text-stone-200 mt-1 font-medium">
-                            {activeCaucus.venue}
-                          </p>
+                        {/* Interactive Schedule List */}
+                        <div className="my-3 space-y-1.5 max-h-72 overflow-y-auto pr-1 divide-y divide-sky-900/50">
+                          {headerCaucuses.map((c, idx) => {
+                            const isSelected = (headerCaucuses[activeCaucusIndex]?.id || headerCaucuses[0]?.id) === c.id;
+                            const isPast = c.status === 'CONCLUDED' || c.dateLabel.toLowerCase().includes('concluded');
+                            return (
+                              <div
+                                key={`right-card-${c.id}`}
+                                onClick={() => setActiveCaucusIndex(idx)}
+                                className={`p-2.5 rounded-xl transition-all cursor-pointer flex items-center justify-between gap-2 text-xs ${
+                                  isSelected 
+                                    ? 'bg-amber-400 text-stone-950 font-bold shadow-md' 
+                                    : 'hover:bg-sky-900/60 text-stone-200'
+                                }`}
+                              >
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className={`text-[10px] uppercase font-black px-1.5 py-0.5 rounded shrink-0 ${
+                                      isSelected 
+                                        ? 'bg-stone-950 text-amber-300' 
+                                        : isPast 
+                                        ? 'bg-stone-800 text-stone-400' 
+                                        : 'bg-emerald-950 text-emerald-300 border border-emerald-700/50'
+                                    }`}>
+                                      {c.dateLabel.includes('24th October') ? '24 Oct' :
+                                       c.dateLabel.includes('29th October') ? '29 Oct' :
+                                       c.dateLabel.includes('31st October') ? '31 Oct' :
+                                       c.dateLabel.includes('2nd November') ? '02 Nov' :
+                                       c.dateLabel.includes('5th November') || c.dateLabel.includes('5th October') ? '05 Nov' :
+                                       c.dateLabel.includes('8th November') ? '08 Nov' :
+                                       c.dateLabel.includes('9th November') || c.dateLabel.includes('9th October') ? '09 Nov' :
+                                       c.dateLabel.includes('10th November') || c.dateLabel.includes('10th October') ? '10 Nov' :
+                                       c.dateLabel.includes('11th November') || c.dateLabel.includes('11th October') ? '11 Nov' :
+                                       c.dateLabel.includes('15th November') ? '15 Nov' : 'Date'}
+                                    </span>
+                                    <span className={`font-bold truncate text-[11px] ${isSelected ? 'text-stone-950' : 'text-white'}`}>
+                                      {c.title}
+                                    </span>
+                                  </div>
+                                  <p className={`text-[10px] truncate mt-0.5 ${isSelected ? 'text-stone-800' : 'text-stone-400'}`}>
+                                    {c.wardName} Ward • {c.county}
+                                  </p>
+                                </div>
+
+                                <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full shrink-0 ${
+                                  isSelected
+                                    ? 'bg-stone-900 text-white'
+                                    : isPast
+                                    ? 'bg-stone-800 text-stone-400'
+                                    : 'bg-emerald-500 text-stone-950'
+                                }`}>
+                                  {isPast ? 'Concluded' : 'Upcoming'}
+                                </span>
+                              </div>
+                            );
+                          })}
                         </div>
 
-                        <div className="space-y-2.5 text-xs">
-                          <div className="flex justify-between items-center py-1.5 border-b border-sky-800/40">
-                            <span className="text-stone-300 font-medium">Convening Group:</span>
-                            <span className="font-bold text-white text-right">{activeCaucus.groupName}</span>
-                          </div>
-                          <div className="flex justify-between items-center py-1.5 border-b border-sky-800/40">
-                            <span className="text-stone-300 font-medium">Assembly Goal:</span>
-                            <span className="font-bold text-emerald-300 text-right">National Assembly (Dec 10)</span>
-                          </div>
-                          <div className="flex justify-between items-center py-1.5">
-                            <span className="text-stone-300 font-medium">Facilitator:</span>
-                            <span className="font-bold text-stone-200">{activeCaucus.facilitatorRole || 'Caucus Convener'}</span>
-                          </div>
-                        </div>
-
-                        <div className="mt-5 pt-3 border-t border-sky-800/60">
+                        <div className="pt-2 border-t border-sky-800/60 flex items-center gap-2">
                           <button
                             type="button"
-                            onClick={() => setIsMiniCaucusModalOpen(true)}
-                            className="w-full py-2.5 bg-emerald-600/90 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+                            onClick={() => setIsScheduleModalOpen(true)}
+                            className="w-full py-2 bg-amber-400 hover:bg-amber-300 text-stone-950 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
                           >
                             <Calendar className="w-3.5 h-3.5" />
-                            <span>Edit or Add New Ward Mini-Caucus</span>
+                            <span>Open Full Schedule Table (All 10 Dates)</span>
                           </button>
                         </div>
                       </div>
@@ -371,22 +379,22 @@ export default function Home() {
                     Theme: <em>"{nextAssembly.theme}"</em>. Uniting citizen delegates and wananchi from across all 47 counties and 1,450 electoral wards in Kenya. Assemblies advance automatically every 3 months on the 10th.
                   </p>
                   
-                  <div className="flex flex-col sm:flex-row gap-4">
+                  <div className="flex flex-wrap gap-3">
                     <Link
                       to="/register"
-                      className="inline-flex items-center justify-center gap-2 bg-white text-sky-900 hover:bg-stone-100 px-6 py-3.5 rounded-2xl font-bold text-base transition-all shadow-lg hover:shadow-xl cursor-pointer"
+                      className="inline-flex items-center justify-center gap-2 bg-white text-sky-900 hover:bg-stone-100 px-5 py-3 rounded-2xl font-bold text-sm transition-all shadow-lg hover:shadow-xl cursor-pointer"
                     >
-                      <Users className="w-5 h-5 text-sky-700" />
-                      Register as a Citizen Delegate
+                      <Users className="w-4 h-4 text-sky-700" />
+                      <span>Register as Delegate</span>
                       <ArrowRight className="w-4 h-4" />
                     </Link>
                     <button
                       type="button"
                       onClick={() => setIsViewAllModalOpen(true)}
-                      className="inline-flex items-center justify-center gap-2 bg-sky-800/80 hover:bg-sky-800 text-white px-5 py-3.5 rounded-2xl font-bold text-sm transition-all border border-sky-600/60 cursor-pointer"
+                      className="inline-flex items-center justify-center gap-2 bg-sky-850 hover:bg-sky-800 text-white px-5 py-3 rounded-2xl font-bold text-sm transition-all border border-sky-600/60 cursor-pointer shadow-md"
                     >
                       <Calendar className="w-4 h-4 text-sky-300" />
-                      View 3-Month Schedule
+                      <span>3-Month Schedule</span>
                     </button>
                   </div>
                 </div>
@@ -514,20 +522,54 @@ export default function Home() {
             )}
           </AnimatePresence>
           
-          {/* Carousel Dots Controls */}
-          <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 flex gap-2.5 z-20">
-            {Array.from({ length: totalSlides }).map((_, idx) => (
-              <button 
-                key={idx}
-                onClick={() => setCurrentSlide(idx)}
-                className={`h-2.5 rounded-full transition-all cursor-pointer ${
-                  currentSlide === idx 
-                    ? 'w-8 bg-amber-400' 
-                    : 'w-2.5 bg-stone-600 hover:bg-stone-400'
-                }`}
-                title={`Slide ${idx + 1}`}
-              />
-            ))}
+          {/* Dedicated Carousel Navigation Controls Bar Below Slide Content */}
+          <div className="mt-8 pt-4 border-t border-sky-800/60 flex flex-wrap items-center justify-between gap-4">
+            {/* Prev / Next Buttons */}
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handlePrevSlide}
+                aria-label="Previous Slide"
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-sky-950 hover:bg-sky-850 text-white border border-sky-700/70 text-xs font-bold transition-all shadow-md cursor-pointer hover:border-amber-400"
+                title="Previous Slide"
+              >
+                <ChevronLeft className="w-4 h-4 text-amber-300" />
+                <span>Previous</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleNextSlide}
+                aria-label="Next Slide"
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-sky-950 hover:bg-sky-850 text-white border border-sky-700/70 text-xs font-bold transition-all shadow-md cursor-pointer hover:border-amber-400"
+                title="Next Slide"
+              >
+                <span>Next</span>
+                <ChevronRight className="w-4 h-4 text-amber-300" />
+              </button>
+            </div>
+
+            {/* Slide Indicators & Labels */}
+            <div className="flex items-center gap-2">
+              {Array.from({ length: totalSlides }).map((_, idx) => (
+                <button 
+                  key={idx}
+                  onClick={() => setCurrentSlide(idx)}
+                  className={`h-2.5 rounded-full transition-all cursor-pointer ${
+                    currentSlide === idx 
+                      ? 'w-8 bg-amber-400 ring-2 ring-white/50' 
+                      : 'w-2.5 bg-sky-950 hover:bg-sky-700 border border-sky-700/60'
+                  }`}
+                  title={`Slide ${idx + 1}`}
+                />
+              ))}
+              <span className="text-xs text-sky-200 font-bold ml-2">
+                Slide {currentSlide + 1} of {totalSlides}
+              </span>
+            </div>
+
+            <div className="text-[11px] text-stone-300 font-medium hidden md:block">
+              Manual Controls • Auto-scroll disabled
+            </div>
           </div>
         </div>
       </section>
@@ -623,6 +665,158 @@ export default function Home() {
             </div>
           </div>
         </div>
+
+        {/* NATIONAL CITIZENS ASSEMBLY MINI-CAUCUS SCHEDULE SECTION */}
+        <section id="mini-caucus-schedule" className="scroll-mt-24">
+          <div className="bg-gradient-to-br from-sky-900 via-sky-950 to-stone-900 rounded-3xl p-6 sm:p-8 text-white shadow-xl border border-sky-700/50">
+            {/* Top Bar */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-sky-800/60">
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="bg-yellow-400 text-stone-950 text-[10px] sm:text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider flex items-center gap-1.5 shadow-sm">
+                    <Calendar className="w-3.5 h-3.5 text-stone-950" />
+                    <span>Official Schedule</span>
+                  </span>
+                  <span className="bg-sky-800/80 text-sky-200 text-xs font-semibold px-2.5 py-1 rounded-full border border-sky-700/50">
+                    10 Grassroots Sessions
+                  </span>
+                </div>
+                <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+                  NATIONAL CITIZENS ASSEMBLY MINI-CAUCUS SCHEDULE
+                </h2>
+                <p className="text-xs sm:text-sm text-stone-300 mt-1 max-w-3xl leading-relaxed">
+                  Grassroots citizen assemblies and community groups meeting across Kenya to formulate local priorities, audit public services, and adopt binding resolutions ahead of the <strong>December 10, 2026 National Citizen Assembly</strong>.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setIsScheduleModalOpen(true)}
+                  className="bg-amber-400 hover:bg-amber-300 text-stone-950 px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all shadow-md cursor-pointer"
+                >
+                  <FileSpreadsheet className="w-4 h-4" />
+                  <span>Full Table View</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsMiniCaucusModalOpen(true)}
+                  className="bg-sky-800 hover:bg-sky-700 text-white px-3.5 py-2.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all border border-sky-600/60 cursor-pointer"
+                >
+                  <Calendar className="w-4 h-4 text-emerald-400" />
+                  <span>+ Update Schedule</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Filter Pills */}
+            <div className="flex items-center gap-2 pt-4 pb-4">
+              <button
+                type="button"
+                onClick={() => setScheduleFilter('ALL')}
+                className={`text-xs px-3.5 py-1.5 rounded-full font-bold transition-all cursor-pointer ${
+                  scheduleFilter === 'ALL'
+                    ? 'bg-amber-400 text-stone-950 shadow'
+                    : 'bg-sky-900/60 text-stone-300 hover:text-white border border-sky-700/40'
+                }`}
+              >
+                All Sessions (10)
+              </button>
+              <button
+                type="button"
+                onClick={() => setScheduleFilter('UPCOMING')}
+                className={`text-xs px-3.5 py-1.5 rounded-full font-bold transition-all cursor-pointer ${
+                  scheduleFilter === 'UPCOMING'
+                    ? 'bg-emerald-400 text-stone-950 shadow'
+                    : 'bg-sky-900/60 text-stone-300 hover:text-white border border-sky-700/40'
+                }`}
+              >
+                Upcoming Sessions (6)
+              </button>
+              <button
+                type="button"
+                onClick={() => setScheduleFilter('CONCLUDED')}
+                className={`text-xs px-3.5 py-1.5 rounded-full font-bold transition-all cursor-pointer ${
+                  scheduleFilter === 'CONCLUDED'
+                    ? 'bg-stone-300 text-stone-950 shadow'
+                    : 'bg-sky-900/60 text-stone-300 hover:text-white border border-sky-700/40'
+                }`}
+              >
+                Concluded Deliberations (4)
+              </button>
+            </div>
+
+            {/* Responsive Table of Mini-Caucuses */}
+            <div className="overflow-x-auto rounded-2xl border border-sky-800/60 bg-sky-950/60">
+              <table className="w-full text-left text-xs text-stone-200">
+                <thead className="bg-sky-900/80 text-[11px] font-black uppercase tracking-wider text-sky-200 border-b border-sky-800/80">
+                  <tr>
+                    <th scope="col" className="px-5 py-3.5">Date</th>
+                    <th scope="col" className="px-5 py-3.5">Mini-Caucus Session</th>
+                    <th scope="col" className="px-5 py-3.5">Location (Ward & County)</th>
+                    <th scope="col" className="px-5 py-3.5 text-center">Status</th>
+                    <th scope="col" className="px-5 py-3.5 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-sky-900/40">
+                  {miniCaucuses
+                    .filter(c => !c.id.includes('sibembe') && !c.groupName?.toLowerCase().includes('sibembe') && !c.title?.toLowerCase().includes('sibembe'))
+                    .filter(c => {
+                      const isConcluded = c.status === 'CONCLUDED' || c.dateLabel.toLowerCase().includes('concluded');
+                      if (scheduleFilter === 'UPCOMING') return !isConcluded;
+                      if (scheduleFilter === 'CONCLUDED') return isConcluded;
+                      return true;
+                    })
+                    .map((item) => {
+                      const isPast = item.status === 'CONCLUDED' || item.dateLabel.toLowerCase().includes('concluded');
+                      const isNext = item.id === 'caucus-kangemi';
+                      const targetSlug = item.wardName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+                      const cleanDate = item.dateLabel.split('(')[0].replace(/concluded: /i, '').trim();
+
+                      return (
+                        <tr key={`schedule-row-${item.id}`} className="hover:bg-sky-900/30 transition-colors">
+                          <td className="px-5 py-3.5 whitespace-nowrap">
+                            <div className="flex items-center gap-2">
+                              <Calendar className={`w-4 h-4 ${isNext ? 'text-red-400' : isPast ? 'text-stone-400' : 'text-amber-400'}`} />
+                              <span className={`font-bold text-xs ${isNext ? 'text-amber-300 font-black' : 'text-white'}`}>
+                                {cleanDate}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-5 py-3.5">
+                            <span className="font-bold text-white text-xs block">{item.title}</span>
+                          </td>
+                          <td className="px-5 py-3.5 whitespace-nowrap">
+                            <span className="text-white font-medium">{item.wardName} Ward</span>
+                            <span className="text-stone-400 text-[11px] block">{item.county}</span>
+                          </td>
+                          <td className="px-5 py-3.5 text-center whitespace-nowrap">
+                            <span className={`inline-flex items-center gap-1 text-[10px] font-black uppercase px-2.5 py-1 rounded-full ${
+                              isPast
+                                ? 'bg-stone-800 text-stone-300 border border-stone-700'
+                                : isNext
+                                ? 'bg-red-500 text-white font-black animate-pulse'
+                                : 'bg-emerald-500 text-stone-950 font-black'
+                            }`}>
+                              {isPast ? 'Concluded' : isNext ? '🔴 Next (24 Oct)' : 'Upcoming'}
+                            </span>
+                          </td>
+                          <td className="px-5 py-3.5 text-right whitespace-nowrap">
+                            <Link
+                              to={`/ward/${targetSlug}`}
+                              className="text-[11px] font-bold text-amber-300 hover:text-amber-200 bg-sky-900/80 hover:bg-sky-800 px-3.5 py-1.5 rounded-lg border border-sky-700/60 transition-colors inline-block"
+                            >
+                              Ward Wall →
+                            </Link>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
 
         {/* Featured Campaign: National Citizen Assembly Official Digital Poster */}
         <section id="national-citizen-assembly" className="scroll-mt-24">
@@ -892,17 +1086,177 @@ export default function Home() {
         }}
       />
 
-      {/* Citizen Live Stream Modal (Direct WebRTC / MediaStream, Free, Zero YouTube) */}
-      {isLiveStreamOpen && (
-        <CitizenLiveStream
-          groupId={miniCaucuses[activeCaucusIndex]?.groupId || 'grp-sikhendu-sibembe'}
-          groupName={miniCaucuses[activeCaucusIndex]?.groupName || 'Sibembe Food Coop'}
-          wardName={miniCaucuses[activeCaucusIndex]?.wardName || 'Sikhendu'}
-          leaderName={miniCaucuses[activeCaucusIndex]?.facilitatorRole || 'Irene Nyongesa (Sibembe Food Coop Leader)'}
-          isLeader={user?.name?.toLowerCase().includes('irene') || false}
-          onClose={() => setIsLiveStreamOpen(false)}
-        />
-      )}
+      {/* Full 10-Session Mini-Caucus Schedule Modal */}
+      <AnimatePresence>
+        {isScheduleModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-950/80 backdrop-blur-sm overflow-y-auto">
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-3xl max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-2xl flex flex-col text-stone-800 border border-stone-200 my-8"
+            >
+              {/* Modal Header */}
+              <div className="p-6 bg-gradient-to-r from-sky-900 via-sky-850 to-stone-900 text-white flex justify-between items-start">
+                <div>
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span className="bg-amber-400 text-stone-950 text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                      Official Timeline
+                    </span>
+                    <span className="text-xs text-sky-200">10 Scheduled Sessions</span>
+                  </div>
+                  <h3 className="text-xl sm:text-2xl font-black text-white">
+                    NATIONAL CITIZENS ASSEMBLY MINI-CAUCUS SCHEDULE
+                  </h3>
+                  <p className="text-xs text-stone-300 mt-1 max-w-2xl leading-relaxed">
+                    Schedule of grassroots citizen caucuses deliberating community motions ahead of the December 10, 2026 National Citizen Assembly.
+                  </p>
+                </div>
+                <button 
+                  onClick={() => setIsScheduleModalOpen(false)}
+                  className="text-stone-300 hover:text-white p-2 rounded-full hover:bg-white/10 transition-colors cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Modal Filters & Actions */}
+              <div className="p-4 border-b border-stone-200 bg-stone-50 flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setScheduleFilter('ALL')}
+                    className={`text-xs px-3 py-1 rounded-full font-bold cursor-pointer transition-all ${
+                      scheduleFilter === 'ALL'
+                        ? 'bg-sky-600 text-white'
+                        : 'bg-stone-200 text-stone-700 hover:bg-stone-300'
+                    }`}
+                  >
+                    All Sessions (10)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setScheduleFilter('UPCOMING')}
+                    className={`text-xs px-3 py-1 rounded-full font-bold cursor-pointer transition-all ${
+                      scheduleFilter === 'UPCOMING'
+                        ? 'bg-emerald-600 text-white'
+                        : 'bg-stone-200 text-stone-700 hover:bg-stone-300'
+                    }`}
+                  >
+                    Upcoming (6)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setScheduleFilter('CONCLUDED')}
+                    className={`text-xs px-3 py-1 rounded-full font-bold cursor-pointer transition-all ${
+                      scheduleFilter === 'CONCLUDED'
+                        ? 'bg-stone-700 text-white'
+                        : 'bg-stone-200 text-stone-700 hover:bg-stone-300'
+                    }`}
+                  >
+                    Concluded (4)
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsScheduleModalOpen(false);
+                    setIsMiniCaucusModalOpen(true);
+                  }}
+                  className="text-xs font-bold text-sky-700 hover:text-sky-900 bg-sky-100 hover:bg-sky-200 px-3 py-1.5 rounded-xl transition-colors cursor-pointer"
+                >
+                  + Add / Update Mini-Caucus
+                </button>
+              </div>
+
+              {/* Table / List Body */}
+              <div className="p-6 overflow-y-auto space-y-3.5 max-h-[60vh]">
+                {miniCaucuses
+                  .filter(c => !c.id.includes('sibembe') && !c.groupName?.toLowerCase().includes('sibembe') && !c.title?.toLowerCase().includes('sibembe'))
+                  .filter(c => {
+                    const isConcluded = c.status === 'CONCLUDED' || c.dateLabel.toLowerCase().includes('concluded');
+                    if (scheduleFilter === 'UPCOMING') return !isConcluded;
+                    if (scheduleFilter === 'CONCLUDED') return isConcluded;
+                    return true;
+                  })
+                  .map((c) => {
+                    const isPast = c.status === 'CONCLUDED' || c.dateLabel.toLowerCase().includes('concluded');
+                    const isNext = c.id === 'caucus-kangemi';
+                    const targetSlug = c.wardName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+                    const cleanDate = c.dateLabel.split('(')[0].replace(/concluded: /i, '').trim();
+
+                    return (
+                      <div 
+                        key={`modal-item-${c.id}`}
+                        className={`p-4 rounded-2xl border transition-all ${
+                          isNext 
+                            ? 'bg-amber-50/70 border-amber-300 shadow-sm' 
+                            : isPast 
+                            ? 'bg-stone-50 border-stone-200' 
+                            : 'bg-white border-sky-200 shadow-xs'
+                        }`}
+                      >
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+                          <div className="flex items-center gap-2">
+                            <span className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full ${
+                              isPast 
+                                ? 'bg-stone-200 text-stone-700' 
+                                : isNext 
+                                ? 'bg-red-500 text-white font-black animate-pulse' 
+                                : 'bg-emerald-100 text-emerald-800'
+                            }`}>
+                              {isPast ? 'Concluded' : isNext ? '🔴 Next Up (24 Oct)' : 'Upcoming'}
+                            </span>
+                            <span className="text-xs font-bold text-sky-900">
+                              {cleanDate}
+                            </span>
+                          </div>
+
+                          <span className="text-xs font-semibold text-stone-600 bg-stone-100 px-2.5 py-0.5 rounded-lg">
+                            {c.wardName} Ward • {c.county}
+                          </span>
+                        </div>
+
+                        <h4 className="text-base font-black text-stone-900 mb-3">
+                          {c.title}
+                        </h4>
+
+                        <div className="flex items-center justify-between pt-2 border-t border-stone-100 text-xs">
+                          <span className="text-[11px] text-stone-500 font-medium">
+                            Status: {isPast ? 'Concluded' : 'Upcoming Session'}
+                          </span>
+                          <div className="flex items-center gap-3">
+                            <Link
+                              to={`/ward/${targetSlug}`}
+                              onClick={() => setIsScheduleModalOpen(false)}
+                              className="font-bold text-sky-700 hover:text-sky-900 hover:underline"
+                            >
+                              Visit Ward Wall →
+                            </Link>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+
+              {/* Modal Footer */}
+              <div className="p-4 border-t border-stone-200 bg-stone-50 flex items-center justify-between text-xs">
+                <span className="text-stone-500 text-[11px] sm:text-xs">
+                  Resolutions feed directly into the Quarterly National Citizen Assembly on December 10, 2026.
+                </span>
+                <button 
+                  onClick={() => setIsScheduleModalOpen(false)}
+                  className="bg-sky-600 hover:bg-sky-700 text-white px-5 py-2 rounded-xl font-bold transition-colors cursor-pointer"
+                >
+                  Close Schedule
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }

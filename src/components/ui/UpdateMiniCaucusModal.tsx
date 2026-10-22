@@ -315,14 +315,14 @@ export default function UpdateMiniCaucusModal({
 
             <div>
               <label className="block text-xs font-bold text-stone-700 mb-1">
-                Schedule / Date Label <span className="text-red-500">*</span>
+                Caucus Date <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 required
                 value={dateLabel}
                 onChange={e => setDateLabel(e.target.value)}
-                placeholder="e.g. Concluded: Tuesday, Oct 20 (10:00 AM – 12:00 PM)"
+                placeholder="e.g. Saturday, 24th October 2026"
                 className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-sky-600 outline-none"
               />
             </div>

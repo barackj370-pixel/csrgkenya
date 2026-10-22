@@ -23,7 +23,7 @@ export default function NationalAssemblyPage() {
             Back to Home
           </Link>
           
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <Link
               to="/committee-sittings"
               className="inline-flex items-center gap-1.5 text-xs font-bold text-sky-800 bg-white hover:bg-stone-50 px-4 py-2.5 rounded-xl border border-stone-200 shadow-sm transition-colors"

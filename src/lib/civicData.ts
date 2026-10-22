@@ -871,6 +871,176 @@ export interface MiniCaucusEvent {
 
 export const DEFAULT_MINI_CAUCUSES: MiniCaucusEvent[] = [
   {
+    id: 'caucus-kangemi',
+    wardId: 'ward-kangemi',
+    wardName: 'Kangemi',
+    county: 'Nairobi',
+    groupName: 'Kangemi + New Kangemi',
+    groupId: 'grp-kangemi-grassroots',
+    title: 'Kangemi + New Kangemi Citizen Mini-Caucus',
+    dateLabel: 'Saturday, 24th October 2026',
+    dateIso: '2026-10-24T10:00:00',
+    venue: 'Kangemi, Nairobi',
+    agenda: 'Grassroots citizen deliberation ahead of the December 10 National Citizen Assembly.',
+    status: 'UPCOMING',
+    isSpotlight: true,
+    facilitatorRole: 'Kangemi Citizen Assembly Conveners',
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'caucus-lumakanda-blessed-mothers',
+    wardId: 'ward-lumakanda',
+    wardName: 'Lumakanda',
+    county: 'Kakamega',
+    groupName: 'Blessed Mothers Widows',
+    groupId: 'grp-lumakanda-blessed-mothers',
+    title: 'Blessed Mothers Widows Citizen Mini-Caucus',
+    dateLabel: 'Thursday, 29th October 2026',
+    dateIso: '2026-10-29T10:00:00',
+    venue: 'Lumakanda, Lugari',
+    agenda: 'Grassroots citizen deliberation ahead of the December 10 National Citizen Assembly.',
+    status: 'UPCOMING',
+    isSpotlight: false,
+    facilitatorRole: 'Blessed Mothers Widows Leadership',
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'caucus-karura-redhill',
+    wardId: 'ward-karura',
+    wardName: 'Karura',
+    county: 'Nairobi',
+    groupName: 'Redhill Karura Residents Association',
+    groupId: 'grp-redhill-karura',
+    title: 'Redhill Karura Residents Association Citizen Mini-Caucus',
+    dateLabel: 'Saturday, 31st October 2026',
+    dateIso: '2026-10-31T09:30:00',
+    venue: 'Karura, Nairobi',
+    agenda: 'Grassroots citizen deliberation ahead of the December 10 National Citizen Assembly.',
+    status: 'UPCOMING',
+    isSpotlight: false,
+    facilitatorRole: 'Redhill Karura Executive Committee',
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'caucus-siaya-apuoyo',
+    wardId: 'ward-central-alego',
+    wardName: 'Central Alego',
+    county: 'Siaya',
+    groupName: 'Apuoyo',
+    groupId: 'grp-siaya-apuoyo',
+    title: 'Apuoyo Citizen Mini-Caucus',
+    dateLabel: 'Monday, 2nd November 2026',
+    dateIso: '2026-11-02T10:00:00',
+    venue: 'Apuoyo, Siaya',
+    agenda: 'Grassroots citizen deliberation ahead of the December 10 National Citizen Assembly.',
+    status: 'UPCOMING',
+    isSpotlight: false,
+    facilitatorRole: 'Apuoyo Peasant & Farmers Convener',
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'caucus-nairobi-upendo-hope',
+    wardId: 'ward-nairobi-central',
+    wardName: 'Nairobi Central',
+    county: 'Nairobi',
+    groupName: 'Upendo + Hope + Kina Mama',
+    groupId: 'grp-upendo-hope-kinamama',
+    title: 'Upendo + Hope + Kina Mama Citizen Mini-Caucus',
+    dateLabel: 'Sunday, 8th November 2026',
+    dateIso: '2026-11-08T14:00:00',
+    venue: 'Nairobi',
+    agenda: 'Grassroots citizen deliberation ahead of the December 10 National Citizen Assembly.',
+    status: 'UPCOMING',
+    isSpotlight: false,
+    facilitatorRole: 'Kina Mama Grassroots Alliance',
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'caucus-siaya-ndere',
+    wardId: 'ward-west-alego',
+    wardName: 'West Alego',
+    county: 'Siaya',
+    groupName: 'Ndere',
+    groupId: 'grp-siaya-ndere',
+    title: 'Ndere Citizen Mini-Caucus',
+    dateLabel: 'Sunday, 15th November 2026',
+    dateIso: '2026-11-15T10:00:00',
+    venue: 'Ndere, Siaya',
+    agenda: 'Grassroots citizen deliberation ahead of the December 10 National Citizen Assembly.',
+    status: 'UPCOMING',
+    isSpotlight: false,
+    facilitatorRole: 'Ndere Citizen Caucus Convener',
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'caucus-kuria-angaza',
+    wardId: 'ward-bukira-east',
+    wardName: 'Bukira East',
+    county: 'Migori (Kuria)',
+    groupName: 'Angaza + Nyamagagana',
+    groupId: 'grp-kuria-angaza-nyamagagana',
+    title: 'Angaza + Nyamagagana Citizen Mini-Caucus',
+    dateLabel: 'Thursday, 5th November 2026',
+    dateIso: '2026-11-05T10:00:00',
+    venue: 'Kuria, Migori',
+    agenda: 'Grassroots citizen deliberation ahead of the December 10 National Citizen Assembly.',
+    status: 'UPCOMING',
+    isSpotlight: false,
+    facilitatorRole: 'Angaza Kuria Community Committee',
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'caucus-lumakanda-kona-mmbaya',
+    wardId: 'ward-lumakanda',
+    wardName: 'Lumakanda',
+    county: 'Kakamega',
+    groupName: 'Kona Mmbaya + Friends Without Borders',
+    groupId: 'grp-kona-mmbaya-fwb',
+    title: 'Kona Mmbaya + Friends Without Borders Citizen Mini-Caucus',
+    dateLabel: 'Monday, 9th November 2026',
+    dateIso: '2026-11-09T10:00:00',
+    venue: 'Lumakanda, Kakamega',
+    agenda: 'Grassroots citizen deliberation ahead of the December 10 National Citizen Assembly.',
+    status: 'UPCOMING',
+    isSpotlight: false,
+    facilitatorRole: 'Friends Without Borders Convener',
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'caucus-migori-mariwa-mulo-utoma',
+    wardId: 'ward-south-sakwa',
+    wardName: 'South Sakwa',
+    county: 'Migori',
+    groupName: 'Mariwa, Utoma Widows, and Mulo',
+    groupId: 'grp-mariwa-mulo-utoma',
+    title: 'Mariwa, Utoma Widows, and Mulo Citizen Mini-Caucus',
+    dateLabel: 'Tuesday, 10th November 2026',
+    dateIso: '2026-11-10T10:00:00',
+    venue: 'South Sakwa Ward, Migori',
+    agenda: 'Grassroots citizen deliberation ahead of the December 10 National Citizen Assembly.',
+    status: 'UPCOMING',
+    isSpotlight: false,
+    facilitatorRole: 'South Sakwa Joint Community Conveners',
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'caucus-baringo-kabarnet',
+    wardId: 'ward-kabarnet',
+    wardName: 'Kabarnet',
+    county: 'Baringo',
+    groupName: 'Kabarnet',
+    groupId: 'grp-baringo-kabarnet',
+    title: 'Kabarnet Citizen Mini-Caucus',
+    dateLabel: 'Wednesday, 11th November 2026',
+    dateIso: '2026-11-11T10:00:00',
+    venue: 'Kabarnet, Baringo',
+    agenda: 'Grassroots citizen deliberation ahead of the December 10 National Citizen Assembly.',
+    status: 'UPCOMING',
+    isSpotlight: false,
+    facilitatorRole: 'Kabarnet Civic Action Team',
+    updatedAt: new Date().toISOString()
+  },
+  {
     id: 'caucus-sikhendu-sibembe',
     wardId: 'ward-7',
     wardName: 'Sikhendu',
@@ -878,12 +1048,12 @@ export const DEFAULT_MINI_CAUCUSES: MiniCaucusEvent[] = [
     groupName: 'Sibembe Food Coop',
     groupId: 'grp-sikhendu-sibembe',
     title: 'Sikhendu Ward Citizen Mini-Caucus (Sibembe Food Coop)',
-    dateLabel: 'Concluded: Tuesday, Oct 20 (10:00 AM – 12:00 PM)',
+    dateLabel: 'Tuesday, 20th October 2026',
     dateIso: '2026-10-20T10:00:00',
-    venue: 'Sibembe Community Center / Grounds, Sikhendu Ward',
-    agenda: '2-Hour Grassroots citizen deliberation on October 20, 2026 (10:00 AM – 12:00 PM). Passed motions and adopted resolutions on agroecology, borehole repairs, and community oversight ahead of the December 10 National Citizen Assembly.',
+    venue: 'Sikhendu, Trans Nzoia',
+    agenda: 'Grassroots citizen deliberation ahead of the December 10 National Citizen Assembly.',
     status: 'CONCLUDED',
-    isSpotlight: true,
+    isSpotlight: false,
     facilitatorRole: 'Irene Nyongesa (Sibembe Food Coop Leader)',
     updatedAt: new Date().toISOString()
   }
@@ -891,35 +1061,63 @@ export const DEFAULT_MINI_CAUCUSES: MiniCaucusEvent[] = [
 
 export async function getMiniCaucuses(wardId?: string): Promise<MiniCaucusEvent[]> {
   try {
-    const raw = localStorage.getItem('csrg_mini_caucuses_v1');
+    const raw = localStorage.getItem('csrg_mini_caucuses_v2') || localStorage.getItem('csrg_mini_caucuses_v1');
     if (raw) {
-      const list: MiniCaucusEvent[] = JSON.parse(raw);
+      let list: MiniCaucusEvent[] = JSON.parse(raw);
       if (Array.isArray(list) && list.length > 0) {
-        // Migrate any older Shikendu spellings or stale "tomorrow" status
-        for (const c of list) {
-          if (c.wardName?.toLowerCase() === 'shikendu') {
-            c.wardName = 'Sikhendu';
+        // Ensure all DEFAULT_MINI_CAUCUSES exist in the list
+        for (const defaultCaucus of DEFAULT_MINI_CAUCUSES) {
+          const existing = list.find(c => c.id === defaultCaucus.id);
+          if (!existing) {
+            list.push(defaultCaucus);
           }
-          if (c.id === 'caucus-sikhendu-sibembe' || (c.wardName?.toLowerCase() === 'sikhendu' && c.groupName?.toLowerCase().includes('sibembe')) || (c.wardName?.toLowerCase() === 'shikendu' && c.groupName?.toLowerCase().includes('sibembe'))) {
-            c.wardName = 'Sikhendu';
-            c.groupName = 'Sibembe Food Coop';
-            c.title = 'Sikhendu Ward Citizen Mini-Caucus (Sibembe Food Coop)';
-            c.venue = 'Sibembe Community Center / Grounds, Sikhendu Ward';
-            c.dateLabel = 'Concluded: Tuesday, Oct 20 (10:00 AM – 12:00 PM)';
+        }
+        
+        // Ensure November dates and UPCOMING status for the 4 caucuses, South Sakwa Ward for Mariwa, clean times, and update sibembe
+        for (const c of list) {
+          if (c.id === 'caucus-kuria-angaza' || c.title?.toLowerCase().includes('angaza')) {
+            c.dateLabel = 'Thursday, 5th November 2026';
+            c.dateIso = '2026-11-05T10:00:00';
+            c.status = 'UPCOMING';
+          }
+          if (c.id === 'caucus-lumakanda-kona-mmbaya' || c.title?.toLowerCase().includes('kona mmbaya')) {
+            c.dateLabel = 'Monday, 9th November 2026';
+            c.dateIso = '2026-11-09T10:00:00';
+            c.status = 'UPCOMING';
+          }
+          if (c.id === 'caucus-migori-mariwa-mulo-utoma' || c.groupName?.toLowerCase().includes('mariwa') || c.title?.toLowerCase().includes('mariwa')) {
+            c.wardName = 'South Sakwa';
+            c.wardId = 'ward-south-sakwa';
+            c.county = 'Migori';
+            c.groupName = 'Mariwa, Utoma Widows, and Mulo';
+            c.title = 'Mariwa, Utoma Widows, and Mulo Citizen Mini-Caucus';
+            c.dateLabel = 'Tuesday, 10th November 2026';
+            c.dateIso = '2026-11-10T10:00:00';
+            c.status = 'UPCOMING';
+          }
+          if (c.id === 'caucus-baringo-kabarnet' || c.title?.toLowerCase().includes('kabarnet')) {
+            c.dateLabel = 'Wednesday, 11th November 2026';
+            c.dateIso = '2026-11-11T10:00:00';
+            c.status = 'UPCOMING';
+          }
+          if (c.id === 'caucus-sikhendu-sibembe' || c.groupName?.toLowerCase().includes('sibembe')) {
+            c.isSpotlight = false;
             c.status = 'CONCLUDED';
-            c.facilitatorRole = 'Irene Nyongesa (Sibembe Food Coop Leader)';
-            c.agenda = '2-Hour Grassroots citizen deliberation on October 20, 2026 (10:00 AM – 12:00 PM). Passed motions and adopted resolutions on agroecology, borehole repairs, and community oversight ahead of the December 10 National Citizen Assembly.';
+          }
+          // Strip any time in parentheses from dateLabel
+          if (c.dateLabel && c.dateLabel.includes('(')) {
+            c.dateLabel = c.dateLabel.split('(')[0].trim();
           }
         }
 
-        const sibembeItem = list.find(
-          c => c.id === 'caucus-sikhendu-sibembe' || 
-               ((c.wardName?.toLowerCase() === 'sikhendu' || c.wardName?.toLowerCase() === 'shikendu') && c.groupName?.toLowerCase().includes('sibembe'))
-        );
-        if (!sibembeItem) {
-          list.unshift(DEFAULT_MINI_CAUCUSES[0]);
-        }
-        localStorage.setItem('csrg_mini_caucuses_v1', JSON.stringify(list));
+        // Sort upcoming caucuses first
+        list.sort((a, b) => {
+          if (a.status === 'UPCOMING' && b.status !== 'UPCOMING') return -1;
+          if (a.status !== 'UPCOMING' && b.status === 'UPCOMING') return 1;
+          return 0;
+        });
+
+        localStorage.setItem('csrg_mini_caucuses_v2', JSON.stringify(list));
         if (wardId) {
           return list.filter(c => c.wardId === wardId);
         }
@@ -931,7 +1129,7 @@ export async function getMiniCaucuses(wardId?: string): Promise<MiniCaucusEvent[
   }
 
   try {
-    localStorage.setItem('csrg_mini_caucuses_v1', JSON.stringify(DEFAULT_MINI_CAUCUSES));
+    localStorage.setItem('csrg_mini_caucuses_v2', JSON.stringify(DEFAULT_MINI_CAUCUSES));
   } catch {}
   if (wardId) {
     return DEFAULT_MINI_CAUCUSES.filter(c => c.wardId === wardId);
@@ -977,6 +1175,7 @@ export async function saveMiniCaucus(caucus: Partial<MiniCaucusEvent> & { wardNa
   }
 
   try {
+    localStorage.setItem('csrg_mini_caucuses_v2', JSON.stringify(updatedList));
     localStorage.setItem('csrg_mini_caucuses_v1', JSON.stringify(updatedList));
   } catch {}
 
@@ -991,6 +1190,7 @@ export async function deleteMiniCaucus(id: string): Promise<void> {
   const currentList = await getMiniCaucuses();
   const filtered = currentList.filter(c => c.id !== id);
   try {
+    localStorage.setItem('csrg_mini_caucuses_v2', JSON.stringify(filtered));
     localStorage.setItem('csrg_mini_caucuses_v1', JSON.stringify(filtered));
   } catch {}
   if (typeof window !== 'undefined') {
