@@ -53,6 +53,8 @@ import {
   cheerGroupActivity,
   deleteGroupActivity,
   updateGroupRoster,
+  sanitizeGroupAttribution,
+  sanitizeGroupRole,
   GroupWallIssue,
   GroupWallResolution,
   GroupActivity
@@ -118,19 +120,23 @@ export default function GroupWallExpanded({
   const [isActivityModalOpen, setIsActivityModalOpen] = useState(false);
   const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
 
+  const isAdminOrClerk = user?.role === 'ADMIN' || user?.role === 'CLERK';
+  const institutionalGroupAuthor = isSibembe ? 'Irene Nyongesa' : (groupLeaderName || 'Group Convener & Secretariat');
+  const institutionalGroupRole = isSibembe ? 'Group Leader & Convener' : (groupLeaderRole || 'Group Convener & Secretariat');
+
   // Issue Form State
   const [issueTitle, setIssueTitle] = useState('');
   const [issueDescription, setIssueDescription] = useState('');
   const [issueSolution, setIssueSolution] = useState('');
-  const [issueSubmitter, setIssueSubmitter] = useState(user?.name || groupLeaderName || 'Group Member');
+  const [issueSubmitter, setIssueSubmitter] = useState(isAdminOrClerk ? institutionalGroupAuthor : (user?.name || institutionalGroupAuthor));
   const [issueStatus, setIssueStatus] = useState<GroupWallIssue['status']>('PROPOSED');
 
   // Resolution Form State
   const [resTitle, setResTitle] = useState('');
   const [resSummary, setResSummary] = useState('');
   const [resActionPoints, setResActionPoints] = useState('');
-  const [resCertifier, setResCertifier] = useState(user?.name || groupLeaderName || 'Group Leader');
-  const [resRole, setResRole] = useState(user?.role === 'CLERK' ? 'Ward Clerk' : user?.role === 'ADMIN' ? 'Platform Administrator' : (groupLeaderRole || 'Group Convener'));
+  const [resCertifier, setResCertifier] = useState(isAdminOrClerk ? institutionalGroupAuthor : (user?.name || institutionalGroupAuthor));
+  const [resRole, setResRole] = useState(isAdminOrClerk ? institutionalGroupRole : (groupLeaderRole || 'Group Convener'));
   const [resFile, setResFile] = useState<File | null>(null);
   const [resFileUrl, setResFileUrl] = useState<string>('');
   const [resIsPinned, setResIsPinned] = useState(false);
@@ -208,7 +214,7 @@ export default function GroupWallExpanded({
       title: issueTitle.trim(),
       description: issueDescription.trim(),
       proposedSolution: issueSolution.trim() || undefined,
-      submittedBy: issueSubmitter.trim() || groupLeaderName || 'Group Member',
+      submittedBy: isAdminOrClerk ? institutionalGroupAuthor : (issueSubmitter.trim() || institutionalGroupAuthor),
       status: issueStatus || 'PROPOSED'
     });
 
@@ -222,7 +228,7 @@ export default function GroupWallExpanded({
 
   // Update Status of an Issue (e.g. Mark as Passed Motion, Adopt as Resolution)
   const handleUpdateIssueStatus = async (issueId: string, newStatus: GroupWallIssue['status']) => {
-    const cert = isSibembe ? 'Irene Nyongesa (Group Leader)' : (user?.name || groupLeaderName || 'Group Leader');
+    const cert = isSibembe ? 'Irene Nyongesa (Group Leader)' : (groupLeaderName ? `${groupLeaderName} (Group Convener)` : 'Group Convener & Secretariat');
     const updated = await updateGroupWallIssueStatus(issueId, group.id, newStatus, cert);
     if (updated) {
       setIssues(prev => prev.map(it => it.id === issueId ? { 
@@ -367,8 +373,8 @@ Generated on: ${new Date().toLocaleString()}
       summary: resSummary.trim(),
       actionPoints: actions.length > 0 ? actions : undefined,
       adoptedDate: new Date().toISOString().split('T')[0],
-      certifiedBy: resCertifier.trim() || group.leaderName || 'Leader',
-      certifiedRole: resRole.trim() || 'Group Leader',
+      certifiedBy: isAdminOrClerk ? institutionalGroupAuthor : (resCertifier.trim() || institutionalGroupAuthor),
+      certifiedRole: isAdminOrClerk ? institutionalGroupRole : (resRole.trim() || institutionalGroupRole),
       fileUrl: resFileUrl || undefined,
       fileName: resFile?.name || undefined,
       isPinned: resIsPinned
@@ -402,7 +408,7 @@ Generated on: ${new Date().toLocaleString()}
       keyOutcomes: actOutcomes.trim() || 'Successfully conducted community activity.',
       participantCount: Number(actParticipants) || 15,
       imageUrl: actImage || undefined,
-      postedBy: user?.name ? `${user.name} (${user.role === 'CLERK' ? 'Ward Clerk' : 'Leader'})` : `${group.leaderName || 'Group Leader'}`
+      postedBy: isAdminOrClerk ? institutionalGroupAuthor : (user?.name || institutionalGroupAuthor)
     });
 
     setActivities(prev => [newAct, ...prev]);
@@ -574,16 +580,6 @@ Generated on: ${new Date().toLocaleString()}
               <span>+ Add Member</span>
             </button>
 
-            {/* Direct Live Stream Button */}
-            <button
-              onClick={() => setActiveTab('livestream')}
-              className="inline-flex items-center gap-1.5 bg-red-600 hover:bg-red-500 text-white font-bold px-3.5 py-2.5 rounded-xl text-xs sm:text-sm shadow-md transition-all hover:scale-[1.02] cursor-pointer"
-              title="Broadcast or watch live proceedings without YouTube or paid tools"
-            >
-              <Radio className="w-4 h-4 animate-pulse" />
-              <span>Live Stream</span>
-            </button>
-
             {canPostAsLeader ? (
               <div className="inline-flex items-center gap-2 bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 px-3 py-1.5 rounded-xl text-xs font-bold">
                 <ShieldCheck className="w-4 h-4 text-emerald-400" />
@@ -664,18 +660,6 @@ Generated on: ${new Date().toLocaleString()}
           <span className="bg-sky-700/20 text-sky-800 text-[10px] font-black px-2 py-0.5 rounded-full ml-1">
             {resolutions.length}
           </span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('livestream')}
-          className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer ${
-            activeTab === 'livestream'
-              ? 'bg-red-600 text-white shadow-sm'
-              : 'text-stone-600 hover:text-red-600 hover:bg-stone-100'
-          }`}
-        >
-          <Radio className="w-4 h-4 animate-pulse" />
-          <span>🔴 Live Stream & Floor</span>
         </button>
 
         <button
@@ -918,7 +902,7 @@ Generated on: ${new Date().toLocaleString()}
                             {issue.status !== 'PASSED_MOTION' && issue.status !== 'ADOPTED_RESOLUTION' && issue.status !== 'DELIBERATED' && issue.status !== 'DELIBERATING' && '⚪ PROPOSED ISSUE'}
                           </span>
                           <span className="text-xs text-stone-400">
-                            Submitted by {issue.submittedBy}
+                            Submitted by {sanitizeGroupAttribution(issue.submittedBy, groupLeaderName)}
                           </span>
                         </div>
                         <h5 className="text-lg font-bold text-stone-900">{issue.title}</h5>
@@ -986,7 +970,7 @@ Generated on: ${new Date().toLocaleString()}
                       <div className="flex items-center gap-2">
                         {issue.certifiedBy && (
                           <span className="text-[11px] text-stone-500 italic">
-                            Certified by: {issue.certifiedBy}
+                            Certified by: {sanitizeGroupAttribution(issue.certifiedBy, groupLeaderName)}
                           </span>
                         )}
                         <button
@@ -1128,7 +1112,7 @@ Generated on: ${new Date().toLocaleString()}
                       )}
 
                       <div className="pt-3 border-t border-stone-200 flex flex-wrap items-center justify-between text-xs text-stone-500 gap-2">
-                        <span>Officiated by: <strong>{res.certifiedBy}</strong> ({res.certifiedRole})</span>
+                        <span>Officiated by: <strong>{sanitizeGroupAttribution(res.certifiedBy, groupLeaderName)}</strong> ({sanitizeGroupRole(res.certifiedRole)})</span>
                         <div className="flex flex-wrap items-center gap-2">
                           <button
                             type="button"
@@ -1184,38 +1168,7 @@ Generated on: ${new Date().toLocaleString()}
           </div>
         )}
 
-        {/* 4. LIVE STREAM & CAUCUS FLOOR TAB */}
-        {activeTab === 'livestream' && (
-          <div className="space-y-4">
-            <div className="bg-gradient-to-r from-red-950 via-stone-900 to-sky-950 text-white p-5 rounded-2xl flex flex-wrap items-center justify-between gap-3 shadow-md border border-red-500/20">
-              <div className="flex items-center gap-2.5">
-                <div className="w-3 h-3 rounded-full bg-red-500 animate-ping shrink-0" />
-                <div>
-                  <h4 className="text-base font-black">
-                    Live Broadcast & Proceedings Floor: {group.name}
-                  </h4>
-                  <p className="text-xs text-stone-300">
-                    Direct in-browser streaming via WebRTC & MediaStream. No YouTube channel required, 100% free community broadcast.
-                  </p>
-                </div>
-              </div>
 
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-emerald-400 bg-emerald-950/80 px-3 py-1 rounded-full border border-emerald-800">
-                  {canPostAsLeader ? 'Broadcaster Privileges Active' : 'Citizen Viewer Mode'}
-                </span>
-              </div>
-            </div>
-
-            <CitizenLiveStream
-              groupId={group.id}
-              groupName={group.name}
-              wardName={wardName}
-              leaderName={groupLeaderName || 'Irene Nyongesa'}
-              isLeader={canPostAsLeader}
-            />
-          </div>
-        )}
 
         {/* 5. GROUP ACTIVITIES TAB */}
         {activeTab === 'activities' && (
@@ -1280,7 +1233,7 @@ Generated on: ${new Date().toLocaleString()}
 
                         <div className="flex items-center justify-between text-xs">
                           <span className="text-stone-400">
-                            By {act.postedBy} • {act.participantCount} Wananchi
+                            By {sanitizeGroupAttribution(act.postedBy, groupLeaderName)} • {act.participantCount} Wananchi
                           </span>
                           <div className="flex items-center gap-2">
                             <button
@@ -2130,7 +2083,7 @@ Generated on: ${new Date().toLocaleString()}
                     <div className="flex flex-wrap items-center gap-3 text-xs text-stone-300">
                       <span>Adopted on: <strong>{readingResolution.adoptedDate}</strong></span>
                       <span>•</span>
-                      <span>Certified by: <strong>{readingResolution.certifiedBy}</strong> ({readingResolution.certifiedRole})</span>
+                      <span>Certified by: <strong>{sanitizeGroupAttribution(readingResolution.certifiedBy, groupLeaderName)}</strong> ({sanitizeGroupRole(readingResolution.certifiedRole)})</span>
                       <span>•</span>
                       <span className="text-amber-300 font-bold">{readingResolution.supportCount} Wananchi Ratifications</span>
                     </div>
@@ -2197,7 +2150,7 @@ Generated on: ${new Date().toLocaleString()}
                     <button
                       type="button"
                       onClick={() => {
-                        const copyContent = `${readingResolution.title}\nResolution No: ${readingResolution.resolutionNumber || 'RES-CAUCUS-2026'}\nAdopted: ${readingResolution.adoptedDate}\nWard: ${wardName} Ward\nGroup: ${group.name}\nCertified By: ${readingResolution.certifiedBy} (${readingResolution.certifiedRole})\n\nMandate Statement:\n${readingResolution.summary}\n\nAction Points:\n${(readingResolution.actionPoints || []).map((pt, i) => `${i + 1}. ${pt}`).join('\n')}`;
+                        const copyContent = `${readingResolution.title}\nResolution No: ${readingResolution.resolutionNumber || 'RES-CAUCUS-2026'}\nAdopted: ${readingResolution.adoptedDate}\nWard: ${wardName} Ward\nGroup: ${group.name}\nCertified By: ${sanitizeGroupAttribution(readingResolution.certifiedBy, groupLeaderName)} (${sanitizeGroupRole(readingResolution.certifiedRole)})\n\nMandate Statement:\n${readingResolution.summary}\n\nAction Points:\n${(readingResolution.actionPoints || []).map((pt, i) => `${i + 1}. ${pt}`).join('\n')}`;
                         navigator.clipboard.writeText(copyContent);
                         alert('Full resolution text copied to clipboard!');
                       }}

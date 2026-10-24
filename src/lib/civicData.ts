@@ -312,6 +312,49 @@ export interface GroupActivity {
   createdAt: string;
 }
 
+export function sanitizeWardAttribution(name?: string): string {
+  if (!name) return 'Office of the Ward Clerk';
+  const lower = name.toLowerCase();
+  if (
+    lower.includes('admin') ||
+    lower.includes('clerk') ||
+    lower.includes('@') ||
+    lower.includes('root') ||
+    lower.includes('system')
+  ) {
+    return 'Office of the Ward Clerk';
+  }
+  return name;
+}
+
+export function sanitizeGroupAttribution(name?: string, fallbackGroupLeader?: string): string {
+  if (!name) return fallbackGroupLeader || 'Group Secretariat';
+  const lower = name.toLowerCase();
+  if (
+    lower.includes('admin') ||
+    lower.includes('clerk') ||
+    lower.includes('@') ||
+    lower.includes('root') ||
+    lower.includes('system')
+  ) {
+    return fallbackGroupLeader || 'Group Convener & Secretariat';
+  }
+  return name;
+}
+
+export function sanitizeGroupRole(role?: string): string {
+  if (!role) return 'Group Secretariat';
+  const lower = role.toLowerCase();
+  if (
+    lower.includes('admin') ||
+    lower.includes('clerk') ||
+    lower.includes('platform administrator')
+  ) {
+    return 'Group Convener & Secretariat';
+  }
+  return role;
+}
+
 const DEFAULT_ACTIVITIES: GroupActivity[] = [];
 
 export async function getGroupActivities(wardId?: string, groupId?: string): Promise<GroupActivity[]> {
@@ -324,7 +367,10 @@ export async function getGroupActivities(wardId?: string, groupId?: string): Pro
     }
     const { data, error } = await query;
     if (!error && data && data.length > 0) {
-      return filterMockItems(data);
+      return (filterMockItems(data as any[]) as GroupActivity[]).map(a => ({
+        ...a,
+        postedBy: sanitizeGroupAttribution(a.postedBy)
+      }));
     }
   } catch (err) {
     console.warn('GroupActivity query failed, using local cache:', err);
@@ -333,13 +379,17 @@ export async function getGroupActivities(wardId?: string, groupId?: string): Pro
   try {
     const raw = localStorage.getItem('csrg_group_activities_v1');
     const list: GroupActivity[] = raw ? filterMockItems(JSON.parse(raw)) : DEFAULT_ACTIVITIES;
+    const sanitizedList = list.map(a => ({
+      ...a,
+      postedBy: sanitizeGroupAttribution(a.postedBy)
+    }));
     if (groupId) {
-      return list.filter(a => a.groupId === groupId);
+      return sanitizedList.filter(a => a.groupId === groupId);
     }
     if (wardId) {
-      return list.filter(a => a.wardId === wardId);
+      return sanitizedList.filter(a => a.wardId === wardId);
     }
-    return list;
+    return sanitizedList;
   } catch {
     return DEFAULT_ACTIVITIES;
   }
@@ -348,6 +398,7 @@ export async function getGroupActivities(wardId?: string, groupId?: string): Pro
 export async function saveGroupActivity(activity: Omit<GroupActivity, 'id' | 'createdAt' | 'cheersCount'>): Promise<GroupActivity> {
   const newActivity: GroupActivity = {
     ...activity,
+    postedBy: sanitizeGroupAttribution(activity.postedBy),
     id: generateCleanId('act'),
     cheersCount: 1,
     createdAt: new Date().toISOString()
@@ -433,7 +484,11 @@ export async function getGroupWallIssues(groupId: string): Promise<GroupWallIssu
   try {
     const { data, error } = await supabase.from('GroupIssue').select('*').eq('groupId', groupId).order('votes', { ascending: false });
     if (!error && data && data.length > 0) {
-      return filterMockItems(data);
+      return (filterMockItems(data as any[]) as GroupWallIssue[]).map(i => ({
+        ...i,
+        submittedBy: sanitizeGroupAttribution(i.submittedBy),
+        certifiedBy: i.certifiedBy ? sanitizeGroupAttribution(i.certifiedBy) : undefined
+      }));
     }
   } catch {
     // ignore
@@ -442,7 +497,12 @@ export async function getGroupWallIssues(groupId: string): Promise<GroupWallIssu
   try {
     const raw = localStorage.getItem(`csrg_grp_issues_${groupId}`);
     if (raw) {
-      return filterMockItems(JSON.parse(raw));
+      const items: GroupWallIssue[] = filterMockItems(JSON.parse(raw));
+      return items.map(i => ({
+        ...i,
+        submittedBy: sanitizeGroupAttribution(i.submittedBy),
+        certifiedBy: i.certifiedBy ? sanitizeGroupAttribution(i.certifiedBy) : undefined
+      }));
     }
   } catch {
     // ignore
@@ -454,6 +514,7 @@ export async function getGroupWallIssues(groupId: string): Promise<GroupWallIssu
 export async function saveGroupWallIssue(issue: Omit<GroupWallIssue, 'id' | 'votes' | 'votedUserIds' | 'createdAt'>): Promise<GroupWallIssue> {
   const newIssue: GroupWallIssue = {
     ...issue,
+    submittedBy: sanitizeGroupAttribution(issue.submittedBy),
     id: generateCleanId('gissue'),
     votes: 1,
     votedUserIds: [],
@@ -490,7 +551,7 @@ export async function updateGroupWallIssueStatus(
       const item = list.find(it => it.id === id);
       if (item) {
         item.status = status;
-        if (certifiedBy) item.certifiedBy = certifiedBy;
+        if (certifiedBy) item.certifiedBy = sanitizeGroupAttribution(certifiedBy);
         if (status === 'PASSED_MOTION' || status === 'ADOPTED_RESOLUTION') {
           item.passedAt = new Date().toISOString();
 
@@ -564,7 +625,11 @@ export async function getGroupWallResolutions(groupId: string): Promise<GroupWal
   try {
     const { data, error } = await supabase.from('GroupResolution').select('*').eq('groupId', groupId).order('adoptedDate', { ascending: false });
     if (!error && data && data.length > 0) {
-      return filterMockItems(data);
+      return (filterMockItems(data as any[]) as GroupWallResolution[]).map(r => ({
+        ...r,
+        certifiedBy: sanitizeGroupAttribution(r.certifiedBy),
+        certifiedRole: sanitizeGroupRole(r.certifiedRole)
+      }));
     }
   } catch {
     // ignore
@@ -573,7 +638,12 @@ export async function getGroupWallResolutions(groupId: string): Promise<GroupWal
   try {
     const raw = localStorage.getItem(`csrg_grp_resolutions_${groupId}`);
     if (raw) {
-      return filterMockItems(JSON.parse(raw));
+      const list: GroupWallResolution[] = filterMockItems(JSON.parse(raw));
+      return list.map(r => ({
+        ...r,
+        certifiedBy: sanitizeGroupAttribution(r.certifiedBy),
+        certifiedRole: sanitizeGroupRole(r.certifiedRole)
+      }));
     }
   } catch {
     // ignore
@@ -583,8 +653,12 @@ export async function getGroupWallResolutions(groupId: string): Promise<GroupWal
 }
 
 export async function saveGroupWallResolution(res: Omit<GroupWallResolution, 'id' | 'supportCount' | 'createdAt'>): Promise<GroupWallResolution> {
+  const cleanCertifier = sanitizeGroupAttribution(res.certifiedBy);
+  const cleanRole = sanitizeGroupRole(res.certifiedRole);
   const newRes: GroupWallResolution = {
     ...res,
+    certifiedBy: cleanCertifier,
+    certifiedRole: cleanRole,
     id: generateCleanId('gres'),
     resolutionNumber: `RES-${(res.wardName || 'SHI').slice(0, 3).toUpperCase()}-${Date.now().toString().slice(-4)}`,
     supportCount: 1,
@@ -1059,82 +1133,96 @@ export const DEFAULT_MINI_CAUCUSES: MiniCaucusEvent[] = [
   }
 ];
 
+export const CAUCUS_STORAGE_KEY = 'csrg_mini_caucuses_v5';
+
 export async function getMiniCaucuses(wardId?: string): Promise<MiniCaucusEvent[]> {
   try {
-    const raw = localStorage.getItem('csrg_mini_caucuses_v2') || localStorage.getItem('csrg_mini_caucuses_v1');
-    if (raw) {
-      let list: MiniCaucusEvent[] = JSON.parse(raw);
-      if (Array.isArray(list) && list.length > 0) {
-        // Ensure all DEFAULT_MINI_CAUCUSES exist in the list
-        for (const defaultCaucus of DEFAULT_MINI_CAUCUSES) {
-          const existing = list.find(c => c.id === defaultCaucus.id);
-          if (!existing) {
-            list.push(defaultCaucus);
-          }
-        }
-        
-        // Ensure November dates and UPCOMING status for the 4 caucuses, South Sakwa Ward for Mariwa, clean times, and update sibembe
-        for (const c of list) {
-          if (c.id === 'caucus-kuria-angaza' || c.title?.toLowerCase().includes('angaza')) {
-            c.dateLabel = 'Thursday, 5th November 2026';
-            c.dateIso = '2026-11-05T10:00:00';
-            c.status = 'UPCOMING';
-          }
-          if (c.id === 'caucus-lumakanda-kona-mmbaya' || c.title?.toLowerCase().includes('kona mmbaya')) {
-            c.dateLabel = 'Monday, 9th November 2026';
-            c.dateIso = '2026-11-09T10:00:00';
-            c.status = 'UPCOMING';
-          }
-          if (c.id === 'caucus-migori-mariwa-mulo-utoma' || c.groupName?.toLowerCase().includes('mariwa') || c.title?.toLowerCase().includes('mariwa')) {
-            c.wardName = 'South Sakwa';
-            c.wardId = 'ward-south-sakwa';
-            c.county = 'Migori';
-            c.groupName = 'Mariwa, Utoma Widows, and Mulo';
-            c.title = 'Mariwa, Utoma Widows, and Mulo Citizen Mini-Caucus';
-            c.dateLabel = 'Tuesday, 10th November 2026';
-            c.dateIso = '2026-11-10T10:00:00';
-            c.status = 'UPCOMING';
-          }
-          if (c.id === 'caucus-baringo-kabarnet' || c.title?.toLowerCase().includes('kabarnet')) {
-            c.dateLabel = 'Wednesday, 11th November 2026';
-            c.dateIso = '2026-11-11T10:00:00';
-            c.status = 'UPCOMING';
-          }
-          if (c.id === 'caucus-sikhendu-sibembe' || c.groupName?.toLowerCase().includes('sibembe')) {
-            c.isSpotlight = false;
-            c.status = 'CONCLUDED';
-          }
-          // Strip any time in parentheses from dateLabel
-          if (c.dateLabel && c.dateLabel.includes('(')) {
-            c.dateLabel = c.dateLabel.split('(')[0].trim();
-          }
-        }
+    // Purge outdated legacy caches that had stale 'CONCLUDED' status or October dates
+    localStorage.removeItem('csrg_mini_caucuses_v1');
+    localStorage.removeItem('csrg_mini_caucuses_v2');
+    localStorage.removeItem('csrg_mini_caucuses_v3');
+    localStorage.removeItem('csrg_mini_caucuses_v4');
 
-        // Sort upcoming caucuses first
-        list.sort((a, b) => {
-          if (a.status === 'UPCOMING' && b.status !== 'UPCOMING') return -1;
-          if (a.status !== 'UPCOMING' && b.status === 'UPCOMING') return 1;
-          return 0;
-        });
+    const raw = localStorage.getItem(CAUCUS_STORAGE_KEY);
+    let list: MiniCaucusEvent[] = raw ? JSON.parse(raw) : [...DEFAULT_MINI_CAUCUSES];
+    if (!Array.isArray(list) || list.length === 0) {
+      list = [...DEFAULT_MINI_CAUCUSES];
+    }
 
-        localStorage.setItem('csrg_mini_caucuses_v2', JSON.stringify(list));
-        if (wardId) {
-          return list.filter(c => c.wardId === wardId);
-        }
-        return list;
+    // Ensure all DEFAULT_MINI_CAUCUSES exist in the list
+    for (const defaultCaucus of DEFAULT_MINI_CAUCUSES) {
+      const idx = list.findIndex(c => c.id === defaultCaucus.id);
+      if (idx === -1) {
+        list.push({ ...defaultCaucus });
       }
     }
+    
+    // Strict Sanitization: All 10 caucuses in the schedule are UPCOMING (none are concluded)
+    for (const c of list) {
+      const isSibembe = c.id === 'caucus-sikhendu-sibembe' || c.groupName?.toLowerCase().includes('sibembe') || c.title?.toLowerCase().includes('sibembe');
+      if (isSibembe) {
+        c.isSpotlight = false;
+        c.status = 'CONCLUDED';
+        continue;
+      }
+
+      // Strip any accidental "Concluded:" or time in parentheses from dateLabel
+      if (c.dateLabel) {
+        c.dateLabel = c.dateLabel.replace(/concluded:?\s*/i, '').split('(')[0].trim();
+      }
+
+      // All 10 active caucuses in the schedule MUST be UPCOMING
+      c.status = 'UPCOMING';
+
+      // Ensure exact November dates and locations for the last 4 caucuses
+      if (c.id === 'caucus-kuria-angaza' || c.title?.toLowerCase().includes('angaza') || c.title?.toLowerCase().includes('kuria')) {
+        c.dateLabel = 'Thursday, 5th November 2026';
+        c.dateIso = '2026-11-05T10:00:00';
+        c.status = 'UPCOMING';
+      } else if (c.id === 'caucus-lumakanda-kona-mmbaya' || c.title?.toLowerCase().includes('kona mmbaya') || c.title?.toLowerCase().includes('friends without borders')) {
+        c.dateLabel = 'Monday, 9th November 2026';
+        c.dateIso = '2026-11-09T10:00:00';
+        c.status = 'UPCOMING';
+      } else if (c.id === 'caucus-migori-mariwa-mulo-utoma' || c.groupName?.toLowerCase().includes('mariwa') || c.title?.toLowerCase().includes('mariwa')) {
+        c.wardName = 'South Sakwa';
+        c.wardId = 'ward-south-sakwa';
+        c.county = 'Migori';
+        c.groupName = 'Mariwa, Utoma Widows, and Mulo';
+        c.title = 'Mariwa, Utoma Widows, and Mulo Citizen Mini-Caucus';
+        c.dateLabel = 'Tuesday, 10th November 2026';
+        c.dateIso = '2026-11-10T10:00:00';
+        c.status = 'UPCOMING';
+      } else if (c.id === 'caucus-baringo-kabarnet' || c.title?.toLowerCase().includes('kabarnet')) {
+        c.wardName = 'Kabarnet';
+        c.wardId = 'ward-kabarnet';
+        c.county = 'Baringo';
+        c.dateLabel = 'Wednesday, 11th November 2026';
+        c.dateIso = '2026-11-11T10:00:00';
+        c.status = 'UPCOMING';
+      }
+    }
+
+    // Sort: Kangemi first (spotlight/next), then by upcoming dates
+    list.sort((a, b) => {
+      if (a.id === 'caucus-kangemi') return -1;
+      if (b.id === 'caucus-kangemi') return 1;
+      if (a.status === 'UPCOMING' && b.status !== 'UPCOMING') return -1;
+      if (a.status !== 'UPCOMING' && b.status === 'UPCOMING') return 1;
+      return new Date(a.dateIso).getTime() - new Date(b.dateIso).getTime();
+    });
+
+    localStorage.setItem(CAUCUS_STORAGE_KEY, JSON.stringify(list));
+    if (wardId) {
+      return list.filter(c => c.wardId === wardId);
+    }
+    return list;
   } catch (e) {
     console.warn('Failed to load mini caucuses from storage:', e);
+    if (wardId) {
+      return DEFAULT_MINI_CAUCUSES.filter(c => c.wardId === wardId);
+    }
+    return DEFAULT_MINI_CAUCUSES;
   }
-
-  try {
-    localStorage.setItem('csrg_mini_caucuses_v2', JSON.stringify(DEFAULT_MINI_CAUCUSES));
-  } catch {}
-  if (wardId) {
-    return DEFAULT_MINI_CAUCUSES.filter(c => c.wardId === wardId);
-  }
-  return DEFAULT_MINI_CAUCUSES;
 }
 
 export async function saveMiniCaucus(caucus: Partial<MiniCaucusEvent> & { wardName: string; groupName: string }): Promise<MiniCaucusEvent> {
@@ -1175,8 +1263,7 @@ export async function saveMiniCaucus(caucus: Partial<MiniCaucusEvent> & { wardNa
   }
 
   try {
-    localStorage.setItem('csrg_mini_caucuses_v2', JSON.stringify(updatedList));
-    localStorage.setItem('csrg_mini_caucuses_v1', JSON.stringify(updatedList));
+    localStorage.setItem(CAUCUS_STORAGE_KEY, JSON.stringify(updatedList));
   } catch {}
 
   if (typeof window !== 'undefined') {
@@ -1190,8 +1277,7 @@ export async function deleteMiniCaucus(id: string): Promise<void> {
   const currentList = await getMiniCaucuses();
   const filtered = currentList.filter(c => c.id !== id);
   try {
-    localStorage.setItem('csrg_mini_caucuses_v2', JSON.stringify(filtered));
-    localStorage.setItem('csrg_mini_caucuses_v1', JSON.stringify(filtered));
+    localStorage.setItem(CAUCUS_STORAGE_KEY, JSON.stringify(filtered));
   } catch {}
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('csrg_minicaucuses_updated'));
@@ -1611,11 +1697,12 @@ export async function getWardResolutions(wardId?: string): Promise<WardResolutio
     // ignore
   }
 
-  // Normalize author / uploadedBy fields
+  // Normalize and sanitize author / uploadedBy fields (hide admin/clerk personal names)
   for (const d of allDocs) {
     if (!d.uploadedBy && (d as any).officerName) {
       d.uploadedBy = (d as any).officerName;
     }
+    d.uploadedBy = sanitizeWardAttribution(d.uploadedBy);
   }
 
   // Filter by ward if requested
@@ -1669,10 +1756,13 @@ export async function saveWardResolution(doc: Omit<WardResolutionDoc, 'id' | 'cr
     }
   }
 
+  const cleanAuthor = sanitizeWardAttribution(doc.uploadedBy);
+
   const newDoc: WardResolutionDoc = {
     ...doc,
     wardName: resolvedWardName || doc.wardName || 'Ward',
     county: resolvedCounty || doc.county || 'Kenya',
+    uploadedBy: cleanAuthor,
     id: generateCleanId('doc'),
     createdAt: new Date().toISOString()
   };
@@ -1698,7 +1788,7 @@ export async function saveWardResolution(doc: Omit<WardResolutionDoc, 'id' | 'cr
       wardId: newDoc.wardId,
       wardName: newDoc.wardName,
       status: 'PASSED',
-      certifiedBy: newDoc.uploadedBy || 'Ward Clerk',
+      certifiedBy: cleanAuthor,
       votesFor: 38,
       votesAgainst: 0,
       createdAt: newDoc.createdAt

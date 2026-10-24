@@ -18,6 +18,7 @@ import {
   getGroupActivities, 
   saveGroupActivity, 
   cheerGroupActivity, 
+  sanitizeWardAttribution,
   GroupActivity 
 } from '../../lib/civicData';
 import { useAuth } from '../../contexts/AuthContext';
@@ -104,7 +105,7 @@ export default function WardGroupActivitiesSection({ wardId, wardName, groups = 
         keyOutcomes: formKeyOutcomes.trim(),
         participantCount: Number(formParticipants) || 10,
         imageUrl: formImage || undefined,
-        postedBy: user?.name ? `${user.name} (${user.role === 'CLERK' ? 'Ward Clerk' : 'Member'})` : 'Group Representative'
+        postedBy: (user?.role === 'ADMIN' || user?.role === 'CLERK') ? 'Office of the Ward Clerk' : (user?.name || 'Group Representative')
       });
 
       setActivities(prev => [newAct, ...prev]);
@@ -258,7 +259,7 @@ export default function WardGroupActivitiesSection({ wardId, wardName, groups = 
               {/* Card Footer: Cheers and Author */}
               <div className="px-5 py-3 border-t border-stone-100 bg-stone-50/50 flex items-center justify-between text-xs">
                 <span className="text-[11px] text-stone-400">
-                  Posted by {act.postedBy}
+                  Posted by {sanitizeWardAttribution(act.postedBy)}
                 </span>
 
                 <button

@@ -72,6 +72,7 @@ export default function Home() {
   // Mini-Caucus and New features state
   const [miniCaucuses, setMiniCaucuses] = useState<MiniCaucusEvent[]>([]);
   const [activeCaucusIndex, setActiveCaucusIndex] = useState(0);
+  const [userSelectedCaucusIndex, setUserSelectedCaucusIndex] = useState<number | null>(null);
   const [isMiniCaucusModalOpen, setIsMiniCaucusModalOpen] = useState(false);
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
   const [scheduleFilter, setScheduleFilter] = useState<'ALL' | 'UPCOMING' | 'CONCLUDED'>('ALL');
@@ -173,22 +174,55 @@ export default function Home() {
             {/* Carousel Slide 0: NATIONAL CITIZENS ASSEMBLY MINI-CAUCUS SCHEDULE (Carousel 1) */}
             {currentSlide === 0 ? (
               (() => {
-                // Filter out Sibembe from header carousel #1 as requested since it already concluded on Oct 20
-                const headerCaucuses = miniCaucuses.filter(c => 
-                  !c.id.includes('sibembe') && 
-                  !c.groupName?.toLowerCase().includes('sibembe') && 
-                  !c.title?.toLowerCase().includes('sibembe')
-                );
-                const safeCaucus = headerCaucuses[activeCaucusIndex] || headerCaucuses[0];
+                const getCaucusDateStr = (c: MiniCaucusEvent): string => {
+                  if (c.dateIso) return c.dateIso.split('T')[0];
+                  const l = (c.dateLabel || '').toLowerCase();
+                  if (l.includes('24th october')) return '2026-10-24';
+                  if (l.includes('29th october')) return '2026-10-29';
+                  if (l.includes('31st october')) return '2026-10-31';
+                  if (l.includes('2nd november')) return '2026-11-02';
+                  if (l.includes('5th november') || l.includes('5th october')) return '2026-11-05';
+                  if (l.includes('8th november')) return '2026-11-08';
+                  if (l.includes('9th november') || l.includes('9th october')) return '2026-11-09';
+                  if (l.includes('10th november') || l.includes('10th october')) return '2026-11-10';
+                  if (l.includes('11th november') || l.includes('11th october')) return '2026-11-11';
+                  if (l.includes('15th november')) return '2026-11-15';
+                  return '2026-10-24';
+                };
+
+                const todayDateStr = new Date().toISOString().split('T')[0];
+
+                const headerCaucuses = miniCaucuses
+                  .filter(c => 
+                    !c.id.includes('sibembe') && 
+                    !c.groupName?.toLowerCase().includes('sibembe') && 
+                    !c.title?.toLowerCase().includes('sibembe')
+                  )
+                  .map(c => ({
+                    ...c,
+                    status: 'UPCOMING' as const,
+                    dateLabel: c.dateLabel.replace(/concluded:?\s*/i, '').split('(')[0].trim()
+                  }));
+
+                // Automatically find caucus happening today or the next upcoming one
+                let autoIndex = headerCaucuses.findIndex(c => getCaucusDateStr(c) === todayDateStr);
+                if (autoIndex === -1) {
+                  autoIndex = headerCaucuses.findIndex(c => getCaucusDateStr(c) > todayDateStr);
+                }
+                if (autoIndex === -1) {
+                  autoIndex = 0;
+                }
+
+                const activeIndex = userSelectedCaucusIndex !== null ? userSelectedCaucusIndex : autoIndex;
+                const safeCaucus = headerCaucuses[activeIndex] || headerCaucuses[0];
                 if (!safeCaucus) return null;
 
-                const isConcluded = safeCaucus.status === 'CONCLUDED' || safeCaucus.dateLabel.toLowerCase().includes('concluded');
-                const isThisWeekend = safeCaucus.id === 'caucus-kangemi';
+                const caucusDateStr = getCaucusDateStr(safeCaucus);
+                const isToday = caucusDateStr === todayDateStr;
+                const isNextUpcoming = caucusDateStr > todayDateStr;
+                const isConcluded = caucusDateStr < todayDateStr && !isToday;
                 const targetWardSlug = safeCaucus.wardName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
                 const targetGroupParam = safeCaucus.groupId || '';
-
-                const upcomingList = headerCaucuses.filter(c => c.status === 'UPCOMING' && !c.dateLabel.toLowerCase().includes('concluded'));
-                const concludedList = headerCaucuses.filter(c => c.status === 'CONCLUDED' || c.dateLabel.toLowerCase().includes('concluded'));
 
                 return (
                   <motion.div 
@@ -207,27 +241,34 @@ export default function Home() {
                           <span>NATIONAL CITIZENS ASSEMBLY MINI-CAUCUS SCHEDULE</span>
                         </span>
 
-                        <span className={`text-[11px] font-black px-3 py-1 rounded-full uppercase tracking-wider flex items-center gap-1.5 shadow-sm ${
-                          isConcluded
-                            ? 'bg-emerald-400 text-stone-950'
-                            : isThisWeekend 
-                            ? 'bg-red-500 text-white animate-pulse'
-                            : 'bg-emerald-400 text-stone-950'
-                        }`}>
-                          <span className={`w-2 h-2 rounded-full ${isThisWeekend ? 'bg-white animate-ping' : isConcluded ? 'bg-emerald-950' : 'bg-emerald-950'}`} />
-                          {isConcluded
-                            ? '✅ CONCLUDED • RESOLUTIONS ADOPTED'
-                            : isThisWeekend 
-                            ? '🔴 NEXT UP • 24TH OCTOBER 2026'
-                            : '🟢 UPCOMING GRASSROOTS CAUCUS'
-                          }
-                        </span>
+                        {isToday ? (
+                          <span className="text-[11px] font-black px-3.5 py-1.5 rounded-full uppercase tracking-wider flex items-center gap-1.5 shadow-md bg-red-600 text-white animate-pulse border border-red-300">
+                            <span className="w-2.5 h-2.5 rounded-full bg-white animate-ping" />
+                            <span>🔴 HAPPENING TODAY • {safeCaucus.dateLabel.split('(')[0].replace(/concluded: /i, '').toUpperCase()}</span>
+                          </span>
+                        ) : isNextUpcoming ? (
+                          <span className="text-[11px] font-black px-3.5 py-1.5 rounded-full uppercase tracking-wider flex items-center gap-1.5 shadow-md bg-emerald-400 text-stone-950 font-black border border-emerald-300">
+                            <span className="w-2 h-2 rounded-full bg-emerald-950" />
+                            <span>🟢 NEXT UP • {safeCaucus.dateLabel.split('(')[0].replace(/concluded: /i, '').toUpperCase()}</span>
+                          </span>
+                        ) : (
+                          <span className="text-[11px] font-black px-3.5 py-1 rounded-full uppercase tracking-wider flex items-center gap-1.5 shadow-sm bg-stone-700 text-stone-200">
+                            <span>✅ CONCLUDED • RESOLUTIONS ADOPTED</span>
+                          </span>
+                        )}
 
                         <span className="text-xs text-sky-200 font-semibold bg-sky-950/80 px-3 py-1 rounded-full border border-sky-700/60 flex items-center gap-1.5">
                           <MapPin className="w-3.5 h-3.5 text-emerald-400" />
                           {safeCaucus.wardName} Ward • {safeCaucus.county}
                         </span>
                       </div>
+
+                      {isToday && (
+                        <div className="inline-flex items-center gap-1.5 bg-amber-400/20 text-amber-300 border border-amber-400/40 px-3 py-1 rounded-xl text-xs font-bold mb-2">
+                          <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-spin" />
+                          <span>Live Grassroots Deliberations Happening Today in {safeCaucus.wardName} Ward!</span>
+                        </div>
+                      )}
 
                       <h1 className="text-2xl sm:text-3xl md:text-5xl font-black tracking-tight mb-3 leading-tight text-white">
                         {safeCaucus.title}
@@ -285,12 +326,14 @@ export default function Home() {
                         {/* Interactive Schedule List */}
                         <div className="my-3 space-y-1.5 max-h-72 overflow-y-auto pr-1 divide-y divide-sky-900/50">
                           {headerCaucuses.map((c, idx) => {
-                            const isSelected = (headerCaucuses[activeCaucusIndex]?.id || headerCaucuses[0]?.id) === c.id;
-                            const isPast = c.status === 'CONCLUDED' || c.dateLabel.toLowerCase().includes('concluded');
+                            const isSelected = activeIndex === idx;
+                            const cDateStr = getCaucusDateStr(c);
+                            const cIsToday = cDateStr === todayDateStr;
+                            const cIsPast = cDateStr < todayDateStr && !cIsToday;
                             return (
                               <div
                                 key={`right-card-${c.id}`}
-                                onClick={() => setActiveCaucusIndex(idx)}
+                                onClick={() => setUserSelectedCaucusIndex(idx)}
                                 className={`p-2.5 rounded-xl transition-all cursor-pointer flex items-center justify-between gap-2 text-xs ${
                                   isSelected 
                                     ? 'bg-amber-400 text-stone-950 font-bold shadow-md' 
@@ -302,7 +345,9 @@ export default function Home() {
                                     <span className={`text-[10px] uppercase font-black px-1.5 py-0.5 rounded shrink-0 ${
                                       isSelected 
                                         ? 'bg-stone-950 text-amber-300' 
-                                        : isPast 
+                                        : cIsToday
+                                        ? 'bg-red-600 text-white animate-pulse'
+                                        : cIsPast 
                                         ? 'bg-stone-800 text-stone-400' 
                                         : 'bg-emerald-950 text-emerald-300 border border-emerald-700/50'
                                     }`}>
@@ -327,13 +372,15 @@ export default function Home() {
                                 </div>
 
                                 <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full shrink-0 ${
-                                  isSelected
+                                  cIsToday
+                                    ? 'bg-red-600 text-white animate-pulse'
+                                    : isSelected
                                     ? 'bg-stone-900 text-white'
-                                    : isPast
+                                    : cIsPast
                                     ? 'bg-stone-800 text-stone-400'
                                     : 'bg-emerald-500 text-stone-950'
                                 }`}>
-                                  {isPast ? 'Concluded' : 'Upcoming'}
+                                  {cIsToday ? '🔴 TODAY' : cIsPast ? 'Concluded' : 'Upcoming'}
                                 </span>
                               </div>
                             );
@@ -710,111 +757,127 @@ export default function Home() {
             </div>
 
             {/* Filter Pills */}
-            <div className="flex items-center gap-2 pt-4 pb-4">
-              <button
-                type="button"
-                onClick={() => setScheduleFilter('ALL')}
-                className={`text-xs px-3.5 py-1.5 rounded-full font-bold transition-all cursor-pointer ${
-                  scheduleFilter === 'ALL'
-                    ? 'bg-amber-400 text-stone-950 shadow'
-                    : 'bg-sky-900/60 text-stone-300 hover:text-white border border-sky-700/40'
-                }`}
-              >
-                All Sessions (10)
-              </button>
-              <button
-                type="button"
-                onClick={() => setScheduleFilter('UPCOMING')}
-                className={`text-xs px-3.5 py-1.5 rounded-full font-bold transition-all cursor-pointer ${
-                  scheduleFilter === 'UPCOMING'
-                    ? 'bg-emerald-400 text-stone-950 shadow'
-                    : 'bg-sky-900/60 text-stone-300 hover:text-white border border-sky-700/40'
-                }`}
-              >
-                Upcoming Sessions (6)
-              </button>
-              <button
-                type="button"
-                onClick={() => setScheduleFilter('CONCLUDED')}
-                className={`text-xs px-3.5 py-1.5 rounded-full font-bold transition-all cursor-pointer ${
-                  scheduleFilter === 'CONCLUDED'
-                    ? 'bg-stone-300 text-stone-950 shadow'
-                    : 'bg-sky-900/60 text-stone-300 hover:text-white border border-sky-700/40'
-                }`}
-              >
-                Concluded Deliberations (4)
-              </button>
-            </div>
+            {(() => {
+              const tenScheduledCaucuses = miniCaucuses
+                .filter(c => !c.id.includes('sibembe') && !c.groupName?.toLowerCase().includes('sibembe') && !c.title?.toLowerCase().includes('sibembe'))
+                .map(c => ({
+                  ...c,
+                  status: 'UPCOMING' as const,
+                  dateLabel: c.dateLabel.replace(/concluded:?\s*/i, '').split('(')[0].trim()
+                }));
+              const upcomingCount = tenScheduledCaucuses.filter(c => c.status === 'UPCOMING').length;
+              const concludedCount = tenScheduledCaucuses.filter(c => c.status === 'CONCLUDED').length;
 
-            {/* Responsive Table of Mini-Caucuses */}
-            <div className="overflow-x-auto rounded-2xl border border-sky-800/60 bg-sky-950/60">
-              <table className="w-full text-left text-xs text-stone-200">
-                <thead className="bg-sky-900/80 text-[11px] font-black uppercase tracking-wider text-sky-200 border-b border-sky-800/80">
-                  <tr>
-                    <th scope="col" className="px-5 py-3.5">Date</th>
-                    <th scope="col" className="px-5 py-3.5">Mini-Caucus Session</th>
-                    <th scope="col" className="px-5 py-3.5">Location (Ward & County)</th>
-                    <th scope="col" className="px-5 py-3.5 text-center">Status</th>
-                    <th scope="col" className="px-5 py-3.5 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-sky-900/40">
-                  {miniCaucuses
-                    .filter(c => !c.id.includes('sibembe') && !c.groupName?.toLowerCase().includes('sibembe') && !c.title?.toLowerCase().includes('sibembe'))
-                    .filter(c => {
-                      const isConcluded = c.status === 'CONCLUDED' || c.dateLabel.toLowerCase().includes('concluded');
-                      if (scheduleFilter === 'UPCOMING') return !isConcluded;
-                      if (scheduleFilter === 'CONCLUDED') return isConcluded;
-                      return true;
-                    })
-                    .map((item) => {
-                      const isPast = item.status === 'CONCLUDED' || item.dateLabel.toLowerCase().includes('concluded');
-                      const isNext = item.id === 'caucus-kangemi';
-                      const targetSlug = item.wardName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-                      const cleanDate = item.dateLabel.split('(')[0].replace(/concluded: /i, '').trim();
+              return (
+                <>
+                  <div className="flex items-center gap-2 pt-4 pb-4">
+                    <button
+                      type="button"
+                      onClick={() => setScheduleFilter('ALL')}
+                      className={`text-xs px-3.5 py-1.5 rounded-full font-bold transition-all cursor-pointer ${
+                        scheduleFilter === 'ALL'
+                          ? 'bg-amber-400 text-stone-950 shadow'
+                          : 'bg-sky-900/60 text-stone-300 hover:text-white border border-sky-700/40'
+                      }`}
+                    >
+                      All Sessions ({tenScheduledCaucuses.length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setScheduleFilter('UPCOMING')}
+                      className={`text-xs px-3.5 py-1.5 rounded-full font-bold transition-all cursor-pointer ${
+                        scheduleFilter === 'UPCOMING'
+                          ? 'bg-emerald-400 text-stone-950 shadow'
+                          : 'bg-sky-900/60 text-stone-300 hover:text-white border border-sky-700/40'
+                      }`}
+                    >
+                      Upcoming Sessions ({upcomingCount})
+                    </button>
+                    {concludedCount > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setScheduleFilter('CONCLUDED')}
+                        className={`text-xs px-3.5 py-1.5 rounded-full font-bold transition-all cursor-pointer ${
+                          scheduleFilter === 'CONCLUDED'
+                            ? 'bg-stone-300 text-stone-950 shadow'
+                            : 'bg-sky-900/60 text-stone-300 hover:text-white border border-sky-700/40'
+                        }`}
+                      >
+                        Concluded Deliberations ({concludedCount})
+                      </button>
+                    )}
+                  </div>
 
-                      return (
-                        <tr key={`schedule-row-${item.id}`} className="hover:bg-sky-900/30 transition-colors">
-                          <td className="px-5 py-3.5 whitespace-nowrap">
-                            <div className="flex items-center gap-2">
-                              <Calendar className={`w-4 h-4 ${isNext ? 'text-red-400' : isPast ? 'text-stone-400' : 'text-amber-400'}`} />
-                              <span className={`font-bold text-xs ${isNext ? 'text-amber-300 font-black' : 'text-white'}`}>
-                                {cleanDate}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="px-5 py-3.5">
-                            <span className="font-bold text-white text-xs block">{item.title}</span>
-                          </td>
-                          <td className="px-5 py-3.5 whitespace-nowrap">
-                            <span className="text-white font-medium">{item.wardName} Ward</span>
-                            <span className="text-stone-400 text-[11px] block">{item.county}</span>
-                          </td>
-                          <td className="px-5 py-3.5 text-center whitespace-nowrap">
-                            <span className={`inline-flex items-center gap-1 text-[10px] font-black uppercase px-2.5 py-1 rounded-full ${
-                              isPast
-                                ? 'bg-stone-800 text-stone-300 border border-stone-700'
-                                : isNext
-                                ? 'bg-red-500 text-white font-black animate-pulse'
-                                : 'bg-emerald-500 text-stone-950 font-black'
-                            }`}>
-                              {isPast ? 'Concluded' : isNext ? '🔴 Next (24 Oct)' : 'Upcoming'}
-                            </span>
-                          </td>
-                          <td className="px-5 py-3.5 text-right whitespace-nowrap">
-                            <Link
-                              to={`/ward/${targetSlug}`}
-                              className="text-[11px] font-bold text-amber-300 hover:text-amber-200 bg-sky-900/80 hover:bg-sky-800 px-3.5 py-1.5 rounded-lg border border-sky-700/60 transition-colors inline-block"
-                            >
-                              Ward Wall →
-                            </Link>
-                          </td>
+                  {/* Responsive Table of Mini-Caucuses */}
+                  <div className="overflow-x-auto rounded-2xl border border-sky-800/60 bg-sky-950/60">
+                    <table className="w-full text-left text-xs text-stone-200">
+                      <thead className="bg-sky-900/80 text-[11px] font-black uppercase tracking-wider text-sky-200 border-b border-sky-800/80">
+                        <tr>
+                          <th scope="col" className="px-5 py-3.5">Date</th>
+                          <th scope="col" className="px-5 py-3.5">Mini-Caucus Session</th>
+                          <th scope="col" className="px-5 py-3.5">Location (Ward & County)</th>
+                          <th scope="col" className="px-5 py-3.5 text-center">Status</th>
+                          <th scope="col" className="px-5 py-3.5 text-right">Actions</th>
                         </tr>
-                      );
-                    })}
-                </tbody>
-              </table>
-            </div>
+                      </thead>
+                      <tbody className="divide-y divide-sky-900/40">
+                        {tenScheduledCaucuses
+                          .filter(c => {
+                            if (scheduleFilter === 'UPCOMING') return c.status === 'UPCOMING';
+                            if (scheduleFilter === 'CONCLUDED') return c.status === 'CONCLUDED';
+                            return true;
+                          })
+                          .map((item) => {
+                            const isPast = item.status === 'CONCLUDED';
+                            const isNext = item.id === 'caucus-kangemi';
+                            const targetSlug = item.wardName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+                            const cleanDate = item.dateLabel;
+
+                            return (
+                              <tr key={`schedule-row-${item.id}`} className="hover:bg-sky-900/30 transition-colors">
+                                <td className="px-5 py-3.5 whitespace-nowrap">
+                                  <div className="flex items-center gap-2">
+                                    <Calendar className={`w-4 h-4 ${isNext ? 'text-red-400' : isPast ? 'text-stone-400' : 'text-amber-400'}`} />
+                                    <span className={`font-bold text-xs ${isNext ? 'text-amber-300 font-black' : 'text-white'}`}>
+                                      {cleanDate}
+                                    </span>
+                                  </div>
+                                </td>
+                                <td className="px-5 py-3.5">
+                                  <span className="font-bold text-white text-xs block">{item.title}</span>
+                                </td>
+                                <td className="px-5 py-3.5 whitespace-nowrap">
+                                  <span className="text-white font-medium">{item.wardName} Ward</span>
+                                  <span className="text-stone-400 text-[11px] block">{item.county}</span>
+                                </td>
+                                <td className="px-5 py-3.5 text-center whitespace-nowrap">
+                                  <span className={`inline-flex items-center gap-1 text-[10px] font-black uppercase px-2.5 py-1 rounded-full ${
+                                    isPast
+                                      ? 'bg-stone-800 text-stone-300 border border-stone-700'
+                                      : isNext
+                                      ? 'bg-red-500 text-white font-black animate-pulse'
+                                      : 'bg-emerald-500 text-stone-950 font-black'
+                                  }`}>
+                                    {isPast ? 'Concluded' : isNext ? '🔴 Next (24 Oct)' : 'Upcoming'}
+                                  </span>
+                                </td>
+                                <td className="px-5 py-3.5 text-right whitespace-nowrap">
+                                  <Link
+                                    to={`/ward/${targetSlug}`}
+                                    className="text-[11px] font-bold text-amber-300 hover:text-amber-200 bg-sky-900/80 hover:bg-sky-800 px-3.5 py-1.5 rounded-lg border border-sky-700/60 transition-colors inline-block"
+                                  >
+                                    Ward Wall →
+                                  </Link>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              );
+            })()}
           </div>
         </section>
 
@@ -1121,125 +1184,163 @@ export default function Home() {
               </div>
 
               {/* Modal Filters & Actions */}
-              <div className="p-4 border-b border-stone-200 bg-stone-50 flex flex-wrap items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setScheduleFilter('ALL')}
-                    className={`text-xs px-3 py-1 rounded-full font-bold cursor-pointer transition-all ${
-                      scheduleFilter === 'ALL'
-                        ? 'bg-sky-600 text-white'
-                        : 'bg-stone-200 text-stone-700 hover:bg-stone-300'
-                    }`}
-                  >
-                    All Sessions (10)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setScheduleFilter('UPCOMING')}
-                    className={`text-xs px-3 py-1 rounded-full font-bold cursor-pointer transition-all ${
-                      scheduleFilter === 'UPCOMING'
-                        ? 'bg-emerald-600 text-white'
-                        : 'bg-stone-200 text-stone-700 hover:bg-stone-300'
-                    }`}
-                  >
-                    Upcoming (6)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setScheduleFilter('CONCLUDED')}
-                    className={`text-xs px-3 py-1 rounded-full font-bold cursor-pointer transition-all ${
-                      scheduleFilter === 'CONCLUDED'
-                        ? 'bg-stone-700 text-white'
-                        : 'bg-stone-200 text-stone-700 hover:bg-stone-300'
-                    }`}
-                  >
-                    Concluded (4)
-                  </button>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsScheduleModalOpen(false);
-                    setIsMiniCaucusModalOpen(true);
-                  }}
-                  className="text-xs font-bold text-sky-700 hover:text-sky-900 bg-sky-100 hover:bg-sky-200 px-3 py-1.5 rounded-xl transition-colors cursor-pointer"
-                >
-                  + Add / Update Mini-Caucus
-                </button>
-              </div>
-
-              {/* Table / List Body */}
-              <div className="p-6 overflow-y-auto space-y-3.5 max-h-[60vh]">
-                {miniCaucuses
+              {(() => {
+                const tenScheduledCaucuses = miniCaucuses
                   .filter(c => !c.id.includes('sibembe') && !c.groupName?.toLowerCase().includes('sibembe') && !c.title?.toLowerCase().includes('sibembe'))
-                  .filter(c => {
-                    const isConcluded = c.status === 'CONCLUDED' || c.dateLabel.toLowerCase().includes('concluded');
-                    if (scheduleFilter === 'UPCOMING') return !isConcluded;
-                    if (scheduleFilter === 'CONCLUDED') return isConcluded;
-                    return true;
-                  })
-                  .map((c) => {
-                    const isPast = c.status === 'CONCLUDED' || c.dateLabel.toLowerCase().includes('concluded');
-                    const isNext = c.id === 'caucus-kangemi';
-                    const targetSlug = c.wardName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-                    const cleanDate = c.dateLabel.split('(')[0].replace(/concluded: /i, '').trim();
+                  .map(c => ({
+                    ...c,
+                    status: 'UPCOMING' as const,
+                    dateLabel: c.dateLabel.replace(/concluded:?\s*/i, '').split('(')[0].trim()
+                  }));
+                const upcomingCount = tenScheduledCaucuses.filter(c => c.status === 'UPCOMING').length;
+                const concludedCount = tenScheduledCaucuses.filter(c => c.status === 'CONCLUDED').length;
 
-                    return (
-                      <div 
-                        key={`modal-item-${c.id}`}
-                        className={`p-4 rounded-2xl border transition-all ${
-                          isNext 
-                            ? 'bg-amber-50/70 border-amber-300 shadow-sm' 
-                            : isPast 
-                            ? 'bg-stone-50 border-stone-200' 
-                            : 'bg-white border-sky-200 shadow-xs'
-                        }`}
-                      >
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
-                          <div className="flex items-center gap-2">
-                            <span className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full ${
-                              isPast 
-                                ? 'bg-stone-200 text-stone-700' 
-                                : isNext 
-                                ? 'bg-red-500 text-white font-black animate-pulse' 
-                                : 'bg-emerald-100 text-emerald-800'
-                            }`}>
-                              {isPast ? 'Concluded' : isNext ? '🔴 Next Up (24 Oct)' : 'Upcoming'}
-                            </span>
-                            <span className="text-xs font-bold text-sky-900">
-                              {cleanDate}
-                            </span>
-                          </div>
-
-                          <span className="text-xs font-semibold text-stone-600 bg-stone-100 px-2.5 py-0.5 rounded-lg">
-                            {c.wardName} Ward • {c.county}
-                          </span>
-                        </div>
-
-                        <h4 className="text-base font-black text-stone-900 mb-3">
-                          {c.title}
-                        </h4>
-
-                        <div className="flex items-center justify-between pt-2 border-t border-stone-100 text-xs">
-                          <span className="text-[11px] text-stone-500 font-medium">
-                            Status: {isPast ? 'Concluded' : 'Upcoming Session'}
-                          </span>
-                          <div className="flex items-center gap-3">
-                            <Link
-                              to={`/ward/${targetSlug}`}
-                              onClick={() => setIsScheduleModalOpen(false)}
-                              className="font-bold text-sky-700 hover:text-sky-900 hover:underline"
-                            >
-                              Visit Ward Wall →
-                            </Link>
-                          </div>
-                        </div>
+                return (
+                  <>
+                    <div className="p-4 border-b border-stone-200 bg-stone-50 flex flex-wrap items-center justify-between gap-3">
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setScheduleFilter('ALL')}
+                          className={`text-xs px-3 py-1 rounded-full font-bold cursor-pointer transition-all ${
+                            scheduleFilter === 'ALL'
+                              ? 'bg-sky-600 text-white'
+                              : 'bg-stone-200 text-stone-700 hover:bg-stone-300'
+                          }`}
+                        >
+                          All Sessions ({tenScheduledCaucuses.length})
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setScheduleFilter('UPCOMING')}
+                          className={`text-xs px-3 py-1 rounded-full font-bold cursor-pointer transition-all ${
+                            scheduleFilter === 'UPCOMING'
+                              ? 'bg-emerald-600 text-white'
+                              : 'bg-stone-200 text-stone-700 hover:bg-stone-300'
+                          }`}
+                        >
+                          Upcoming ({upcomingCount})
+                        </button>
+                        {concludedCount > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setScheduleFilter('CONCLUDED')}
+                            className={`text-xs px-3 py-1 rounded-full font-bold cursor-pointer transition-all ${
+                              scheduleFilter === 'CONCLUDED'
+                                ? 'bg-stone-700 text-white'
+                                : 'bg-stone-200 text-stone-700 hover:bg-stone-300'
+                            }`}
+                          >
+                            Concluded ({concludedCount})
+                          </button>
+                        )}
                       </div>
-                    );
-                  })}
-              </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsScheduleModalOpen(false);
+                          setIsMiniCaucusModalOpen(true);
+                        }}
+                        className="text-xs font-bold text-sky-700 hover:text-sky-900 bg-sky-100 hover:bg-sky-200 px-3 py-1.5 rounded-xl transition-colors cursor-pointer"
+                      >
+                        + Add / Update Mini-Caucus
+                      </button>
+                    </div>
+
+                    {/* Table / List Body */}
+                    <div className="p-6 overflow-y-auto space-y-3.5 max-h-[60vh]">
+                      {tenScheduledCaucuses
+                        .filter(c => {
+                          const cDateStr = c.dateIso ? c.dateIso.split('T')[0] : '2026-10-24';
+                          const todayStr = new Date().toISOString().split('T')[0];
+                          const isConcluded = cDateStr < todayStr && cDateStr !== todayStr;
+                          if (scheduleFilter === 'UPCOMING') return !isConcluded;
+                          if (scheduleFilter === 'CONCLUDED') return isConcluded;
+                          return true;
+                        })
+                        .map((c) => {
+                          const getModalDateStr = (it: MiniCaucusEvent): string => {
+                            if (it.dateIso) return it.dateIso.split('T')[0];
+                            const l = (it.dateLabel || '').toLowerCase();
+                            if (l.includes('24th october')) return '2026-10-24';
+                            if (l.includes('29th october')) return '2026-10-29';
+                            if (l.includes('31st october')) return '2026-10-31';
+                            if (l.includes('2nd november')) return '2026-11-02';
+                            if (l.includes('5th november') || l.includes('5th october')) return '2026-11-05';
+                            if (l.includes('8th november')) return '2026-11-08';
+                            if (l.includes('9th november') || l.includes('9th october')) return '2026-11-09';
+                            if (l.includes('10th november') || l.includes('10th october')) return '2026-11-10';
+                            if (l.includes('11th november') || l.includes('11th october')) return '2026-11-11';
+                            if (l.includes('15th november')) return '2026-11-15';
+                            return '2026-10-24';
+                          };
+
+                          const todayStr = new Date().toISOString().split('T')[0];
+                          const cDateStr = getModalDateStr(c);
+                          const isToday = cDateStr === todayStr;
+                          const isPast = cDateStr < todayStr && !isToday;
+                          const isUpcoming = cDateStr > todayStr;
+                          const targetSlug = c.wardName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+                          const cleanDate = c.dateLabel;
+
+                          return (
+                            <div 
+                              key={`modal-item-${c.id}`}
+                              className={`p-4 rounded-2xl border transition-all ${
+                                isToday
+                                  ? 'bg-red-50/80 border-red-300 ring-2 ring-red-100 shadow-md'
+                                  : isUpcoming 
+                                  ? 'bg-white border-sky-200 shadow-xs' 
+                                  : 'bg-stone-50 border-stone-200'
+                              }`}
+                            >
+                              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+                                <div className="flex items-center gap-2">
+                                  <span className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full ${
+                                    isToday
+                                      ? 'bg-red-600 text-white font-black animate-pulse'
+                                      : isPast 
+                                      ? 'bg-stone-200 text-stone-700' 
+                                      : 'bg-emerald-100 text-emerald-800'
+                                  }`}>
+                                    {isToday ? '🔴 Happening Today' : isPast ? 'Concluded' : 'Upcoming'}
+                                  </span>
+                                  <span className="text-xs font-bold text-sky-900">
+                                    {cleanDate}
+                                  </span>
+                                </div>
+
+                                <span className="text-xs font-semibold text-stone-600 bg-stone-100 px-2.5 py-0.5 rounded-lg">
+                                  {c.wardName} Ward • {c.county}
+                                </span>
+                              </div>
+
+                              <h4 className="text-base font-black text-stone-900 mb-3">
+                                {c.title}
+                              </h4>
+
+                              <div className="flex items-center justify-between pt-2 border-t border-stone-100 text-xs">
+                                <span className="text-[11px] text-stone-500 font-medium">
+                                  Status: {isPast ? 'Concluded' : 'Upcoming Session'}
+                                </span>
+                                <div className="flex items-center gap-3">
+                                  <Link
+                                    to={`/ward/${targetSlug}`}
+                                    onClick={() => setIsScheduleModalOpen(false)}
+                                    className="font-bold text-sky-700 hover:text-sky-900 hover:underline"
+                                  >
+                                    Visit Ward Wall →
+                                  </Link>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  </>
+                );
+              })()}
 
               {/* Modal Footer */}
               <div className="p-4 border-t border-stone-200 bg-stone-50 flex items-center justify-between text-xs">

@@ -26,7 +26,7 @@ import {
   Copy,
   Printer
 } from 'lucide-react';
-import { getWardResolutions, saveWardResolution, WardResolutionDoc, filterMockItems } from '../../lib/civicData';
+import { getWardResolutions, saveWardResolution, WardResolutionDoc, filterMockItems, sanitizeWardAttribution } from '../../lib/civicData';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { searchKenyaWards } from '../../data/kenyaCountiesAndWards';
@@ -62,7 +62,7 @@ export default function HomepageWardResolutions() {
   const [formCategory, setFormCategory] = useState('Assembly Resolutions');
   const [formDate, setFormDate] = useState(new Date().toISOString().split('T')[0]);
   const [formSummary, setFormSummary] = useState('');
-  const [formOfficerName, setFormOfficerName] = useState(user?.name ? `${user.name} (${user.role === 'CLERK' ? 'Ward Clerk' : user.role === 'ADMIN' ? 'Admin' : 'Representative'})` : '');
+  const [formOfficerName, setFormOfficerName] = useState('Office of the Ward Clerk');
   const [formIsPinned, setFormIsPinned] = useState(false);
   const [selectedFile, setSelectedFile] = useState<{ name: string; size: string; type: string; dataUrl?: string } | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -148,7 +148,7 @@ export default function HomepageWardResolutions() {
 
     setSubmitting(true);
     try {
-      const author = formOfficerName.trim() || (user?.name ? `${user.name} (${user.role === 'CLERK' ? 'Ward Clerk' : user.role === 'ADMIN' ? 'Admin' : 'Representative'})` : 'Ward Clerk');
+      const author = sanitizeWardAttribution(formOfficerName.trim() || 'Office of the Ward Clerk');
 
       const saved = await saveWardResolution({
         wardId: formWardId || 'ward-1',
@@ -198,7 +198,7 @@ WARD: ${doc.wardName || 'Ward Assembly'} (${doc.county || 'Kenya'})
 DOCUMENT TITLE: ${doc.title}
 CATEGORY: ${doc.category}
 DATE OF ASSEMBLY: ${doc.documentDate}
-CERTIFIED BY: ${doc.uploadedBy || 'Ward Clerk / Secretariat'}
+CERTIFIED BY: ${sanitizeWardAttribution(doc.uploadedBy)}
 
 SUMMARY OF RESOLUTIONS & DELIBERATIONS:
 ------------------------------------------------------------
@@ -437,7 +437,7 @@ Generated via CSRG Citizen Assembly Digital Portal`;
                       <ShieldCheck className="w-3 h-3" /> Certified Record
                     </span>
                     <span className="truncate max-w-[130px]" title={item.uploadedBy}>
-                      {item.uploadedBy || 'Ward Clerk'}
+                      {sanitizeWardAttribution(item.uploadedBy)}
                     </span>
                   </div>
 
@@ -593,17 +593,16 @@ Generated via CSRG Citizen Assembly Digital Portal`;
                     </select>
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-bold text-stone-700 mb-1">
-                      Officiating Clerk / Officer Name
+                  <div className="bg-sky-50/70 border border-sky-200 rounded-xl p-2.5">
+                    <label className="block text-xs font-bold text-sky-950 mb-0.5">
+                      Certified Authority
                     </label>
-                    <input
-                      type="text"
-                      value={formOfficerName}
-                      onChange={(e) => setFormOfficerName(e.target.value)}
-                      placeholder="e.g. Ward Clerk / Presiding Official"
-                      className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3 text-xs sm:text-sm focus:ring-2 focus:ring-sky-600 outline-none text-stone-900"
-                    />
+                    <p className="text-xs font-semibold text-sky-900">
+                      Office of the Ward Clerk (Official Ward Secretariat)
+                    </p>
+                    <p className="text-[10px] text-stone-500 mt-0.5">
+                      Published under official secretariat authority. Admin names are kept confidential.
+                    </p>
                   </div>
                 </div>
 
@@ -744,7 +743,7 @@ Generated via CSRG Citizen Assembly Digital Portal`;
                     <div className="flex flex-wrap items-center gap-3 text-xs text-stone-300">
                       <span>Ratification Date: <strong>{previewDoc.documentDate}</strong></span>
                       <span>•</span>
-                      <span>Certified by: <strong>{previewDoc.uploadedBy || 'Ward Secretariat'}</strong></span>
+                      <span>Certified by: <strong>{sanitizeWardAttribution(previewDoc.uploadedBy)}</strong></span>
                     </div>
                   </div>
 
@@ -809,7 +808,7 @@ Generated via CSRG Citizen Assembly Digital Portal`;
                     <button
                       type="button"
                       onClick={() => {
-                        const copyContent = `${previewDoc.title}\nDate: ${previewDoc.documentDate}\nWard: ${previewDoc.wardName} Ward, ${previewDoc.county}\nCertified By: ${previewDoc.uploadedBy || 'Ward Secretariat'}\n\n${previewDoc.summary || ''}`;
+                        const copyContent = `${previewDoc.title}\nDate: ${previewDoc.documentDate}\nWard: ${previewDoc.wardName} Ward, ${previewDoc.county}\nCertified By: ${sanitizeWardAttribution(previewDoc.uploadedBy)}\n\n${previewDoc.summary || ''}`;
                         navigator.clipboard.writeText(copyContent);
                         alert('Full resolution text copied to clipboard!');
                       }}
@@ -846,7 +845,7 @@ Generated via CSRG Citizen Assembly Digital Portal`;
                       </div>
                       <div>
                         <span className="text-stone-400 block">Signatory / Clerk:</span>
-                        <span className="font-semibold text-stone-800 truncate block">{previewDoc.uploadedBy || 'Ward Secretariat'}</span>
+                        <span className="font-semibold text-stone-800 truncate block">{sanitizeWardAttribution(previewDoc.uploadedBy)}</span>
                       </div>
                     </div>
                   </div>

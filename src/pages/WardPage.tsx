@@ -70,7 +70,7 @@ export default function WardPage() {
     if (!newGroupName.trim() || !ward?.id) return;
     setIsSubmittingGroup(true);
 
-    const leader = newGroupLeader.trim() || user?.name || 'Group Convener';
+    const leader = newGroupLeader.trim() || ((user?.role === 'ADMIN' || user?.role === 'CLERK') ? 'Group Convener & Secretariat' : (user?.name || 'Group Convener'));
     const cleanId = `grp-${ward.slug || 'ward'}-${Date.now()}`;
     const groupData = {
       id: cleanId,
@@ -432,22 +432,6 @@ export default function WardPage() {
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  setLiveStreamTarget({
-                    groupId: `grp-${ward.id || 'ward'}-assembly`,
-                    groupName: `${ward.name} Ward Citizen Assembly`,
-                    wardName: `${ward.name} Ward (${ward.county || 'Kenya'})`,
-                    leaderName: `${ward.name} Assembly Convener`
-                  });
-                  setIsLiveStreamOpen(true);
-                }}
-                className="bg-red-600 hover:bg-red-500 text-white px-5 py-3 rounded-full font-bold transition-all shadow-md flex items-center gap-2 text-xs sm:text-sm cursor-pointer"
-              >
-                <Radio className="w-4 h-4 animate-pulse" />
-                <span>🔴 Live Stream Assembly</span>
-              </button>
               <a 
                 href="#ward-documents"
                 className="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-3 rounded-full font-bold transition-all shadow-md flex items-center gap-2 text-xs sm:text-sm cursor-pointer"
@@ -580,13 +564,13 @@ export default function WardPage() {
                               <span className="text-amber-500 font-bold">★ Head / Leader:</span>
                               {(() => {
                                 const isSibembe = group.id === 'grp-sikhendu-sibembe' || group.id === 'grp-shikendu-sibembe' || group.name?.toLowerCase().includes('sibembe');
-                                const isMock = (n: string) => {
-                                  if (!n) return false;
+                                const isMockOrAdmin = (n: string) => {
+                                  if (!n) return true;
                                   const l = n.toLowerCase();
-                                  return l.includes('nyaboke') || l.includes('sarah') || l.includes('wanjiku') || l.includes('alice') || l.includes('bob');
+                                  return l.includes('nyaboke') || l.includes('sarah') || l.includes('wanjiku') || l.includes('alice') || l.includes('bob') || l.includes('admin') || l.includes('clerk') || l.includes('@') || l.includes('root') || l.includes('system');
                                 };
-                                const leaderName = isSibembe ? 'Irene Nyongesa' : (group.leaderName && !isMock(group.leaderName) ? group.leaderName : 'Pending registered leader');
-                                const leaderRole = isSibembe ? 'Group Leader & Convener' : (group.leaderRole || 'Group Leader');
+                                const leaderName = isSibembe ? 'Irene Nyongesa' : (group.leaderName && !isMockOrAdmin(group.leaderName) ? group.leaderName : 'Group Convener & Secretariat');
+                                const leaderRole = isSibembe ? 'Group Leader & Convener' : (isMockOrAdmin(group.leaderRole || '') ? 'Group Convener & Secretariat' : (group.leaderRole || 'Group Leader'));
                                 return <span>{leaderName} ({leaderRole})</span>;
                               })()}
                             </p>
@@ -603,24 +587,9 @@ export default function WardPage() {
                             <span className="text-xs font-bold text-sky-700">
                               {isExpanded ? 'Hide Group Wall ▲' : 'Open Group Wall & Caucus ▼'}
                             </span>
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setLiveStreamTarget({
-                                  groupId: group.id,
-                                  groupName: group.name,
-                                  wardName: `${ward.name} Ward`,
-                                  leaderName: group.leaderName || 'Group Convener'
-                                });
-                                setIsLiveStreamOpen(true);
-                              }}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-500 text-white rounded-xl text-xs font-bold shadow-xs transition-transform hover:scale-105 cursor-pointer shrink-0"
-                              title="Watch live deliberation stream for this caucus"
-                            >
-                              <Radio className="w-3.5 h-3.5 animate-pulse" />
-                              <span>🔴 Live Stream</span>
-                            </button>
+                            <span className="text-xs text-stone-400 font-medium">
+                              Click to inspect agenda & resolutions
+                            </span>
                           </div>
                         </div>
                       );
@@ -992,21 +961,6 @@ export default function WardPage() {
         wardId={ward.id}
         onSuccess={handleJoinSuccess}
       />
-
-      {/* Citizen Live Stream Modal for Ward Assembly / Caucus */}
-      {isLiveStreamOpen && (
-        <CitizenLiveStream
-          groupId={liveStreamTarget?.groupId || `grp-${ward.id}-assembly`}
-          groupName={liveStreamTarget?.groupName || `${ward.name} Ward Citizen Assembly`}
-          wardName={liveStreamTarget?.wardName || `${ward.name} Ward`}
-          leaderName={liveStreamTarget?.leaderName || `${ward.name} Assembly Convener`}
-          isLeader={user?.name?.toLowerCase().includes('irene') || user?.role === 'CLERK' || user?.role === 'ADMIN'}
-          onClose={() => {
-            setIsLiveStreamOpen(false);
-            setLiveStreamTarget(null);
-          }}
-        />
-      )}
     </motion.div>
   );
 }
