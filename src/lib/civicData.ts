@@ -946,19 +946,19 @@ export interface MiniCaucusEvent {
 export const DEFAULT_MINI_CAUCUSES: MiniCaucusEvent[] = [
   {
     id: 'caucus-kangemi',
-    wardId: 'ward-kangemi',
+    wardId: 'ward-1',
     wardName: 'Kangemi',
     county: 'Nairobi',
-    groupName: 'Kangemi + New Kangemi',
-    groupId: 'grp-kangemi-grassroots',
-    title: 'Kangemi + New Kangemi Citizen Mini-Caucus',
+    groupName: 'Kangemi & New Kangemi Food Coops',
+    groupId: 'grp-kangemi-food-coop',
+    title: 'Kangemi & New Kangemi Food Coops Joint Mini-Caucus',
     dateLabel: 'Saturday, 24th October 2026',
     dateIso: '2026-10-24T10:00:00',
     venue: 'Kangemi, Nairobi',
-    agenda: 'Grassroots citizen deliberation ahead of the December 10 National Citizen Assembly.',
+    agenda: 'Joint mini-caucus today uniting Kangemi Food Coop and New Kangemi Food Coop ahead of the December 10 National Citizen Assembly.',
     status: 'UPCOMING',
     isSpotlight: true,
-    facilitatorRole: 'Kangemi Citizen Assembly Conveners',
+    facilitatorRole: 'Kangemi & New Kangemi Joint Conveners',
     updatedAt: new Date().toISOString()
   },
   {
@@ -1051,16 +1051,16 @@ export const DEFAULT_MINI_CAUCUSES: MiniCaucusEvent[] = [
     wardId: 'ward-8',
     wardName: 'Masaba',
     county: 'Migori',
-    groupName: 'Angaza Food Coop',
+    groupName: 'Angaza & Nyamagagana Food Coops',
     groupId: 'grp-masaba-angaza',
-    title: 'Masaba Ward Citizen Mini-Caucus (Angaza Food Coop)',
+    title: 'Angaza & Nyamagagana Food Coops Joint Mini-Caucus Assembly',
     dateLabel: 'Thursday, 5th November 2026',
     dateIso: '2026-11-05T10:00:00',
     venue: 'Masaba Ward, Migori',
-    agenda: 'Grassroots citizen mini-caucus on peasant agroecology, community seed saving, and local resolutions ahead of the December 10 National Citizen Assembly.',
+    agenda: 'Joint mini-caucus assembly uniting Angaza Food Coop and Nyamagagana Food Coop on peasant agroecology, community seed saving, and local resolutions ahead of the December 10 National Citizen Assembly.',
     status: 'UPCOMING',
     isSpotlight: false,
-    facilitatorRole: 'Angaza Food Coop Convener',
+    facilitatorRole: 'Angaza & Nyamagagana Joint Conveners',
     updatedAt: new Date().toISOString()
   },
   {
@@ -1082,19 +1082,19 @@ export const DEFAULT_MINI_CAUCUSES: MiniCaucusEvent[] = [
   },
   {
     id: 'caucus-migori-mariwa-mulo-utoma',
-    wardId: 'ward-south-sakwa',
+    wardId: 'ward-6',
     wardName: 'South Sakwa',
     county: 'Migori',
-    groupName: 'Mariwa, Utoma Widows, and Mulo',
-    groupId: 'grp-mariwa-mulo-utoma',
-    title: 'Mariwa, Utoma Widows, and Mulo Citizen Mini-Caucus',
+    groupName: 'Mariwa, Utoma Widows & Mulo Food Coops',
+    groupId: 'grp-south-sakwa-mariwa',
+    title: 'Mariwa, Utoma Widows & Mulo Food Coops Joint Mini-Caucus Assembly',
     dateLabel: 'Tuesday, 10th November 2026',
     dateIso: '2026-11-10T10:00:00',
     venue: 'South Sakwa Ward, Migori',
-    agenda: 'Grassroots citizen deliberation ahead of the December 10 National Citizen Assembly.',
+    agenda: 'Joint mini-caucus assembly uniting Mariwa Food Coop, Utoma Widows Food Coop, and Mulo Food Coop on peasant agroecology, local seeds, and community resolutions for the December 10 National Assembly.',
     status: 'UPCOMING',
     isSpotlight: false,
-    facilitatorRole: 'South Sakwa Joint Community Conveners',
+    facilitatorRole: 'Mariwa, Utoma Widows & Mulo Joint Conveners',
     updatedAt: new Date().toISOString()
   },
   {
@@ -1133,16 +1133,17 @@ export const DEFAULT_MINI_CAUCUSES: MiniCaucusEvent[] = [
   }
 ];
 
-export const CAUCUS_STORAGE_KEY = 'csrg_mini_caucuses_v6';
+export const CAUCUS_STORAGE_KEY = 'csrg_mini_caucuses_v7';
 
 export async function getMiniCaucuses(wardId?: string): Promise<MiniCaucusEvent[]> {
   try {
-    // Purge outdated legacy caches that had stale 'CONCLUDED' status or October dates
+    // Purge outdated legacy caches
     localStorage.removeItem('csrg_mini_caucuses_v1');
     localStorage.removeItem('csrg_mini_caucuses_v2');
     localStorage.removeItem('csrg_mini_caucuses_v3');
     localStorage.removeItem('csrg_mini_caucuses_v4');
     localStorage.removeItem('csrg_mini_caucuses_v5');
+    localStorage.removeItem('csrg_mini_caucuses_v6');
 
     const raw = localStorage.getItem(CAUCUS_STORAGE_KEY);
     let list: MiniCaucusEvent[] = raw ? JSON.parse(raw) : [...DEFAULT_MINI_CAUCUSES];
@@ -1175,25 +1176,41 @@ export async function getMiniCaucuses(wardId?: string): Promise<MiniCaucusEvent[
       // All 10 active caucuses in the schedule MUST be UPCOMING
       c.status = 'UPCOMING';
 
-      // Ensure exact November dates and locations for the caucuses (Masaba Ward Angaza Food Coop, Lumakanda, South Sakwa, Kabarnet)
-      if (
+      // 1. Kangemi Ward - 2 Groups (Kangemi and New Kangemi Food Coops) having joint mini-caucus today
+      if (c.id === 'caucus-kangemi' || c.wardName?.toLowerCase() === 'kangemi' || c.title?.toLowerCase().includes('kangemi')) {
+        c.id = 'caucus-kangemi';
+        c.wardId = 'ward-1';
+        c.wardName = 'Kangemi';
+        c.county = 'Nairobi';
+        c.groupName = 'Kangemi & New Kangemi Food Coops';
+        c.groupId = 'grp-kangemi-food-coop';
+        c.title = 'Kangemi & New Kangemi Food Coops Joint Mini-Caucus';
+        c.venue = 'Kangemi, Nairobi';
+        c.dateLabel = 'Saturday, 24th October 2026';
+        c.dateIso = '2026-10-24T10:00:00';
+        c.facilitatorRole = 'Kangemi & New Kangemi Joint Conveners';
+        c.status = 'UPCOMING';
+      }
+      // 2. Masaba Ward (Migori) - 2 Groups (Angaza Food Coop and Nyamagagana Food Coop) having joint mini-caucus assembly
+      else if (
         c.id === 'caucus-kuria-angaza' || 
         c.id === 'caucus-masaba-angaza' || 
         c.title?.toLowerCase().includes('angaza') || 
         c.groupName?.toLowerCase().includes('angaza') ||
-        c.title?.toLowerCase().includes('kuria') ||
+        c.title?.toLowerCase().includes('nyamagagana') ||
+        c.groupName?.toLowerCase().includes('nyamagagana') ||
         c.wardName?.toLowerCase().includes('masaba')
       ) {
         c.id = 'caucus-masaba-angaza';
         c.wardId = 'ward-8';
         c.wardName = 'Masaba';
         c.county = 'Migori';
-        c.groupName = 'Angaza Food Coop';
+        c.groupName = 'Angaza & Nyamagagana Food Coops';
         c.groupId = 'grp-masaba-angaza';
-        c.title = 'Masaba Ward Citizen Mini-Caucus (Angaza Food Coop)';
+        c.title = 'Angaza & Nyamagagana Food Coops Joint Mini-Caucus Assembly';
         c.venue = 'Masaba Ward, Migori';
-        c.agenda = 'Grassroots citizen mini-caucus on peasant agroecology, community seed saving, and local resolutions ahead of the December 10 National Citizen Assembly.';
-        c.facilitatorRole = 'Angaza Food Coop Convener';
+        c.agenda = 'Joint mini-caucus assembly uniting Angaza Food Coop and Nyamagagana Food Coop on peasant agroecology, community seed saving, and local resolutions ahead of the December 10 National Citizen Assembly.';
+        c.facilitatorRole = 'Angaza & Nyamagagana Joint Conveners';
         c.dateLabel = 'Thursday, 5th November 2026';
         c.dateIso = '2026-11-05T10:00:00';
         c.status = 'UPCOMING';
@@ -1201,14 +1218,20 @@ export async function getMiniCaucuses(wardId?: string): Promise<MiniCaucusEvent[
         c.dateLabel = 'Monday, 9th November 2026';
         c.dateIso = '2026-11-09T10:00:00';
         c.status = 'UPCOMING';
-      } else if (c.id === 'caucus-migori-mariwa-mulo-utoma' || c.groupName?.toLowerCase().includes('mariwa') || c.title?.toLowerCase().includes('mariwa')) {
+      }
+      // 3. South Sakwa Ward (Migori) - 3 Groups (Mariwa, Utoma Widows, and Mulo Food Coops) having joint mini-caucus assembly
+      else if (c.id === 'caucus-migori-mariwa-mulo-utoma' || c.groupName?.toLowerCase().includes('mariwa') || c.title?.toLowerCase().includes('mariwa') || c.wardName?.toLowerCase().includes('sakwa')) {
+        c.id = 'caucus-migori-mariwa-mulo-utoma';
         c.wardName = 'South Sakwa';
-        c.wardId = 'ward-south-sakwa';
+        c.wardId = 'ward-6';
         c.county = 'Migori';
-        c.groupName = 'Mariwa, Utoma Widows, and Mulo';
-        c.title = 'Mariwa, Utoma Widows, and Mulo Citizen Mini-Caucus';
+        c.groupName = 'Mariwa, Utoma Widows & Mulo Food Coops';
+        c.groupId = 'grp-south-sakwa-mariwa';
+        c.title = 'Mariwa, Utoma Widows & Mulo Food Coops Joint Mini-Caucus Assembly';
         c.dateLabel = 'Tuesday, 10th November 2026';
         c.dateIso = '2026-11-10T10:00:00';
+        c.venue = 'South Sakwa Ward, Migori';
+        c.facilitatorRole = 'Mariwa, Utoma Widows & Mulo Joint Conveners';
         c.status = 'UPCOMING';
       } else if (c.id === 'caucus-baringo-kabarnet' || c.title?.toLowerCase().includes('kabarnet')) {
         c.wardName = 'Kabarnet';

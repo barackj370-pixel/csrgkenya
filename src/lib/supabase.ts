@@ -117,9 +117,120 @@ function getInitialMockDB(): MockDB {
     }
   ]);
 
-  // Registered groups across wards (Sibembe Food Coop in Sikhendu, Angaza Food Coop in Masaba; other wards only have groups added by clerks or admin)
+  // Registered food cooperative groups across wards
   const groups: any[] = [
-    // Sikhendu Ward - Sibembe Food Coop (only legitimate group for now)
+    // 1. Kangemi Ward (Nairobi) - 2 Groups having joint mini-caucus today
+    {
+      id: 'grp-kangemi-food-coop',
+      name: 'Kangemi Food Coop',
+      wardId: 'ward-1',
+      category: 'Agroecology & Food Sovereignty Cooperative',
+      description: 'Grassroots urban agroecology and smallholder food cooperative in Kangemi Ward. Holding joint mini-caucus today with New Kangemi Food Coop ahead of the December 10 National Assembly.',
+      leaderName: 'Kangemi Food Coop Convener',
+      leaderRole: 'Coop Leader & Convener',
+      leaderPhone: '',
+      meetingDay: 'Saturday, 24th October 2026 (Today\'s Joint Mini-Caucus)',
+      meetingFrequency: 'Weekly Food Coop Caucus',
+      memberCount: '1',
+      members: 'Kangemi Food Coop Convener (Group Leader)',
+      subTeams: []
+    },
+    {
+      id: 'grp-new-kangemi-food-coop',
+      name: 'New Kangemi Food Coop',
+      wardId: 'ward-1',
+      category: 'Agroecology & Food Sovereignty Cooperative',
+      description: 'Peasant and community food cooperative in New Kangemi area. Holding joint mini-caucus today with Kangemi Food Coop.',
+      leaderName: 'New Kangemi Food Coop Convener',
+      leaderRole: 'Coop Leader & Convener',
+      leaderPhone: '',
+      meetingDay: 'Saturday, 24th October 2026 (Today\'s Joint Mini-Caucus)',
+      meetingFrequency: 'Weekly Food Coop Caucus',
+      memberCount: '1',
+      members: 'New Kangemi Food Coop Convener (Group Leader)',
+      subTeams: []
+    },
+
+    // 2. South Sakwa Ward (Migori) - 3 Groups having joint mini-caucus assembly
+    {
+      id: 'grp-south-sakwa-mariwa',
+      name: 'Mariwa Food Coop',
+      wardId: 'ward-6',
+      category: 'Agroecology & Food Sovereignty Cooperative',
+      description: 'Grassroots peasant food cooperative in Mariwa, South Sakwa Ward (Migori County). Participating in the joint mini-caucus assembly with Utoma Widows and Mulo Food Coops.',
+      leaderName: 'Mariwa Food Coop Convener',
+      leaderRole: 'Coop Leader & Convener',
+      leaderPhone: '',
+      meetingDay: 'Tuesday, 10th November 2026 (Joint Mini-Caucus Assembly)',
+      meetingFrequency: 'Weekly Food Coop Caucus',
+      memberCount: '1',
+      members: 'Mariwa Food Coop Convener (Group Leader)',
+      subTeams: []
+    },
+    {
+      id: 'grp-south-sakwa-utoma-widows',
+      name: 'Utoma Widows Food Coop',
+      wardId: 'ward-6',
+      category: 'Agroecology & Food Sovereignty Cooperative',
+      description: 'Women peasant farmers and widows agroecology collective in Utoma, South Sakwa Ward (Migori County). Participating in the joint mini-caucus assembly with Mariwa and Mulo Food Coops.',
+      leaderName: 'Utoma Widows Coop Convener',
+      leaderRole: 'Coop Leader & Convener',
+      leaderPhone: '',
+      meetingDay: 'Tuesday, 10th November 2026 (Joint Mini-Caucus Assembly)',
+      meetingFrequency: 'Weekly Food Coop Caucus',
+      memberCount: '1',
+      members: 'Utoma Widows Coop Convener (Group Leader)',
+      subTeams: []
+    },
+    {
+      id: 'grp-south-sakwa-mulo',
+      name: 'Mulo Food Coop',
+      wardId: 'ward-6',
+      category: 'Agroecology & Food Sovereignty Cooperative',
+      description: 'Peasant agroecology cooperative in Mulo, South Sakwa Ward (Migori County). Participating in the joint mini-caucus assembly with Mariwa and Utoma Widows Food Coops.',
+      leaderName: 'Mulo Food Coop Convener',
+      leaderRole: 'Coop Leader & Convener',
+      leaderPhone: '',
+      meetingDay: 'Tuesday, 10th November 2026 (Joint Mini-Caucus Assembly)',
+      meetingFrequency: 'Weekly Food Coop Caucus',
+      memberCount: '1',
+      members: 'Mulo Food Coop Convener (Group Leader)',
+      subTeams: []
+    },
+
+    // 3. Masaba Ward (Migori) - 2 Groups having joint mini-caucus assembly
+    {
+      id: 'grp-masaba-angaza',
+      name: 'Angaza Food Coop',
+      wardId: 'ward-8',
+      category: 'Agroecology & Food Sovereignty Cooperative',
+      description: 'Grassroots agroecology and peasant food sovereignty cooperative in Masaba Ward (Migori County). Holding joint mini-caucus assembly with Nyamagagana Food Coop.',
+      leaderName: 'Angaza Food Coop Convener',
+      leaderRole: 'Coop Leader & Convener',
+      leaderPhone: '',
+      meetingDay: 'Thursday, 5th November 2026 (Joint Mini-Caucus Assembly)',
+      meetingFrequency: 'Weekly Food Coop Caucus',
+      memberCount: '1',
+      members: 'Angaza Food Coop Convener (Group Leader)',
+      subTeams: []
+    },
+    {
+      id: 'grp-masaba-nyamagagana',
+      name: 'Nyamagagana Food Coop',
+      wardId: 'ward-8',
+      category: 'Agroecology & Food Sovereignty Cooperative',
+      description: 'Community peasant agroecology cooperative in Nyamagagana, Masaba Ward (Migori County). Holding joint mini-caucus assembly with Angaza Food Coop.',
+      leaderName: 'Nyamagagana Food Coop Convener',
+      leaderRole: 'Coop Leader & Convener',
+      leaderPhone: '',
+      meetingDay: 'Thursday, 5th November 2026 (Joint Mini-Caucus Assembly)',
+      meetingFrequency: 'Weekly Food Coop Caucus',
+      memberCount: '1',
+      members: 'Nyamagagana Food Coop Convener (Group Leader)',
+      subTeams: []
+    },
+
+    // 4. Sikhendu Ward (Trans Nzoia) - Sibembe Food Coop
     {
       id: 'grp-sikhendu-sibembe',
       name: 'Sibembe Food Coop',
@@ -133,22 +244,6 @@ function getInitialMockDB(): MockDB {
       meetingFrequency: 'Weekly Food Coop Caucus',
       memberCount: '1',
       members: 'Irene Nyongesa (Coop Leader)',
-      subTeams: []
-    },
-    // Masaba Ward (Migori) - Angaza Food Coop (only group or caucus for Masaba Ward)
-    {
-      id: 'grp-masaba-angaza',
-      name: 'Angaza Food Coop',
-      wardId: 'ward-8',
-      category: 'Agroecology & Food Sovereignty Cooperative',
-      description: 'Grassroots agroecology and peasant food sovereignty cooperative in Masaba Ward (Migori County). Organizes smallholder farmers and community mini-caucuses championing agroecological food systems, soil regeneration, and indigenous seed saving ahead of the National Citizen Assembly.',
-      leaderName: 'Angaza Food Coop Convener',
-      leaderRole: 'Coop Leader & Convener',
-      leaderPhone: '',
-      meetingDay: 'Thursday Nov 5, 2026 at 10:00 AM – 12:00 PM (Citizen Deliberation)',
-      meetingFrequency: 'Weekly Food Coop Caucus',
-      memberCount: '1',
-      members: 'Angaza Food Coop Convener (Group Leader)',
       subTeams: []
     }
   ];
@@ -275,21 +370,37 @@ function loadDB(): MockDB {
             if (!isSibembe) return false;
           }
 
-          // In Masaba Ward (Migori), Angaza Food Coop is currently the ONE legitimate group or caucus
+          // In Kangemi Ward (Nairobi), Kangemi and New Kangemi Food Coops are the 2 legitimate groups
+          const isKangemiWard = g.wardId === 'ward-1' || g.wardName?.toLowerCase() === 'kangemi' || g.id?.includes('kangemi');
+          if (isKangemiWard) {
+            const isKangemiCoop = g.id === 'grp-kangemi-food-coop' || (gName.includes('kangemi') && !gName.includes('new'));
+            const isNewKangemiCoop = g.id === 'grp-new-kangemi-food-coop' || gName.includes('new kangemi');
+            if (!isKangemiCoop && !isNewKangemiCoop) return false;
+          }
+
+          // In South Sakwa Ward (Migori), Mariwa, Utoma Widows, and Mulo Food Coops are the 3 legitimate groups
+          const isSouthSakwaWard = g.wardId === 'ward-6' || g.wardName?.toLowerCase().includes('sakwa') || g.id?.includes('sakwa');
+          if (isSouthSakwaWard) {
+            const isMariwa = g.id === 'grp-south-sakwa-mariwa' || gName.includes('mariwa');
+            const isUtoma = g.id === 'grp-south-sakwa-utoma-widows' || gName.includes('utoma');
+            const isMulo = g.id === 'grp-south-sakwa-mulo' || gName.includes('mulo');
+            if (!isMariwa && !isUtoma && !isMulo) return false;
+          }
+
+          // In Masaba Ward (Migori), Angaza Food Coop and Nyamagagana Food Coop are the 2 legitimate groups
           const isMasabaWard = g.wardId === 'ward-8' || g.wardName?.toLowerCase() === 'masaba' || g.id?.includes('masaba');
           if (isMasabaWard) {
             const isAngaza = g.id === 'grp-masaba-angaza' || gName.includes('angaza');
-            if (!isAngaza) return false;
+            const isNyamagagana = g.id === 'grp-masaba-nyamagagana' || gName.includes('nyamagagana');
+            if (!isAngaza && !isNyamagagana) return false;
           }
 
-          // Keep Sibembe Food Coop in Sikhendu
-          if (g.id === 'grp-sikhendu-sibembe' || g.id === 'grp-shikendu-sibembe' || gName.includes('sibembe')) {
-            return true;
-          }
-          // Keep Angaza Food Coop in Masaba
-          if (g.id === 'grp-masaba-angaza' || (isMasabaWard && gName.includes('angaza'))) {
-            return true;
-          }
+          // Keep legitimate ward food cooperatives
+          if (g.id === 'grp-sikhendu-sibembe' || g.id === 'grp-shikendu-sibembe' || gName.includes('sibembe')) return true;
+          if (g.id === 'grp-kangemi-food-coop' || g.id === 'grp-new-kangemi-food-coop') return true;
+          if (g.id === 'grp-south-sakwa-mariwa' || g.id === 'grp-south-sakwa-utoma-widows' || g.id === 'grp-south-sakwa-mulo') return true;
+          if (g.id === 'grp-masaba-angaza' || g.id === 'grp-masaba-nyamagagana') return true;
+
           // Remove fake groups that do not exist
           if (fakeGroupIds.has(g.id)) return false;
           if (/^grp-ward-\d+-\d+$/i.test(g.id)) return false;
@@ -298,7 +409,7 @@ function loadDB(): MockDB {
           return true;
         });
 
-        // Ensure Sikhendu Ward has Sibembe Food Coop
+        // 1. Ensure Sikhendu Ward has Sibembe Food Coop
         let sikhendu = parsed.Ward.find(
           (w: any) => (w.slug && (w.slug.toLowerCase() === 'sikhendu' || w.slug.toLowerCase() === 'shikendu')) || 
                       (w.name && (w.name.toLowerCase().trim() === 'sikhendu' || w.name.toLowerCase().trim() === 'shikendu'))
@@ -348,7 +459,138 @@ function loadDB(): MockDB {
           });
         }
 
-        // Ensure Masaba Ward in Migori has Angaza Food Coop (its one group / caucus)
+        // 2. Ensure Kangemi Ward has 2 groups: Kangemi Food Coop & New Kangemi Food Coop
+        let kangemi = parsed.Ward.find(
+          (w: any) => (w.slug && w.slug.toLowerCase() === 'kangemi') || 
+                      (w.name && w.name.toLowerCase().trim() === 'kangemi')
+        );
+        if (!kangemi) {
+          kangemi = {
+            id: 'ward-1',
+            name: 'Kangemi',
+            slug: 'kangemi',
+            county: 'Nairobi',
+            description: 'Nairobi County - Kangemi Ward'
+          };
+          parsed.Ward.push(kangemi);
+        }
+
+        const kangemiCoops = [
+          {
+            id: 'grp-kangemi-food-coop',
+            name: 'Kangemi Food Coop',
+            wardId: kangemi.id,
+            category: 'Agroecology & Food Sovereignty Cooperative',
+            description: 'Grassroots urban agroecology and smallholder food cooperative in Kangemi Ward. Holding joint mini-caucus today with New Kangemi Food Coop ahead of the December 10 National Assembly.',
+            leaderName: 'Kangemi Food Coop Convener',
+            leaderRole: 'Coop Leader & Convener',
+            leaderPhone: '',
+            meetingDay: 'Saturday, 24th October 2026 (Today\'s Joint Mini-Caucus)',
+            meetingFrequency: 'Weekly Food Coop Caucus',
+            memberCount: '1',
+            members: 'Kangemi Food Coop Convener (Group Leader)',
+            subTeams: []
+          },
+          {
+            id: 'grp-new-kangemi-food-coop',
+            name: 'New Kangemi Food Coop',
+            wardId: kangemi.id,
+            category: 'Agroecology & Food Sovereignty Cooperative',
+            description: 'Peasant and community food cooperative in New Kangemi area. Holding joint mini-caucus today with Kangemi Food Coop.',
+            leaderName: 'New Kangemi Food Coop Convener',
+            leaderRole: 'Coop Leader & Convener',
+            leaderPhone: '',
+            meetingDay: 'Saturday, 24th October 2026 (Today\'s Joint Mini-Caucus)',
+            meetingFrequency: 'Weekly Food Coop Caucus',
+            memberCount: '1',
+            members: 'New Kangemi Food Coop Convener (Group Leader)',
+            subTeams: []
+          }
+        ];
+
+        for (const target of kangemiCoops) {
+          const existing = parsed.Group.find((g: any) => g.id === target.id || (g.wardId === kangemi.id && g.name?.toLowerCase().trim() === target.name.toLowerCase().trim()));
+          if (existing) {
+            Object.assign(existing, target);
+          } else {
+            parsed.Group.push(target);
+          }
+        }
+
+        // 3. Ensure South Sakwa Ward has 3 groups: Mariwa Food Coop, Utoma Widows Food Coop, Mulo Food Coop
+        let southSakwa = parsed.Ward.find(
+          (w: any) => (w.slug && (w.slug.toLowerCase() === 'south-sakwa' || w.slug.toLowerCase().includes('sakwa'))) || 
+                      (w.name && w.name.toLowerCase().trim().includes('sakwa'))
+        );
+        if (!southSakwa) {
+          southSakwa = {
+            id: 'ward-6',
+            name: 'South Sakwa',
+            slug: 'south-sakwa',
+            county: 'Migori',
+            description: 'Migori County - South Sakwa Ward'
+          };
+          parsed.Ward.push(southSakwa);
+        }
+
+        const sakwaCoops = [
+          {
+            id: 'grp-south-sakwa-mariwa',
+            name: 'Mariwa Food Coop',
+            wardId: southSakwa.id,
+            category: 'Agroecology & Food Sovereignty Cooperative',
+            description: 'Grassroots peasant food cooperative in Mariwa, South Sakwa Ward (Migori County). Participating in the joint mini-caucus assembly with Utoma Widows and Mulo Food Coops.',
+            leaderName: 'Mariwa Food Coop Convener',
+            leaderRole: 'Coop Leader & Convener',
+            leaderPhone: '',
+            meetingDay: 'Tuesday, 10th November 2026 (Joint Mini-Caucus Assembly)',
+            meetingFrequency: 'Weekly Food Coop Caucus',
+            memberCount: '1',
+            members: 'Mariwa Food Coop Convener (Group Leader)',
+            subTeams: []
+          },
+          {
+            id: 'grp-south-sakwa-utoma-widows',
+            name: 'Utoma Widows Food Coop',
+            wardId: southSakwa.id,
+            category: 'Agroecology & Food Sovereignty Cooperative',
+            description: 'Women peasant farmers and widows agroecology collective in Utoma, South Sakwa Ward (Migori County). Participating in the joint mini-caucus assembly with Mariwa and Mulo Food Coops.',
+            leaderName: 'Utoma Widows Coop Convener',
+            leaderRole: 'Coop Leader & Convener',
+            leaderPhone: '',
+            meetingDay: 'Tuesday, 10th November 2026 (Joint Mini-Caucus Assembly)',
+            meetingFrequency: 'Weekly Food Coop Caucus',
+            memberCount: '1',
+            members: 'Utoma Widows Coop Convener (Group Leader)',
+            subTeams: []
+          },
+          {
+            id: 'grp-south-sakwa-mulo',
+            name: 'Mulo Food Coop',
+            wardId: southSakwa.id,
+            category: 'Agroecology & Food Sovereignty Cooperative',
+            description: 'Peasant agroecology cooperative in Mulo, South Sakwa Ward (Migori County). Participating in the joint mini-caucus assembly with Mariwa and Utoma Widows Food Coops.',
+            leaderName: 'Mulo Food Coop Convener',
+            leaderRole: 'Coop Leader & Convener',
+            leaderPhone: '',
+            meetingDay: 'Tuesday, 10th November 2026 (Joint Mini-Caucus Assembly)',
+            meetingFrequency: 'Weekly Food Coop Caucus',
+            memberCount: '1',
+            members: 'Mulo Food Coop Convener (Group Leader)',
+            subTeams: []
+          }
+        ];
+
+        for (const target of sakwaCoops) {
+          const existing = parsed.Group.find((g: any) => g.id === target.id || (g.wardId === southSakwa.id && g.name?.toLowerCase().trim() === target.name.toLowerCase().trim()));
+          if (existing) {
+            Object.assign(existing, target);
+          } else {
+            parsed.Group.push(target);
+          }
+        }
+
+        // 4. Ensure Masaba Ward in Migori has 2 groups: Angaza Food Coop & Nyamagagana Food Coop
         let masaba = parsed.Ward.find(
           (w: any) => (w.slug && w.slug.toLowerCase() === 'masaba') || 
                       (w.name && w.name.toLowerCase().trim() === 'masaba')
@@ -364,39 +606,46 @@ function loadDB(): MockDB {
           parsed.Ward.push(masaba);
         }
 
-        let angazaFound = false;
-        for (const g of parsed.Group) {
-          if (g.id === 'grp-masaba-angaza' || (g.wardId === masaba.id && g.name && g.name.toLowerCase().includes('angaza'))) {
-            angazaFound = true;
-            g.id = 'grp-masaba-angaza';
-            g.name = 'Angaza Food Coop';
-            g.category = 'Agroecology & Food Sovereignty Cooperative';
-            g.wardId = masaba.id || 'ward-8';
-            g.leaderName = g.leaderName || 'Angaza Food Coop Convener';
-            g.leaderRole = 'Coop Leader & Convener';
-            g.meetingFrequency = 'Weekly Food Coop Caucus';
-            g.meetingDay = 'Thursday Nov 5, 2026 at 10:00 AM – 12:00 PM (Citizen Deliberation)';
-            g.members = 'Angaza Food Coop Convener (Group Leader)';
-            g.memberCount = '1';
-          }
-        }
-
-        if (!angazaFound) {
-          parsed.Group.push({
+        const masabaCoops = [
+          {
             id: 'grp-masaba-angaza',
             name: 'Angaza Food Coop',
-            wardId: masaba ? masaba.id : 'ward-8',
+            wardId: masaba.id,
             category: 'Agroecology & Food Sovereignty Cooperative',
-            description: 'Grassroots agroecology and peasant food sovereignty cooperative in Masaba Ward (Migori County). Organizes smallholder farmers and community mini-caucuses championing agroecological food systems, soil regeneration, and indigenous seed saving ahead of the National Citizen Assembly.',
+            description: 'Grassroots agroecology and peasant food sovereignty cooperative in Masaba Ward (Migori County). Holding joint mini-caucus assembly with Nyamagagana Food Coop.',
             leaderName: 'Angaza Food Coop Convener',
             leaderRole: 'Coop Leader & Convener',
             leaderPhone: '',
-            meetingDay: 'Thursday Nov 5, 2026 at 10:00 AM – 12:00 PM (Citizen Deliberation)',
+            meetingDay: 'Thursday, 5th November 2026 (Joint Mini-Caucus Assembly)',
             meetingFrequency: 'Weekly Food Coop Caucus',
             memberCount: '1',
             members: 'Angaza Food Coop Convener (Group Leader)',
             subTeams: []
-          });
+          },
+          {
+            id: 'grp-masaba-nyamagagana',
+            name: 'Nyamagagana Food Coop',
+            wardId: masaba.id,
+            category: 'Agroecology & Food Sovereignty Cooperative',
+            description: 'Community peasant agroecology cooperative in Nyamagagana, Masaba Ward (Migori County). Holding joint mini-caucus assembly with Angaza Food Coop.',
+            leaderName: 'Nyamagagana Food Coop Convener',
+            leaderRole: 'Coop Leader & Convener',
+            leaderPhone: '',
+            meetingDay: 'Thursday, 5th November 2026 (Joint Mini-Caucus Assembly)',
+            meetingFrequency: 'Weekly Food Coop Caucus',
+            memberCount: '1',
+            members: 'Nyamagagana Food Coop Convener (Group Leader)',
+            subTeams: []
+          }
+        ];
+
+        for (const target of masabaCoops) {
+          const existing = parsed.Group.find((g: any) => g.id === target.id || (g.wardId === masaba.id && g.name?.toLowerCase().trim() === target.name.toLowerCase().trim()));
+          if (existing) {
+            Object.assign(existing, target);
+          } else {
+            parsed.Group.push(target);
+          }
         }
 
         // Clean up and purge mock resolutions from parsed.Resolution
@@ -719,7 +968,7 @@ class MockQueryBuilder implements PromiseLike<{ data: any; error: any }> {
     let results = table.filter((row) => {
       for (const f of this.filters) {
         if (f.op === 'eq') {
-          // Special handling for Sikhendu Ward groups: Sibembe Food Coop is ALWAYS part of Sikhendu
+          // Special handling for ward groups
           if (this.tableName === 'Group' && f.col === 'wardId') {
             const isSikhenduQuery = f.val === 'ward-7' || f.val === 'sikhendu' || f.val === 'shikendu';
             const isSibembeRow = row.id === 'grp-sikhendu-sibembe' || row.id === 'grp-shikendu-sibembe' || (row.name && row.name.toLowerCase().includes('sibembe'));
@@ -727,10 +976,21 @@ class MockQueryBuilder implements PromiseLike<{ data: any; error: any }> {
               continue;
             }
 
-            // Special handling for Masaba Ward: Angaza Food Coop is the ONE group or caucus
+            const isKangemiQuery = f.val === 'ward-1' || f.val === 'kangemi';
+            const isKangemiRow = row.id === 'grp-kangemi-food-coop' || row.id === 'grp-new-kangemi-food-coop' || (row.name && row.name.toLowerCase().includes('kangemi'));
+            if (isKangemiQuery && isKangemiRow) {
+              continue;
+            }
+
+            const isSouthSakwaQuery = f.val === 'ward-6' || f.val === 'south-sakwa' || f.val?.toLowerCase().includes('sakwa');
+            const isSakwaRow = row.id === 'grp-south-sakwa-mariwa' || row.id === 'grp-south-sakwa-utoma-widows' || row.id === 'grp-south-sakwa-mulo' || (row.name && (row.name.toLowerCase().includes('mariwa') || row.name.toLowerCase().includes('utoma') || row.name.toLowerCase().includes('mulo')));
+            if (isSouthSakwaQuery && isSakwaRow) {
+              continue;
+            }
+
             const isMasabaQuery = f.val === 'ward-8' || f.val === 'masaba' || f.val === 'ward-masaba';
-            const isAngazaRow = row.id === 'grp-masaba-angaza' || (row.name && row.name.toLowerCase().includes('angaza'));
-            if (isMasabaQuery && isAngazaRow) {
+            const isMasabaRow = row.id === 'grp-masaba-angaza' || row.id === 'grp-masaba-nyamagagana' || (row.name && (row.name.toLowerCase().includes('angaza') || row.name.toLowerCase().includes('nyamagagana')));
+            if (isMasabaQuery && isMasabaRow) {
               continue;
             }
           }
@@ -741,11 +1001,21 @@ class MockQueryBuilder implements PromiseLike<{ data: any; error: any }> {
       return true;
     });
 
-    // For Masaba Ward, enforce that only Angaza Food Coop is returned
+    // Ward specific group filters to ensure exact group lists
     if (this.tableName === 'Group') {
-      const hasMasabaFilter = this.filters.some(f => f.op === 'eq' && f.col === 'wardId' && (f.val === 'ward-8' || f.val === 'masaba' || f.val === 'ward-masaba'));
-      if (hasMasabaFilter) {
-        results = results.filter(g => g.id === 'grp-masaba-angaza' || (g.name && g.name.toLowerCase().includes('angaza')));
+      const kangemiFilter = this.filters.some(f => f.op === 'eq' && f.col === 'wardId' && (f.val === 'ward-1' || f.val === 'kangemi'));
+      if (kangemiFilter) {
+        results = results.filter(g => g.id === 'grp-kangemi-food-coop' || g.id === 'grp-new-kangemi-food-coop' || (g.name && g.name.toLowerCase().includes('kangemi')));
+      }
+
+      const sakwaFilter = this.filters.some(f => f.op === 'eq' && f.col === 'wardId' && (f.val === 'ward-6' || f.val === 'south-sakwa' || f.val?.toLowerCase().includes('sakwa')));
+      if (sakwaFilter) {
+        results = results.filter(g => g.id === 'grp-south-sakwa-mariwa' || g.id === 'grp-south-sakwa-utoma-widows' || g.id === 'grp-south-sakwa-mulo' || (g.name && (g.name.toLowerCase().includes('mariwa') || g.name.toLowerCase().includes('utoma') || g.name.toLowerCase().includes('mulo'))));
+      }
+
+      const masabaFilter = this.filters.some(f => f.op === 'eq' && f.col === 'wardId' && (f.val === 'ward-8' || f.val === 'masaba' || f.val === 'ward-masaba'));
+      if (masabaFilter) {
+        results = results.filter(g => g.id === 'grp-masaba-angaza' || g.id === 'grp-masaba-nyamagagana' || (g.name && (g.name.toLowerCase().includes('angaza') || g.name.toLowerCase().includes('nyamagagana'))));
       }
     }
 

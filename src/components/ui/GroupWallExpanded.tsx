@@ -86,17 +86,27 @@ export default function GroupWallExpanded({
     return l.includes('nyaboke') || l.includes('sarah') || l.includes('wanjiku') || l.includes('alice') || l.includes('bob');
   };
 
-  // Group Leader determination (Sibembe group leader is Irene Nyongesa; Angaza Food Coop leader is Angaza Convener; mock names removed for unregistered groups)
+  // Group Leader determination (Sibembe group leader is Irene Nyongesa; recognized food cooperatives have institutional conveners)
   const isSibembe = group.id === 'grp-sikhendu-sibembe' || group.id === 'grp-shikendu-sibembe' || group.name?.toLowerCase().includes('sibembe');
   const isAngaza = group.id === 'grp-masaba-angaza' || group.name?.toLowerCase().includes('angaza');
+  const isNyamagagana = group.id === 'grp-masaba-nyamagagana' || group.name?.toLowerCase().includes('nyamagagana');
+  const isMariwa = group.id === 'grp-south-sakwa-mariwa' || group.name?.toLowerCase().includes('mariwa');
+  const isUtoma = group.id === 'grp-south-sakwa-utoma-widows' || group.name?.toLowerCase().includes('utoma');
+  const isMulo = group.id === 'grp-south-sakwa-mulo' || group.name?.toLowerCase().includes('mulo');
+  const isKangemiCoop = group.id === 'grp-kangemi-food-coop' || (group.name?.toLowerCase().includes('kangemi') && !group.name?.toLowerCase().includes('new'));
+  const isNewKangemiCoop = group.id === 'grp-new-kangemi-food-coop' || group.name?.toLowerCase().includes('new kangemi');
+  const isRecognizedCoop = isSibembe || isAngaza || isNyamagagana || isMariwa || isUtoma || isMulo || isKangemiCoop || isNewKangemiCoop;
+
   const groupLeaderName = isSibembe 
     ? 'Irene Nyongesa' 
-    : isAngaza
-    ? (group.leaderName || 'Angaza Food Coop Convener')
-    : (group.leaderName && !isMockPerson(group.leaderName) ? group.leaderName : '');
+    : (group.leaderName && !isMockPerson(group.leaderName))
+    ? group.leaderName
+    : isRecognizedCoop
+    ? `${group.name} Convener`
+    : '';
   const groupLeaderRole = isSibembe 
     ? 'Group Leader & Convener' 
-    : isAngaza
+    : isRecognizedCoop
     ? 'Coop Leader & Convener'
     : (group.leaderRole || 'Group Leader');
   
@@ -533,8 +543,8 @@ Generated on: ${new Date().toLocaleString()}
   if (isSibembe && !cleanMembers.some((m: string) => m.includes('Irene Nyongesa'))) {
     cleanMembers.unshift('Irene Nyongesa (Group Leader)');
   }
-  if (isAngaza && !cleanMembers.some((m: string) => m.toLowerCase().includes('angaza'))) {
-    cleanMembers.unshift('Angaza Food Coop Convener (Group Leader)');
+  if (isRecognizedCoop && !isSibembe && !cleanMembers.some((m: string) => m.toLowerCase().includes('convener') || m.toLowerCase().includes('leader'))) {
+    cleanMembers.unshift(`${group.name} Convener (Group Leader)`);
   }
   const membersArray = cleanMembers;
 
