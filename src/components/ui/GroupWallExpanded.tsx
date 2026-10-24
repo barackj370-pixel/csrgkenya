@@ -86,13 +86,18 @@ export default function GroupWallExpanded({
     return l.includes('nyaboke') || l.includes('sarah') || l.includes('wanjiku') || l.includes('alice') || l.includes('bob');
   };
 
-  // Group Leader determination (Sibembe group leader is Irene Nyongesa; mock names removed for unregistered groups)
+  // Group Leader determination (Sibembe group leader is Irene Nyongesa; Angaza Food Coop leader is Angaza Convener; mock names removed for unregistered groups)
   const isSibembe = group.id === 'grp-sikhendu-sibembe' || group.id === 'grp-shikendu-sibembe' || group.name?.toLowerCase().includes('sibembe');
+  const isAngaza = group.id === 'grp-masaba-angaza' || group.name?.toLowerCase().includes('angaza');
   const groupLeaderName = isSibembe 
     ? 'Irene Nyongesa' 
+    : isAngaza
+    ? (group.leaderName || 'Angaza Food Coop Convener')
     : (group.leaderName && !isMockPerson(group.leaderName) ? group.leaderName : '');
   const groupLeaderRole = isSibembe 
     ? 'Group Leader & Convener' 
+    : isAngaza
+    ? 'Coop Leader & Convener'
     : (group.leaderRole || 'Group Leader');
   
   // Data states
@@ -527,6 +532,9 @@ Generated on: ${new Date().toLocaleString()}
   const cleanMembers = rawMembers.filter((m: string) => !isMockPerson(m));
   if (isSibembe && !cleanMembers.some((m: string) => m.includes('Irene Nyongesa'))) {
     cleanMembers.unshift('Irene Nyongesa (Group Leader)');
+  }
+  if (isAngaza && !cleanMembers.some((m: string) => m.toLowerCase().includes('angaza'))) {
+    cleanMembers.unshift('Angaza Food Coop Convener (Group Leader)');
   }
   const membersArray = cleanMembers;
 

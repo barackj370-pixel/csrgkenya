@@ -287,6 +287,15 @@ export default function Home() {
 
                       {/* Main Call to Actions */}
                       <div className="flex flex-wrap gap-2.5 items-center mt-6">
+                        <Link
+                          to={`/ward/${targetWardSlug}${targetGroupParam ? `?group=${targetGroupParam}` : ''}`}
+                          className="inline-flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-stone-950 px-5 py-3 rounded-2xl font-black text-xs md:text-sm transition-all shadow-lg hover:shadow-xl cursor-pointer"
+                        >
+                          <MapPin className="w-4 h-4" />
+                          <span>Visit {safeCaucus.wardName} Ward Wall</span>
+                          <ArrowRight className="w-4 h-4" />
+                        </Link>
+
                         <button
                           type="button"
                           onClick={() => setIsScheduleModalOpen(true)}
@@ -1326,11 +1335,11 @@ export default function Home() {
                                 </span>
                                 <div className="flex items-center gap-3">
                                   <Link
-                                    to={`/ward/${targetSlug}`}
+                                    to={`/ward/${targetSlug}${c.groupId ? `?group=${c.groupId}` : ''}`}
                                     onClick={() => setIsScheduleModalOpen(false)}
                                     className="font-bold text-sky-700 hover:text-sky-900 hover:underline"
                                   >
-                                    Visit Ward Wall →
+                                    Visit Ward & Caucus Wall →
                                   </Link>
                                 </div>
                               </div>

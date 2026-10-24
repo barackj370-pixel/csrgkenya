@@ -1047,20 +1047,20 @@ export const DEFAULT_MINI_CAUCUSES: MiniCaucusEvent[] = [
     updatedAt: new Date().toISOString()
   },
   {
-    id: 'caucus-kuria-angaza',
-    wardId: 'ward-bukira-east',
-    wardName: 'Bukira East',
-    county: 'Migori (Kuria)',
-    groupName: 'Angaza + Nyamagagana',
-    groupId: 'grp-kuria-angaza-nyamagagana',
-    title: 'Angaza + Nyamagagana Citizen Mini-Caucus',
+    id: 'caucus-masaba-angaza',
+    wardId: 'ward-8',
+    wardName: 'Masaba',
+    county: 'Migori',
+    groupName: 'Angaza Food Coop',
+    groupId: 'grp-masaba-angaza',
+    title: 'Masaba Ward Citizen Mini-Caucus (Angaza Food Coop)',
     dateLabel: 'Thursday, 5th November 2026',
     dateIso: '2026-11-05T10:00:00',
-    venue: 'Kuria, Migori',
-    agenda: 'Grassroots citizen deliberation ahead of the December 10 National Citizen Assembly.',
+    venue: 'Masaba Ward, Migori',
+    agenda: 'Grassroots citizen mini-caucus on peasant agroecology, community seed saving, and local resolutions ahead of the December 10 National Citizen Assembly.',
     status: 'UPCOMING',
     isSpotlight: false,
-    facilitatorRole: 'Angaza Kuria Community Committee',
+    facilitatorRole: 'Angaza Food Coop Convener',
     updatedAt: new Date().toISOString()
   },
   {
@@ -1133,7 +1133,7 @@ export const DEFAULT_MINI_CAUCUSES: MiniCaucusEvent[] = [
   }
 ];
 
-export const CAUCUS_STORAGE_KEY = 'csrg_mini_caucuses_v5';
+export const CAUCUS_STORAGE_KEY = 'csrg_mini_caucuses_v6';
 
 export async function getMiniCaucuses(wardId?: string): Promise<MiniCaucusEvent[]> {
   try {
@@ -1142,6 +1142,7 @@ export async function getMiniCaucuses(wardId?: string): Promise<MiniCaucusEvent[
     localStorage.removeItem('csrg_mini_caucuses_v2');
     localStorage.removeItem('csrg_mini_caucuses_v3');
     localStorage.removeItem('csrg_mini_caucuses_v4');
+    localStorage.removeItem('csrg_mini_caucuses_v5');
 
     const raw = localStorage.getItem(CAUCUS_STORAGE_KEY);
     let list: MiniCaucusEvent[] = raw ? JSON.parse(raw) : [...DEFAULT_MINI_CAUCUSES];
@@ -1174,8 +1175,25 @@ export async function getMiniCaucuses(wardId?: string): Promise<MiniCaucusEvent[
       // All 10 active caucuses in the schedule MUST be UPCOMING
       c.status = 'UPCOMING';
 
-      // Ensure exact November dates and locations for the last 4 caucuses
-      if (c.id === 'caucus-kuria-angaza' || c.title?.toLowerCase().includes('angaza') || c.title?.toLowerCase().includes('kuria')) {
+      // Ensure exact November dates and locations for the caucuses (Masaba Ward Angaza Food Coop, Lumakanda, South Sakwa, Kabarnet)
+      if (
+        c.id === 'caucus-kuria-angaza' || 
+        c.id === 'caucus-masaba-angaza' || 
+        c.title?.toLowerCase().includes('angaza') || 
+        c.groupName?.toLowerCase().includes('angaza') ||
+        c.title?.toLowerCase().includes('kuria') ||
+        c.wardName?.toLowerCase().includes('masaba')
+      ) {
+        c.id = 'caucus-masaba-angaza';
+        c.wardId = 'ward-8';
+        c.wardName = 'Masaba';
+        c.county = 'Migori';
+        c.groupName = 'Angaza Food Coop';
+        c.groupId = 'grp-masaba-angaza';
+        c.title = 'Masaba Ward Citizen Mini-Caucus (Angaza Food Coop)';
+        c.venue = 'Masaba Ward, Migori';
+        c.agenda = 'Grassroots citizen mini-caucus on peasant agroecology, community seed saving, and local resolutions ahead of the December 10 National Citizen Assembly.';
+        c.facilitatorRole = 'Angaza Food Coop Convener';
         c.dateLabel = 'Thursday, 5th November 2026';
         c.dateIso = '2026-11-05T10:00:00';
         c.status = 'UPCOMING';

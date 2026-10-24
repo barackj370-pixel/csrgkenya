@@ -117,7 +117,7 @@ function getInitialMockDB(): MockDB {
     }
   ]);
 
-  // Registered groups across wards (Only Sibembe Food Coop in Sikhendu is pre-registered; other wards only have groups added by clerks or admin)
+  // Registered groups across wards (Sibembe Food Coop in Sikhendu, Angaza Food Coop in Masaba; other wards only have groups added by clerks or admin)
   const groups: any[] = [
     // Sikhendu Ward - Sibembe Food Coop (only legitimate group for now)
     {
@@ -133,6 +133,22 @@ function getInitialMockDB(): MockDB {
       meetingFrequency: 'Weekly Food Coop Caucus',
       memberCount: '1',
       members: 'Irene Nyongesa (Coop Leader)',
+      subTeams: []
+    },
+    // Masaba Ward (Migori) - Angaza Food Coop (only group or caucus for Masaba Ward)
+    {
+      id: 'grp-masaba-angaza',
+      name: 'Angaza Food Coop',
+      wardId: 'ward-8',
+      category: 'Agroecology & Food Sovereignty Cooperative',
+      description: 'Grassroots agroecology and peasant food sovereignty cooperative in Masaba Ward (Migori County). Organizes smallholder farmers and community mini-caucuses championing agroecological food systems, soil regeneration, and indigenous seed saving ahead of the National Citizen Assembly.',
+      leaderName: 'Angaza Food Coop Convener',
+      leaderRole: 'Coop Leader & Convener',
+      leaderPhone: '',
+      meetingDay: 'Thursday Nov 5, 2026 at 10:00 AM – 12:00 PM (Citizen Deliberation)',
+      meetingFrequency: 'Weekly Food Coop Caucus',
+      memberCount: '1',
+      members: 'Angaza Food Coop Convener (Group Leader)',
       subTeams: []
     }
   ];
@@ -259,8 +275,19 @@ function loadDB(): MockDB {
             if (!isSibembe) return false;
           }
 
+          // In Masaba Ward (Migori), Angaza Food Coop is currently the ONE legitimate group or caucus
+          const isMasabaWard = g.wardId === 'ward-8' || g.wardName?.toLowerCase() === 'masaba' || g.id?.includes('masaba');
+          if (isMasabaWard) {
+            const isAngaza = g.id === 'grp-masaba-angaza' || gName.includes('angaza');
+            if (!isAngaza) return false;
+          }
+
           // Keep Sibembe Food Coop in Sikhendu
           if (g.id === 'grp-sikhendu-sibembe' || g.id === 'grp-shikendu-sibembe' || gName.includes('sibembe')) {
+            return true;
+          }
+          // Keep Angaza Food Coop in Masaba
+          if (g.id === 'grp-masaba-angaza' || (isMasabaWard && gName.includes('angaza'))) {
             return true;
           }
           // Remove fake groups that do not exist
@@ -317,6 +344,57 @@ function loadDB(): MockDB {
             meetingFrequency: 'Weekly Food Coop Caucus',
             memberCount: '1',
             members: 'Irene Nyongesa (Group Leader)',
+            subTeams: []
+          });
+        }
+
+        // Ensure Masaba Ward in Migori has Angaza Food Coop (its one group / caucus)
+        let masaba = parsed.Ward.find(
+          (w: any) => (w.slug && w.slug.toLowerCase() === 'masaba') || 
+                      (w.name && w.name.toLowerCase().trim() === 'masaba')
+        );
+        if (!masaba) {
+          masaba = {
+            id: 'ward-8',
+            name: 'Masaba',
+            slug: 'masaba',
+            county: 'Migori',
+            description: 'Migori County - Masaba Ward'
+          };
+          parsed.Ward.push(masaba);
+        }
+
+        let angazaFound = false;
+        for (const g of parsed.Group) {
+          if (g.id === 'grp-masaba-angaza' || (g.wardId === masaba.id && g.name && g.name.toLowerCase().includes('angaza'))) {
+            angazaFound = true;
+            g.id = 'grp-masaba-angaza';
+            g.name = 'Angaza Food Coop';
+            g.category = 'Agroecology & Food Sovereignty Cooperative';
+            g.wardId = masaba.id || 'ward-8';
+            g.leaderName = g.leaderName || 'Angaza Food Coop Convener';
+            g.leaderRole = 'Coop Leader & Convener';
+            g.meetingFrequency = 'Weekly Food Coop Caucus';
+            g.meetingDay = 'Thursday Nov 5, 2026 at 10:00 AM – 12:00 PM (Citizen Deliberation)';
+            g.members = 'Angaza Food Coop Convener (Group Leader)';
+            g.memberCount = '1';
+          }
+        }
+
+        if (!angazaFound) {
+          parsed.Group.push({
+            id: 'grp-masaba-angaza',
+            name: 'Angaza Food Coop',
+            wardId: masaba ? masaba.id : 'ward-8',
+            category: 'Agroecology & Food Sovereignty Cooperative',
+            description: 'Grassroots agroecology and peasant food sovereignty cooperative in Masaba Ward (Migori County). Organizes smallholder farmers and community mini-caucuses championing agroecological food systems, soil regeneration, and indigenous seed saving ahead of the National Citizen Assembly.',
+            leaderName: 'Angaza Food Coop Convener',
+            leaderRole: 'Coop Leader & Convener',
+            leaderPhone: '',
+            meetingDay: 'Thursday Nov 5, 2026 at 10:00 AM – 12:00 PM (Citizen Deliberation)',
+            meetingFrequency: 'Weekly Food Coop Caucus',
+            memberCount: '1',
+            members: 'Angaza Food Coop Convener (Group Leader)',
             subTeams: []
           });
         }
@@ -648,6 +726,13 @@ class MockQueryBuilder implements PromiseLike<{ data: any; error: any }> {
             if (isSikhenduQuery && isSibembeRow) {
               continue;
             }
+
+            // Special handling for Masaba Ward: Angaza Food Coop is the ONE group or caucus
+            const isMasabaQuery = f.val === 'ward-8' || f.val === 'masaba' || f.val === 'ward-masaba';
+            const isAngazaRow = row.id === 'grp-masaba-angaza' || (row.name && row.name.toLowerCase().includes('angaza'));
+            if (isMasabaQuery && isAngazaRow) {
+              continue;
+            }
           }
           if (row[f.col] !== f.val) return false;
         }
@@ -655,6 +740,14 @@ class MockQueryBuilder implements PromiseLike<{ data: any; error: any }> {
       }
       return true;
     });
+
+    // For Masaba Ward, enforce that only Angaza Food Coop is returned
+    if (this.tableName === 'Group') {
+      const hasMasabaFilter = this.filters.some(f => f.op === 'eq' && f.col === 'wardId' && (f.val === 'ward-8' || f.val === 'masaba' || f.val === 'ward-masaba'));
+      if (hasMasabaFilter) {
+        results = results.filter(g => g.id === 'grp-masaba-angaza' || (g.name && g.name.toLowerCase().includes('angaza')));
+      }
+    }
 
     // Apply orderRules
     if (this.orderRules.length > 0) {

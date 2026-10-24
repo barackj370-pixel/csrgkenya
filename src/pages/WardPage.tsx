@@ -47,6 +47,14 @@ export default function WardPage() {
             el.scrollIntoView({ behavior: 'smooth', block: 'start' });
           }
         }, 150);
+      } else if (groupParam === 'grp-masaba-angaza' || groupParam.toLowerCase().includes('angaza')) {
+        setExpandedGroup('grp-masaba-angaza');
+        setTimeout(() => {
+          const el = document.getElementById('ward-groups-section');
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, 150);
       } else if (ward?.groups && ward.groups.length > 0) {
         const match = ward.groups.find((g: any) => 
           g.id === groupParam || 
@@ -118,8 +126,10 @@ export default function WardPage() {
   const [newIssue, setNewIssue] = useState({ title: '', description: '' });
   const brainstormIssues = ward?.issues || [];
   
-  // Filter legitimate ward groups: in Sikhendu Ward, Sibembe Food Coop is the legitimate group
+  // Filter legitimate ward groups: in Sikhendu Ward, Sibembe Food Coop is the legitimate group;
+  // In Masaba Ward (Migori), Angaza Food Coop is currently the ONE group or caucus
   const isSikhendu = ward?.slug === 'sikhendu' || ward?.name?.toLowerCase() === 'sikhendu' || ward?.id === 'ward-7' || ward?.slug === 'shikendu';
+  const isMasaba = ward?.slug === 'masaba' || ward?.name?.toLowerCase() === 'masaba' || ward?.id === 'ward-8' || ward?.slug === 'masaba-ward';
 
   let rawWardGroups = ward?.groups || [];
   // Ensure Sibembe Food Coop is ALWAYS present under Sikhendu Ward (1 group, not 0)
@@ -144,6 +154,28 @@ export default function WardPage() {
     ];
   }
 
+  // Ensure Angaza Food Coop is ALWAYS present under Masaba Ward (Migori)
+  if (isMasaba && !rawWardGroups.some((g: any) => g.id === 'grp-masaba-angaza' || (g.name && g.name.toLowerCase().includes('angaza')))) {
+    rawWardGroups = [
+      {
+        id: 'grp-masaba-angaza',
+        name: 'Angaza Food Coop',
+        wardId: ward?.id || 'ward-8',
+        category: 'Agroecology & Food Sovereignty Cooperative',
+        description: 'Grassroots agroecology and peasant food sovereignty cooperative in Masaba Ward (Migori County). Organizes smallholder farmers and community mini-caucuses championing agroecological food systems, soil regeneration, and indigenous seed saving ahead of the National Citizen Assembly.',
+        leaderName: 'Angaza Food Coop Convener',
+        leaderRole: 'Group Leader & Convener',
+        leaderPhone: '',
+        meetingDay: 'Thursday Nov 5, 2026 at 10:00 AM – 12:00 PM (Citizen Deliberation)',
+        meetingFrequency: 'Weekly Food Coop Caucus',
+        memberCount: '1',
+        members: 'Angaza Food Coop Convener (Group Leader)',
+        subTeams: []
+      },
+      ...rawWardGroups
+    ];
+  }
+
   const wardGroups = rawWardGroups.filter((group: any) => {
     if (!group) return false;
     const gName = (group.name || '').toLowerCase();
@@ -153,6 +185,9 @@ export default function WardPage() {
     }
     if (isSikhendu) {
       return group.id === 'grp-sikhendu-sibembe' || group.id === 'grp-shikendu-sibembe' || gName.includes('sibembe');
+    }
+    if (isMasaba) {
+      return group.id === 'grp-masaba-angaza' || gName.includes('angaza');
     }
     return true;
   });
@@ -254,6 +289,7 @@ export default function WardPage() {
           
         if (data) {
           const isSikhenduWard = data.slug === 'sikhendu' || data.name?.toLowerCase() === 'sikhendu' || data.id === 'ward-7' || data.slug === 'shikendu';
+          const isMasabaWard = data.slug === 'masaba' || data.name?.toLowerCase() === 'masaba' || data.id === 'ward-8' || data.slug === 'masaba-ward';
 
           // Fetch related data separately to avoid join errors if relations aren't perfectly set up
           const [issuesRes, discussionsRes, groupsRes] = await Promise.all([
@@ -286,6 +322,32 @@ export default function WardPage() {
                   subTeams: []
                 },
                 ...finalGroups
+              ];
+            }
+          }
+
+          if (isMasabaWard) {
+            const allGroupsRes = await supabase.from('Group').select('*');
+            const angaza = (allGroupsRes.data || []).find((g: any) => g.id === 'grp-masaba-angaza' || (g.name && g.name.toLowerCase().includes('angaza')));
+            if (angaza) {
+              finalGroups = [angaza];
+            } else {
+              finalGroups = [
+                {
+                  id: 'grp-masaba-angaza',
+                  name: 'Angaza Food Coop',
+                  wardId: data.id || 'ward-8',
+                  category: 'Agroecology & Food Sovereignty Cooperative',
+                  description: 'Grassroots agroecology and peasant food sovereignty cooperative in Masaba Ward (Migori County). Organizes smallholder farmers and community mini-caucuses championing agroecological food systems, soil regeneration, and indigenous seed saving ahead of the National Citizen Assembly.',
+                  leaderName: 'Angaza Food Coop Convener',
+                  leaderRole: 'Group Leader & Convener',
+                  leaderPhone: '',
+                  meetingDay: 'Thursday Nov 5, 2026 at 10:00 AM – 12:00 PM (Citizen Deliberation)',
+                  meetingFrequency: 'Weekly Food Coop Caucus',
+                  memberCount: '1',
+                  members: 'Angaza Food Coop Convener (Group Leader)',
+                  subTeams: []
+                }
               ];
             }
           }

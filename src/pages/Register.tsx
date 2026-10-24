@@ -358,32 +358,61 @@ export default function Register() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Sibembe Group Leader Claim Shortcut */}
-            <div className="bg-amber-50 border-2 border-amber-300/80 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
-              <div>
-                <p className="text-xs font-black text-amber-950 flex items-center gap-1.5">
-                  <ShieldCheck className="w-4 h-4 text-amber-600" />
-                  <span>Are you Irene Nyongesa (Sibembe Food Coop Leader, Sikhendu Ward)?</span>
-                </p>
-                <p className="text-[11px] text-amber-900 mt-0.5">
-                  Click to pre-fill your Sibembe credentials, set your chosen password, and go directly to your Sibembe Food Coop wall.
-                </p>
+            {/* Grassroots Food Coop Leader Claim Shortcuts */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="bg-amber-50 border-2 border-amber-300/80 rounded-2xl p-4 flex flex-col justify-between gap-3 shadow-sm">
+                <div>
+                  <p className="text-xs font-black text-amber-950 flex items-center gap-1.5">
+                    <ShieldCheck className="w-4 h-4 text-amber-600" />
+                    <span>Sibembe Food Coop (Sikhendu Ward)</span>
+                  </p>
+                  <p className="text-[11px] text-amber-900 mt-0.5">
+                    Pre-fill credentials for Irene Nyongesa (Sibembe Food Coop Leader, Trans Nzoia).
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setName('Irene Nyongesa');
+                    setSelectedCounty('Trans Nzoia');
+                    setSelectedWard('Sikhendu');
+                    setVillage('Sibembe');
+                    setOrganizationName('Sibembe Food Coop');
+                    setOrganizationType('Food Sovereignty & Agroecology Cooperative');
+                    setMeetingFrequency('Weekly Food Coop Caucus');
+                  }}
+                  className="bg-amber-400 hover:bg-amber-300 text-stone-950 font-black text-xs px-3.5 py-2 rounded-xl transition-all shadow-sm shrink-0 cursor-pointer text-center"
+                >
+                  Claim Sibembe Leader Profile →
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setName('Irene Nyongesa');
-                  setSelectedCounty('Trans Nzoia');
-                  setSelectedWard('Sikhendu');
-                  setVillage('Sibembe');
-                  setOrganizationName('Sibembe Food Coop');
-                  setOrganizationType('Food Sovereignty & Agroecology Cooperative');
-                  setMeetingFrequency('Weekly Food Coop Caucus');
-                }}
-                className="bg-amber-400 hover:bg-amber-300 text-stone-950 font-black text-xs px-3.5 py-2 rounded-xl transition-all shadow-sm shrink-0 cursor-pointer"
-              >
-                Claim Sibembe Leader Profile →
-              </button>
+
+              <div className="bg-emerald-50 border-2 border-emerald-300/80 rounded-2xl p-4 flex flex-col justify-between gap-3 shadow-sm">
+                <div>
+                  <p className="text-xs font-black text-emerald-950 flex items-center gap-1.5">
+                    <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                    <span>Angaza Food Coop (Masaba Ward)</span>
+                  </p>
+                  <p className="text-[11px] text-emerald-900 mt-0.5">
+                    Pre-fill credentials for Angaza Food Coop Convener in Masaba Ward, Migori County.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setName('Angaza Food Coop Convener');
+                    setSelectedCounty('Migori');
+                    setSelectedWard('Masaba');
+                    setVillage('Masaba Central');
+                    setOrganizationName('Angaza Food Coop');
+                    setOrganizationType('Food Sovereignty & Agroecology Cooperative');
+                    setMeetingFrequency('Weekly Food Coop Caucus');
+                  }}
+                  className="bg-emerald-500 hover:bg-emerald-400 text-stone-950 font-black text-xs px-3.5 py-2 rounded-xl transition-all shadow-sm shrink-0 cursor-pointer text-center"
+                >
+                  Claim Angaza Leader Profile →
+                </button>
+              </div>
             </div>
 
             {/* Step 1: Personal Contact */}
